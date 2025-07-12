@@ -2,6 +2,7 @@ import telnetlib
 import time
 
 
+
 class AtenEcoPDU:
     """
     A Python class to interact with ATEN PE Series eco PDUs via Telnet.
