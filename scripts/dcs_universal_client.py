@@ -182,7 +182,7 @@ class ServerTab(QtWidgets.QWidget):
 
 
 class UniversalClient(QtWidgets.QMainWindow):
-    def __init__(self, ip_addr, servers, parent=None):
+    def __init__(self, ip_addr, servers, parent=None, timeout=4000):
         super().__init__(parent)
         self.setWindowTitle(f"Asgard DCS text interface: {ip_addr}")
         self.resize(700, 500)
@@ -196,8 +196,8 @@ class UniversalClient(QtWidgets.QMainWindow):
             socket = self.context.socket(zmq.REQ)
             socket.connect(f"tcp://{ip_addr}:{port}")
             # Set ZMQ send/recv timeouts (milliseconds)
-            socket.setsockopt(zmq.SNDTIMEO, 2000)
-            socket.setsockopt(zmq.RCVTIMEO, 2000)
+            socket.setsockopt(zmq.SNDTIMEO, timeout)
+            socket.setsockopt(zmq.RCVTIMEO, timeout)
             self.sockets.append(socket)
             tab = ServerTab(name, socket)
             self.tabs.addTab(tab, name)
@@ -216,12 +216,18 @@ class UniversalClient(QtWidgets.QMainWindow):
 def main():
     parser = argparse.ArgumentParser(description="Asgard DCS text interface client")
     parser.add_argument("ip_address", help="IP address of the server")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=4000,
+        help="ZMQ send/recv timeout in milliseconds (default: 4000)",
+    )
     args = parser.parse_args()
 
     ip_addr = args.ip_address
     servers = utils.load_servers()
     app = QtWidgets.QApplication(sys.argv)
-    client = UniversalClient(ip_addr, servers)
+    client = UniversalClient(ip_addr, servers, timeout=args.timeout)
     client.show()
     sys.exit(app.exec_())
 
