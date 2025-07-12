@@ -3,21 +3,8 @@ import zmq
 import json
 from PyQt5 import QtWidgets, QtGui, QtCore
 import argparse
+import utils
 
-# Load server list from sockets file
-def load_servers(filename):
-    servers = []
-    with open(filename, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            # Expecting format: name port
-            parts = line.split()
-            if len(parts) == 2:
-                name, port = parts
-                servers.append((name, int(port)))
-    return servers
 
 class ServerTab(QtWidgets.QWidget):
     def __init__(self, server_name, zmq_socket, parent=None):
@@ -58,17 +45,23 @@ class ServerTab(QtWidgets.QWidget):
             self.zmq_socket.send_string(f'arguments "{cmd}"')
             reply = self.zmq_socket.recv_string()
         except zmq.error.Again:
-            self.text_area.append("[Error] ZMQ request timed out while fetching arguments.")
+            self.text_area.append(
+                "[Error] ZMQ request timed out while fetching arguments."
+            )
             return
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
-                self.text_area.append("[Warning] Socket out of state, attempting to reconnect for arguments...")
+                self.text_area.append(
+                    "[Warning] Socket out of state, attempting to reconnect for arguments..."
+                )
                 self.reconnect_socket()
                 try:
                     self.zmq_socket.send_string(f'arguments "{cmd}"')
                     reply = self.zmq_socket.recv_string()
                 except Exception:
-                    self.text_area.append("[Error] Could not fetch arguments after reconnect.")
+                    self.text_area.append(
+                        "[Error] Could not fetch arguments after reconnect."
+                    )
                     return
             else:
                 self.text_area.append(f"[Error] {e}")
@@ -124,7 +117,9 @@ class ServerTab(QtWidgets.QWidget):
             reply = "[Error] ZMQ request timed out."
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
-                self.text_area.append("[Warning] Socket out of state, attempting to reconnect...")
+                self.text_area.append(
+                    "[Warning] Socket out of state, attempting to reconnect..."
+                )
                 self.reconnect_socket()
                 try:
                     self.zmq_socket.send_string(cmd)
@@ -154,11 +149,15 @@ class ServerTab(QtWidgets.QWidget):
             self.zmq_socket.send_string("command_names")
             reply = self.zmq_socket.recv_string()
         except zmq.error.Again:
-            self.text_area.append("[Error] ZMQ request timed out while fetching commands.")
+            self.text_area.append(
+                "[Error] ZMQ request timed out while fetching commands."
+            )
             return
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
-                self.text_area.append("[Warning] Socket out of state, attempting to reconnect for commands...")
+                self.text_area.append(
+                    "[Warning] Socket out of state, attempting to reconnect for commands..."
+                )
                 self.reconnect_socket()
                 try:
                     self.zmq_socket.send_string("command_names")
@@ -180,6 +179,7 @@ class ServerTab(QtWidgets.QWidget):
                     self.command_dropdown.addItems([str(c) for c in commands])
             except Exception:
                 pass
+
 
 class UniversalClient(QtWidgets.QMainWindow):
     def __init__(self, ip_addr, servers, parent=None):
@@ -212,17 +212,19 @@ class UniversalClient(QtWidgets.QMainWindow):
         if 0 <= idx < len(self.tab_widgets):
             self.tab_widgets[idx].populate_commands()
 
+
 def main():
     parser = argparse.ArgumentParser(description="Asgard DCS text interface client")
     parser.add_argument("ip_address", help="IP address of the server")
     args = parser.parse_args()
 
     ip_addr = args.ip_address
-    servers = load_servers('sockets')
+    servers = utils.load_servers()
     app = QtWidgets.QApplication(sys.argv)
     client = UniversalClient(ip_addr, servers)
     client.show()
     sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
