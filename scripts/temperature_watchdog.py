@@ -5,6 +5,12 @@
 import time
 import PDU
 import os
+import utils
+
+
+def str_to_ls(s):
+    return list(str(s)[1:-1].split(","))
+
 
 duration = 8 * 60 * 60  # seconds
 sampling = 5  # seconds
@@ -39,22 +45,17 @@ PI_infos_of_interest = [
 
 servo_names = ["Lower", "Upper"]
 
+mds = utils.open_socket_connection("MDS")
 
-def str_to_ls(s):
-    return list(str(s)[1:-1].split(","))
 
-keys = str_to_ls(mds)
+keys = str_to_ls(utils.send_and_get_response(mds, "temp_status keys"))
 
 start_time = time.time()
 with open(savepth, "w") as f:
     # temp probes first, followed by PI infos prefixed by servo name
     f.write(
         "Time,"
-        + ",".join(temp_probes)
-        + ","
-        + ",".join(
-            [f"{servo} {key}" for servo in servo_names for key in PI_infos_of_interest]
-        )
+        + ",".join(keys)
         + ","
         + ",".join(
             [
@@ -66,45 +67,11 @@ with open(savepth, "w") as f:
     )
     try:
         while time.time() - start_time < duration:
-            temps = []
-            for probe in temp_probes:
-                try:
-                    temp = cc.analog_input(probe)
-                    temps.append(temp)
-                except Exception as e:
-                    print(f"Error getting temperature for {probe}: {e}")
-                    temps.append(None)
-            if temps is None:
-                print("Failed to get temperatures, retrying...")
-                time.sleep(sampling)
-                continue
-
-            PI_infos = []
-            for i, servo in enumerate(servo_names):
-                try:
-                    info = cc.read_PI_loop_info(servo)
-                    PI_infos.append(info)
-                except Exception as e:
-                    print(f"Error getting PI info for {servo}: {e}")
-                    PI_infos.append(None)
-
+            temp_status = utils.send_and_get_response(mds, "temp_status now")
             current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            f.write(current_time + "," + ",".join(f"{temp:.2f}" for temp in temps))
-
-            # write out the PI infos, prefixed by the servo name
-            for i, info in enumerate(PI_infos):
-                if info is not None:
-                    f.write(
-                        ","
-                        + ",".join(
-                            (
-                                f"{info.get(key, 'None'):.2f}"
-                                if isinstance(info.get(key), (int, float))
-                                else str(info.get(key))
-                            )
-                            for key in PI_infos_of_interest
-                        )
-                    )
+            f.write(
+                current_time + "," + ",".join(f"{temp:.2f}" for temp in temp_status)
+            )
 
             # read PDU currents
             out_vals = []
@@ -121,7 +88,7 @@ with open(savepth, "w") as f:
 
             f.write("\n")
             f.flush()
-            print(f"{current_time}: {temps}")
+            print(f"{current_time}: {temp_status}")
 
             time.sleep(sampling)
     except KeyboardInterrupt:
