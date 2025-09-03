@@ -8,7 +8,8 @@ SOCKETS = {
     "MDS": 5555,
 }
 
-def open_socket_connection(pc_alias="mimir", name):
+
+def open_socket_connection(name, pc_alias="mimir"):
     """Open a socket connection to the specified server."""
     if name not in SOCKETS:
         raise ValueError(f"Unknown server name: {name}")
@@ -17,6 +18,7 @@ def open_socket_connection(pc_alias="mimir", name):
     socket = context.socket(zmq.REQ)
     socket.connect(f"tcp://{pc_alias}:{SOCKETS[name]}")
     return socket
+
 
 def send_and_get_response(socket, cmd):
     """Send a command to the server and return the response."""
@@ -27,6 +29,7 @@ def send_and_get_response(socket, cmd):
         print(f"Error: {e}")
         return None
     return response
+
 
 # Load server list from sockets file
 def load_servers():
