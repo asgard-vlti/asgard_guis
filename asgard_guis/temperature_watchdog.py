@@ -63,6 +63,7 @@ def main():
         try:
             while time.time() - start_time < duration:
                 temp_status = utils.send_and_get_response(mds, "temp_status now")
+                temp_status = str_to_ls(temp_status)
                 current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 print(temp_status)
                 f.write(
