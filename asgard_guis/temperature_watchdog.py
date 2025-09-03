@@ -64,8 +64,11 @@ def main():
             while time.time() - start_time < duration:
                 temp_status = utils.send_and_get_response(mds, "temp_status now")
                 current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                print(temp_status)
                 f.write(
-                    current_time + "," + ",".join(f"{temp:.2f}" for temp in temp_status)
+                    current_time
+                    + ","
+                    + ",".join(f"{float(temp):.2f}" for temp in temp_status)
                 )
 
                 # read PDU currents
