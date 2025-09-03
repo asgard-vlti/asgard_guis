@@ -10,7 +10,11 @@ import argparse
 
 
 def str_to_ls(s):
-    return list(str(s)[1:-1].split(","))
+    s = str(s)
+    # find [ and ]
+    start = s.find("[") + 1
+    end = s.find("]")
+    return list(s[start:end].split(","))
 
 
 def main():
