@@ -1,0 +1,17 @@
+[project]
+name = "asgard_alignment"
+version = "0.0.1"
+readme = "README.md"
+requires-python =">=3.8"
+license = {file = "LICENSE"}
+
+[project.scripts] 
+temperature-watchdog = "asgard_alignment.scripts.temperature_watchdog:main"
+temperature-plotting = "asgard_alignment.scripts.plot_temps:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["asgard_alignment"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
