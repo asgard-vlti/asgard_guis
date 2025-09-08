@@ -38,6 +38,8 @@ def main():
         os.path.join("~", "logs", "templogs", f"tempWD_{cur_datetime}.log")
     )
 
+    print("opening file at", savepth)
+
     pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
     pdu.connect()
     print("Connected to PDU")
