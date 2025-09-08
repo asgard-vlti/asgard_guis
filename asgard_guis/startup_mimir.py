@@ -13,32 +13,19 @@ print("Powering on Mimir outlets...")
 time.sleep(10)
 
 is_on = [False for _ in MIMIR_OUTLETS]
-for outlet in MIMIR_OUTLETS:
-    status = pdu.read_outlet_status(outlet)
-    if status == "on":
-        is_on[MIMIR_OUTLETS.index(outlet)] = True
+start_time = time.time()
+max_time = 50
 
-if all(is_on):
-    print("Mimir is on, expecting 10 mins to boot")
-else:
-    print("Mimir is not on, check PDU status")
-    for outlet, status in zip(MIMIR_OUTLETS, is_on):
-        if not status:
-            print(f"Outlet {outlet} is still off")
-
-    time.sleep(10)  # Wait a bit before retrying
-    # read again
-    is_on = [False for _ in MIMIR_OUTLETS]
+while (not all(is_on)) and (time.time() - start_time < max_time):
     for outlet in MIMIR_OUTLETS:
         status = pdu.read_outlet_status(outlet)
         if status == "on":
             is_on[MIMIR_OUTLETS.index(outlet)] = True
+            print(f"Outlet {outlet} is on")
 
-    print("Final status check:")
-    if all(is_on):
-        print("Mimir is now on, 10 mins to boot")
-    else:
-        print("Mimir is still not on, check PDU status again")
-        for outlet, status in zip(MIMIR_OUTLETS, is_on):
-            if not status:
-                print(f"Outlet {outlet} is still off")
+    time.sleep(1)
+
+if all(is_on):
+    print("Mimir is on, expecting 10 mins to boot")
+else:
+    print("ERROR: Mimir is not on, check PDU status manually")
