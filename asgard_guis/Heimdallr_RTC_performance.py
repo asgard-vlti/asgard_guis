@@ -147,7 +147,7 @@ def main():
     scatter = pg.ScatterPlotItem(
         x=BASELINE_POSITIONS[:, 0],
         y=BASELINE_POSITIONS[:, 1],
-        size=50,
+        size=30,
         brush=[BASELINE_COLORS[i % N_BASELINES].color() for i in range(N_BASELINES)],
         pen=pg.mkPen("w", width=2),
     )
@@ -163,7 +163,7 @@ def main():
     scatter = pg.ScatterPlotItem(
         x=-BASELINE_POSITIONS[:, 0],
         y=-BASELINE_POSITIONS[:, 1],
-        size=50,
+        size=30,
         brush=[BASELINE_COLORS[i % N_BASELINES].color() for i in range(N_BASELINES)],
         pen=pg.mkPen("w", width=2),
     )

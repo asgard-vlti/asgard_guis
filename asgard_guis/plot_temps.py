@@ -258,7 +258,7 @@ class TempPlotWidget(QtWidgets.QWidget):
 
         # Only the last subplot shows xtick labels
         self.axes[-1].set_xlabel("Time")
-        self.figure.tight_layout()
+#        self.figure.tight_layout()
         self.canvas.draw()
 
 
