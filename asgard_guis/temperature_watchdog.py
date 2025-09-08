@@ -5,7 +5,7 @@
 import time
 import asgard_guis.PDU
 import os
-import utils
+import asgard_guis.utils
 import argparse
 
 
@@ -45,9 +45,9 @@ def main():
     outlets_of_interest = [5, 6]
     outlet_names = ["MDS", "C RED"]
 
-    mds = utils.open_socket_connection("MDS")
+    mds = asgard_guis.utils.open_socket_connection("MDS")
 
-    keys = str_to_ls(utils.send_and_get_response(mds, "temp_status keys"))
+    keys = str_to_ls(asgard_guis.utils.send_and_get_response(mds, "temp_status keys"))
 
     start_time = time.time()
     with open(savepth, "w") as f:
@@ -66,7 +66,9 @@ def main():
         )
         try:
             while time.time() - start_time < duration:
-                temp_status = utils.send_and_get_response(mds, "temp_status now")
+                temp_status = asgard_guis.utils.send_and_get_response(
+                    mds, "temp_status now"
+                )
                 temp_status = str_to_ls(temp_status)
                 current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 print(temp_status)
