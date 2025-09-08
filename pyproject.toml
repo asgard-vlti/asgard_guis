@@ -8,6 +8,8 @@ license = {file = "LICENSE"}
 [project.scripts] 
 temperature-watchdog = "asgard_alignment.scripts.temperature_watchdog:main"
 temperature-plotting = "asgard_alignment.scripts.plot_temps:main"
+mimir-startup = "asgard_alignment.scripts.startup_mimir:main"
+mimir-shutdown = "asgard_alignment.scripts.shutdown_mimir:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_alignment"]
