@@ -145,7 +145,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                 "Temperature (°C)",
                 (None, None),
             ),  # ylims ignored here
-            (["Lower m_pin_val", "Upper m_pin_val"], "m_pin_val", (0, 255)),
+            (["Lower m_pin_val", "Upper m_pin_val"], "m_pin_val", (0, 260)),
             (["Lower integral", "Upper integral"], "Integral", (None, None)),
             (
                 ["Lower k_prop", "Upper k_prop", "Lower k_int", "Upper k_int"],
