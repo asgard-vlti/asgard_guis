@@ -1,11 +1,11 @@
-import PDU
+import asgard_guis.PDU
 import time
 
 
 def main():
     MIMIR_OUTLETS = [1, 8]
 
-    pdu = PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
     pdu.connect()
 
     input("Did you type sudo shutdown -h now on Mimir? Press Enter to continue...")

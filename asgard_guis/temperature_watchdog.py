@@ -3,7 +3,7 @@
 # to be run from the base directory of the asgard_alignment package
 
 import time
-import PDU
+import asgard_guis.PDU
 import os
 import utils
 import argparse
@@ -38,7 +38,7 @@ def main():
         os.path.join("~", "logs", "templogs", f"tempWD_{cur_datetime}.log")
     )
 
-    pdu = PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
     pdu.connect()
     print("Connected to PDU")
 
