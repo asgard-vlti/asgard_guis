@@ -66,6 +66,7 @@ def main():
             )
             + "\n"
         )
+        print("Starting monitoring...")
         try:
             while time.time() - start_time < duration:
                 temp_status = asgard_guis.utils.send_and_get_response(
