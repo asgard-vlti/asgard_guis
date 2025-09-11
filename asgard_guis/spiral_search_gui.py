@@ -1,13 +1,14 @@
 import sys
+import argparse
 from PyQt5 import QtWidgets, QtCore
 from spiral_search import SpiralSearchIntegrator
 
 
 class SpiralSearchGUI(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, debug=False):
         super().__init__()
         self.setWindowTitle("Spiral Search Controller")
-        self.integrator = SpiralSearchIntegrator()
+        self.integrator = SpiralSearchIntegrator(debug=debug)
         self.init_ui()
 
     def init_ui(self):
@@ -71,7 +72,15 @@ class SpiralSearchGUI(QtWidgets.QWidget):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Spiral Search GUI")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode (print commands instead of running)",
+    )
+    args = parser.parse_args()
+
     app = QtWidgets.QApplication(sys.argv)
-    win = SpiralSearchGUI()
+    win = SpiralSearchGUI(debug=args.debug)
     win.show()
     sys.exit(app.exec_())

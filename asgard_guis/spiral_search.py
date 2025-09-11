@@ -4,8 +4,9 @@ import os
 
 
 class SpiralSearchIntegrator:
-    def __init__(self):
+    def __init__(self, debug=False):
         self.accumulated_offsets = {1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]}
+        self.debug = debug
 
     def send_image_relative_offset(self, beam, x, y):
         # Prepare offsets for each beam (1-4)
@@ -25,12 +26,21 @@ class SpiralSearchIntegrator:
         self.accumulated_offsets[beam][0] += x
         self.accumulated_offsets[beam][1] += y
 
-        os.system(cmd)
+        if self.debug:
+            print(f"[DEBUG] Would run: {cmd}")
+        else:
+            os.system(cmd)
 
     def write_pointing_offsets_to_db(self):
         # Write accumulated offsets into database for beams 0-3
         for i in range(4):
             x_offset = self.accumulated_offsets[i + 1][0]
             y_offset = self.accumulated_offsets[i + 1][1]
-            os.system(f'dbWrite "<alias>mimir.hdlr_x_pof({i})" {x_offset}')
-            os.system(f'dbWrite "<alias>mimir.hdlr_y_pof({i})" {y_offset}')
+            cmd_x = f'dbWrite "<alias>mimir.hdlr_x_pof({i})" {x_offset}'
+            cmd_y = f'dbWrite "<alias>mimir.hdlr_y_pof({i})" {y_offset}'
+            if self.debug:
+                print(f"[DEBUG] Would run: {cmd_x}")
+                print(f"[DEBUG] Would run: {cmd_y}")
+            else:
+                os.system(cmd_x)
+                os.system(cmd_y)
