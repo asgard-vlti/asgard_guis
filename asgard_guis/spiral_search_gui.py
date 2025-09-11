@@ -7,7 +7,7 @@ from spiral_search import SpiralSearchIntegrator
 class SpiralSearchGUI(QtWidgets.QWidget):
     def __init__(self, debug=False):
         super().__init__()
-        self.setWindowTitle("Spiral Search Controller")
+        self.setWindowTitle("Image search GUI")
         self.integrator = SpiralSearchIntegrator(debug=debug)
         self.init_ui()
 
@@ -75,7 +75,7 @@ class SpiralSearchGUI(QtWidgets.QWidget):
         self.close()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Spiral Search GUI")
     parser.add_argument(
         "--debug",
@@ -88,3 +88,7 @@ if __name__ == "__main__":
     win = SpiralSearchGUI(debug=args.debug)
     win.show()
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
