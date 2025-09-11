@@ -1,7 +1,7 @@
 import sys
 import argparse
 from PyQt5 import QtWidgets, QtCore
-from spiral_search import SpiralSearchIntegrator
+from asgard_guis.spiral_search import SpiralSearchIntegrator
 
 
 class SpiralSearchGUI(QtWidgets.QWidget):
