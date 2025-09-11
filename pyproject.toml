@@ -10,6 +10,7 @@ temperature-watchdog = "asgard_guis.temperature_watchdog:main"
 temperature-plotting = "asgard_guis.plot_temps:main"
 mimir-startup = "asgard_guis.startup_mimir:main"
 mimir-shutdown = "asgard_guis.shutdown_mimir:main"
+text-clients = "asgard_guis.universal_client:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
