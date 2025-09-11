@@ -36,14 +36,15 @@ class SpiralSearchGUI(QtWidgets.QWidget):
 
         # X/Y controls
         grid = QtWidgets.QGridLayout()
-        self.x_minus_btn = QtWidgets.QPushButton("-X")
-        self.x_plus_btn = QtWidgets.QPushButton("+X")
-        self.y_minus_btn = QtWidgets.QPushButton("-Y")
-        self.y_plus_btn = QtWidgets.QPushButton("+Y")
-        grid.addWidget(self.y_plus_btn, 0, 1)
-        grid.addWidget(self.x_minus_btn, 1, 0)
-        grid.addWidget(self.x_plus_btn, 1, 2)
-        grid.addWidget(self.y_minus_btn, 2, 1)
+        self.x_plus_btn = QtWidgets.QPushButton("+X (Left)")
+        self.x_minus_btn = QtWidgets.QPushButton("-X (Right)")
+        self.y_plus_btn = QtWidgets.QPushButton("+Y (Down)")
+        self.y_minus_btn = QtWidgets.QPushButton("-Y (Up)")
+        # Arrange so +Y is down, +X is left
+        grid.addWidget(self.y_minus_btn, 0, 1)  # Up
+        grid.addWidget(self.x_plus_btn, 1, 0)  # Left
+        grid.addWidget(self.x_minus_btn, 1, 2)  # Right
+        grid.addWidget(self.y_plus_btn, 2, 1)  # Down
         layout.addLayout(grid)
 
         # Done button
@@ -53,16 +54,19 @@ class SpiralSearchGUI(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # Connect signals
-        self.x_minus_btn.clicked.connect(lambda: self.move_offset(-1, 0))
-        self.x_plus_btn.clicked.connect(lambda: self.move_offset(1, 0))
-        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, -1))
-        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, 1))
+        # +X is left, -X is right, +Y is down, -Y is up
+        self.x_plus_btn.clicked.connect(lambda: self.move_offset(1, 0))  # Left
+        self.x_minus_btn.clicked.connect(lambda: self.move_offset(-1, 0))  # Right
+        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, 1))  # Down
+        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, -1))  # Up
         self.done_btn.clicked.connect(self.finish_and_close)
 
     def move_offset(self, dx, dy):
         beam = int(self.beam_combo.currentText())
         step = self.step_box.value()
-        x = dx * step
+        # +X is left (negative real X), -X is right (positive real X)
+        # +Y is down (positive real Y), -Y is up (negative real Y)
+        x = -dx * step
         y = dy * step
         self.integrator.send_image_relative_offset(beam, x, y)
 
