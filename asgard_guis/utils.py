@@ -4,7 +4,10 @@ SOCKETS = {
     "cam_server": 6667,
     "DM_server": 6666,
     "heimdallr": 6660,
-    "baldr": 6662,
+    "baldr1": 6662,
+    "baldr2": 6663,
+    "baldr3": 6664,
+    "baldr4": 6665,
     "MDS": 5555,
 }
 
