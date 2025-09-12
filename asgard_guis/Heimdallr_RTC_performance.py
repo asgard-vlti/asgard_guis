@@ -8,6 +8,8 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 import argparse
 
+import heapq
+
 N_TSCOPES = 4
 N_BASELINES = 6
 
@@ -56,6 +58,16 @@ def main():
             "#D55E00",
         ]
     ]
+    M = np.array(
+        [
+            [-1, 1, 0, 0],
+            [-1, 0, 1, 0],
+            [-1, 0, 0, 1],
+            [0, -1, 1, 0],
+            [0, -1, 0, 1],
+            [0, 0, -1, 1],
+        ]
+    ).T
 
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
@@ -69,6 +81,40 @@ def main():
     offload = np.zeros((samples, N_TSCOPES))
     gd_snr = np.zeros((samples, N_BASELINES))
     pd_snr = np.zeros((samples, N_BASELINES))
+
+    n_max_samples = 20  # number of samples to keep track of as the best so far
+    best_v2_K1 = [[] for _ in range(N_BASELINES)]
+    best_v2_K2 = [[] for _ in range(N_BASELINES)]
+
+
+    # --- New Figure for OPD vs V2_K1 and V2_K2 ---
+    # Place this after baseline_names is defined
+    # (Moved here to ensure baseline_names is defined)
+    scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
+    scatter_win.resize(1200, 800)
+    scatter_win.setWindowTitle("Best OPD vs V2_K1 and V2_K2")
+    scatter_plots = []
+    scatter_items_k1 = []
+    scatter_items_k2 = []
+    marker_symbols = ['o', 't', 's', 'd', '+', 'x']  # 6 different marker types
+    for i in range(N_BASELINES):
+        p = scatter_win.addPlot(row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}")
+        p.setLabel("left", "V² Value")
+        p.setLabel("bottom", "OPD")
+        p.showGrid(x=True, y=True)
+        # Scatter for K2 (filled), K1 (open)
+        symbol = marker_symbols[i % len(marker_symbols)]
+        scatter_k2 = pg.ScatterPlotItem(
+            pen=BASELINE_COLORS[i], brush=BASELINE_COLORS[i], symbol="o", size=12, name="K2"
+        )
+        scatter_k1 = pg.ScatterPlotItem(
+            pen=BASELINE_COLORS[i], brush=BASELINE_COLORS[i], symbol="x", size=12, name="K1"
+        )
+        p.addItem(scatter_k2)
+        p.addItem(scatter_k1)
+        scatter_plots.append(p)
+        scatter_items_k2.append(scatter_k2)
+        scatter_items_k1.append(scatter_k1)
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
@@ -179,7 +225,7 @@ def main():
 
     legend_win.show()
 
-    plots = []
+    # plots = []  # Unused variable removed
     curves = []
 
     # --- Left Column: Telescopes ---
@@ -319,6 +365,49 @@ def main():
             curves[5][i].setData(time_axis, v2_K2[:, i])
             curves[6][i].setData(time_axis, gd_snr[:, i])
             curves[7][i].setData(time_axis, pd_snr[:, i])
+
+        print(M.shape, offload[-1].shape)
+        opds = M @ offload[-1]
+
+        # Update best samples if V2_K1 or V2_K2 is among the best so far
+
+        for baseline_idx in range(N_BASELINES):
+            if len(best_v2_K1[baseline_idx]) < n_max_samples:
+                # we are still accumulating the first samples
+                heapq.heappush(
+                    best_v2_K1[baseline_idx],
+                    (opds[baseline_idx], v2_K1[-1, baseline_idx]),
+                )
+                heapq.heappush(
+                    best_v2_K2[baseline_idx],
+                    (opds[baseline_idx], v2_K2[-1, baseline_idx]),
+                )
+            else:
+                # add the using heappushpop
+                heapq.heappushpop(
+                    best_v2_K1[baseline_idx],
+                    (opds[baseline_idx], v2_K1[-1, baseline_idx]),
+                )
+                heapq.heappushpop(
+                    best_v2_K2[baseline_idx],
+                    (opds[baseline_idx], v2_K2[-1, baseline_idx]),
+                )
+
+        # Update scatter plots for best_v2_K1 and best_v2_K2
+        for i in range(N_BASELINES):
+            # Unpack (opd, value) pairs
+            k1_points = best_v2_K1[i]
+            k2_points = best_v2_K2[i]
+            if k1_points:
+                x1, y1 = zip(*k1_points)
+            else:
+                x1, y1 = [], []
+            if k2_points:
+                x2, y2 = zip(*k2_points)
+            else:
+                x2, y2 = [], []
+            scatter_items_k1[i].setData(x=x1, y=y1)
+            scatter_items_k2[i].setData(x=x2, y=y2)
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
