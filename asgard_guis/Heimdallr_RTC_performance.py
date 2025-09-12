@@ -267,7 +267,13 @@ def main():
     # plots = []  # Unused variable removed
     curves = []
 
-    # --- Button to compute and print offsets from median OPD values ---
+    # --- Buttons widget for top right ---
+    buttons_widget = QtWidgets.QWidget()
+    buttons_layout = QtWidgets.QVBoxLayout()
+    buttons_widget.setLayout(buttons_layout)
+    buttons_widget.setContentsMargins(10, 10, 10, 10)
+    buttons_layout.setAlignment(QtCore.Qt.AlignTop)
+
     def print_offsets_from_median_opd():
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
@@ -286,9 +292,8 @@ def main():
 
     offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
     offset_button.clicked.connect(print_offsets_from_median_opd)
-    legend_layout.addWidget(offset_button)
+    buttons_layout.addWidget(offset_button)
 
-    # --- Button to reset best_gd_SNR ---
     def reset_best_gd_SNR():
         nonlocal best_gd_SNR
         best_gd_SNR = [
@@ -298,7 +303,10 @@ def main():
 
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
     reset_button.clicked.connect(reset_best_gd_SNR)
-    legend_layout.addWidget(reset_button)
+    buttons_layout.addWidget(reset_button)
+
+    # Add the buttons_widget to the main window at the top right (row=0, col=2, rowspan=2)
+    win.addItem(buttons_widget, row=0, col=2, rowspan=2)
 
     # --- Left Column: Telescopes ---
     # Subheader
