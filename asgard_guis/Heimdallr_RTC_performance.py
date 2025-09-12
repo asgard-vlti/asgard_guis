@@ -147,9 +147,9 @@ def main():
     scatter_win.resize(1200, 800)
 
     scatter_win.setWindowTitle("Best OPD vs vis (All Baselines)")
-    # scatter_plot = scatter_win.addPlot(
-    #     row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
-    # )
+    scatter_plot = scatter_win.addPlot(
+        row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
+    )
     scatter_plot.setLabel("left", "GD Value")
     scatter_plot.setLabel("bottom", "OPD")
     scatter_plot.showGrid(x=True, y=True)
