@@ -26,6 +26,8 @@ class SpiralSearchIntegrator:
         self.accumulated_offsets[beam][0] += x
         self.accumulated_offsets[beam][1] += y
 
+        print(self.accumulated_offsets)
+
         if self.debug:
             print(f"[DEBUG] Would run: {cmd}")
         else:
