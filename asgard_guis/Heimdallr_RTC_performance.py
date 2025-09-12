@@ -67,6 +67,18 @@ def main():
         "12",
     ]
 
+    # --- Baseline positions and circle plot ---
+    BASELINE_POSITIONS = np.array(
+        [
+            [-3.93, -2.0],
+            [-3.81, 2.425],
+            [-2.785, -0.035],
+            [-1.145, -1.965],
+            [-1.025, 2.46],
+            [-0.12, -4.425],
+        ]
+    )  # shape: (N_BASELINES, 2), adjust as needed
+
     M = np.array(
         [
             [-1, 1, 0, 0],
@@ -191,18 +203,6 @@ def main():
     # scatter_plot.addItem(scatter_k1)
     # scatter_items_k2.append(scatter_k2)
     # scatter_items_k1.append(scatter_k1)
-
-    # --- Baseline positions and circle plot ---
-    BASELINE_POSITIONS = np.array(
-        [
-            [-3.93, -2.0],
-            [-3.81, 2.425],
-            [-2.785, -0.035],
-            [-1.145, -1.965],
-            [-1.025, 2.46],
-            [-0.12, -4.425],
-        ]
-    )  # shape: (N_BASELINES, 2), adjust as needed
 
     baseline_plot_widget = pg.PlotWidget()
     baseline_plot_widget.setBackground("#222")
