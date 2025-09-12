@@ -6,7 +6,6 @@ import ZMQ_control_client as Z
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
-from pyqtgraph.widgets.WidgetProxy import WidgetProxy
 import argparse
 
 import heapq
@@ -263,18 +262,10 @@ def main():
 
     legend_layout.addWidget(baseline_plot_widget)
 
-    legend_win.show()
+    # Add vertical spacer to push buttons lower
+    legend_layout.addStretch(1)
 
-    # plots = []  # Unused variable removed
-    curves = []
-
-    # --- Buttons widget for top right ---
-    buttons_widget = QtWidgets.QWidget()
-    buttons_layout = QtWidgets.QVBoxLayout()
-    buttons_widget.setLayout(buttons_layout)
-    buttons_widget.setContentsMargins(10, 10, 10, 10)
-    buttons_layout.setAlignment(QtCore.Qt.AlignTop)
-
+    # --- Button to compute and print offsets from median OPD values ---
     def print_offsets_from_median_opd():
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
@@ -293,8 +284,9 @@ def main():
 
     offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
     offset_button.clicked.connect(print_offsets_from_median_opd)
-    buttons_layout.addWidget(offset_button)
+    legend_layout.addWidget(offset_button)
 
+    # --- Button to reset best_gd_SNR ---
     def reset_best_gd_SNR():
         nonlocal best_gd_SNR
         best_gd_SNR = [
@@ -304,10 +296,9 @@ def main():
 
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
     reset_button.clicked.connect(reset_best_gd_SNR)
-    buttons_layout.addWidget(reset_button)
+    legend_layout.addWidget(reset_button)
 
-    # Add the buttons_widget to the main window at the top right (row=0, col=2, rowspan=2) using WidgetProxy
-    win.addItem(WidgetProxy(buttons_widget), row=0, col=2, rowspan=2)
+    legend_win.show()
 
     # --- Left Column: Telescopes ---
     # Subheader
