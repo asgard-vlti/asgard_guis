@@ -22,6 +22,36 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
         self.history = []
         self.history_index = -1
 
+    def event(self, event):
+        # Intercept Tab key at the event level to prevent focus change
+        if event.type() == QtCore.QEvent.KeyPress and event.key() == QtCore.Qt.Key_Tab:
+            parent = self.parent()
+            if hasattr(parent, "command_dropdown"):
+                current_text = self.text()
+                dropdown = parent.command_dropdown
+                matches = []
+                for i in range(dropdown.count()):
+                    cmd = dropdown.itemText(i)
+                    if cmd.startswith(current_text):
+                        matches.append(cmd)
+                if matches:
+                    if len(matches) == 1:
+                        self.setText(matches[0])
+                    else:
+                        prefix = matches[0]
+                        for m in matches[1:]:
+                            i = 0
+                            while i < len(prefix) and i < len(m) and prefix[i] == m[i]:
+                                i += 1
+                            prefix = prefix[:i]
+                        self.setText(prefix)
+                    self.setCursorPosition(len(self.text()))
+                    if len(matches) > 1:
+                        dropdown.showPopup()
+                # Do not propagate Tab further (prevents focus change)
+                return True
+        return super().event(event)
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Up:
             if self.history:
@@ -43,44 +73,6 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
                 else:
                     self.history_index = -1
                     self.clear()
-        elif event.key() == QtCore.Qt.Key_Tab:
-            # Autocomplete command from dropdown if possible
-            parent = self.parent()
-            if hasattr(parent, "command_dropdown"):
-                current_text = self.text()
-                dropdown = parent.command_dropdown
-                matches = []
-                print(current_text)
-                for i in range(dropdown.count()):
-                    cmd = dropdown.itemText(i)
-                    print(f"Checking {cmd}")
-                    if cmd.startswith(current_text):
-                        print("Match!")
-                        matches.append(cmd)
-                if matches:
-                    # If only one match, autocomplete fully
-                    # If multiple, autocomplete to common prefix
-                    if len(matches) == 1:
-                        self.setText(matches[0])
-                    else:
-                        # Find common prefix
-                        prefix = matches[0]
-                        for m in matches[1:]:
-                            i = 0
-                            while i < len(prefix) and i < len(m) and prefix[i] == m[i]:
-                                i += 1
-                            prefix = prefix[:i]
-                        self.setText(prefix)
-                    self.setCursorPosition(len(self.text()))
-                    # Optionally, show dropdown popup if multiple matches
-                    if len(matches) > 1:
-                        dropdown.showPopup()
-                else:
-                    # No match, do nothing or beep
-                    # QtWidgets.QApplication.beep()
-                    pass
-            else:
-                super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)
 
