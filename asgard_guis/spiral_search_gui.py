@@ -37,15 +37,15 @@ class SpiralSearchGUI(QtWidgets.QWidget):
 
         # X/Y controls
         grid = QtWidgets.QGridLayout()
-        self.x_plus_btn = QtWidgets.QPushButton("+X (Left)")
-        self.x_minus_btn = QtWidgets.QPushButton("-X (Right)")
-        self.y_plus_btn = QtWidgets.QPushButton("+Y (Down)")
-        self.y_minus_btn = QtWidgets.QPushButton("-Y (Up)")
-        # Arrange so +Y is down, +X is left
-        grid.addWidget(self.y_minus_btn, 0, 1)  # Up
-        grid.addWidget(self.x_plus_btn, 1, 0)  # Left
-        grid.addWidget(self.x_minus_btn, 1, 2)  # Right
-        grid.addWidget(self.y_plus_btn, 2, 1)  # Down
+        self.x_plus_btn = QtWidgets.QPushButton("+X (Right)")
+        self.x_minus_btn = QtWidgets.QPushButton("-X (Left)")
+        self.y_plus_btn = QtWidgets.QPushButton("+Y (Up)")
+        self.y_minus_btn = QtWidgets.QPushButton("-Y (Down)")
+        # Arrange so +Y is up, +X is right
+        grid.addWidget(self.y_plus_btn, 0, 1)  # Up
+        grid.addWidget(self.x_minus_btn, 1, 0)  # Left
+        grid.addWidget(self.x_plus_btn, 1, 2)  # Right
+        grid.addWidget(self.y_minus_btn, 2, 1)  # Down
         layout.addLayout(grid)
 
         # Done button
@@ -55,20 +55,20 @@ class SpiralSearchGUI(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # Connect signals
-        # +X is left, -X is right, +Y is down, -Y is up
-        self.x_plus_btn.clicked.connect(lambda: self.move_offset(1, 0))  # Left
-        self.x_minus_btn.clicked.connect(lambda: self.move_offset(-1, 0))  # Right
-        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, 1))  # Down
-        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, -1))  # Up
+        # +X is right, -X is left, +Y is up, -Y is down
+        self.x_plus_btn.clicked.connect(lambda: self.move_offset(1, 0))  # Right
+        self.x_minus_btn.clicked.connect(lambda: self.move_offset(-1, 0))  # Left
+        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, 1))  # Up
+        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, -1))  # Down
         self.done_btn.clicked.connect(self.finish_and_close)
 
     def move_offset(self, dx, dy):
         beam = int(self.beam_combo.currentText())
         step = self.step_box.value()
-        # +X is left (negative real X), -X is right (positive real X)
-        # +Y is down (positive real Y), -Y is up (negative real Y)
-        x = -dx * step
-        y = dy * step
+        # +X is right (positive real X), -X is left (negative real X)
+        # +Y is up (negative real Y), -Y is down (positive real Y)
+        x = dx * step
+        y = -dy * step
         self.integrator.send_image_relative_offset(beam, x, y)
 
     def finish_and_close(self):
