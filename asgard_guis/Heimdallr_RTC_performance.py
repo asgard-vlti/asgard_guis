@@ -91,7 +91,7 @@ def main():
     gd_snr = np.zeros((samples, N_BASELINES))
     pd_snr = np.zeros((samples, N_BASELINES))
 
-    n_max_samples = 20  # number of samples to keep track of as the best so far
+    n_max_samples = 5  # number of samples to keep track of as the best so far
     best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
     best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
