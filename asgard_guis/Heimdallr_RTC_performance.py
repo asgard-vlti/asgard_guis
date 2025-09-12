@@ -382,7 +382,6 @@ def main():
         opds = M @ offload[-1]
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
-
         for baseline_idx in range(N_BASELINES):
             cur_v2K1 = v2_K1[-1, baseline_idx]
             cur_v2K2 = v2_K2[-1, baseline_idx]
@@ -415,14 +414,10 @@ def main():
             # Unpack (opd, value) pairs
             k1_points = best_v2_K1[i]
             k2_points = best_v2_K2[i]
-            if k1_points:
-                x1, y1 = zip(*k1_points)
-            else:
-                x1, y1 = [], []
-            if k2_points:
-                x2, y2 = zip(*k2_points)
-            else:
-                x2, y2 = [], []
+
+            y1, x1 = zip(*k1_points)
+            y2, x2 = zip(*k2_points)
+
             scatter_items_k1[i].setData(x=x1, y=y1)
             scatter_items_k2[i].setData(x=x2, y=y2)
 
