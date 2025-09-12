@@ -6,6 +6,7 @@ import ZMQ_control_client as Z
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
+from pyqtgraph.widgets.WidgetProxy import WidgetProxy
 import argparse
 
 import heapq
@@ -306,7 +307,7 @@ def main():
     buttons_layout.addWidget(reset_button)
 
     # Add the buttons_widget to the main window at the top right (row=0, col=2, rowspan=2) using WidgetProxy
-    win.addItem(pg.WidgetProxy(buttons_widget), row=0, col=2, rowspan=2)
+    win.addItem(WidgetProxy(buttons_widget), row=0, col=2, rowspan=2)
 
     # --- Left Column: Telescopes ---
     # Subheader
