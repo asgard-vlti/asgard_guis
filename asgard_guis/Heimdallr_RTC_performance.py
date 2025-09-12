@@ -95,49 +95,6 @@ def main():
         "12",
     ]
 
-    # --- New Figure for OPD vs V2_K1 and V2_K2 ---
-    # Place this after baseline_names is defined
-    # (Moved here to ensure baseline_names is defined)
-    scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
-    scatter_win.resize(1200, 800)
-    scatter_win.setWindowTitle("Best OPD vs V2_K1 and V2_K2")
-    scatter_plots = []
-    scatter_items_k1 = []
-    scatter_items_k2 = []
-    marker_symbols = ["o", "t", "s", "d", "+", "x"]  # 6 different marker types
-    for i in range(N_BASELINES):
-        p = scatter_win.addPlot(
-            row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}"
-        )
-        p.setLabel("left", "V² Value")
-        p.setLabel("bottom", "OPD")
-        p.showGrid(x=True, y=True)
-        # Scatter for K2 (filled), K1 (open)
-        color = (
-            BASELINE_COLORS[i].color()
-            if hasattr(BASELINE_COLORS[i], "color")
-            else BASELINE_COLORS[i]
-        )
-        scatter_k2 = pg.ScatterPlotItem(
-            pen=BASELINE_COLORS[i],
-            brush=color,
-            symbol="o",
-            size=12,
-            name="K2",
-        )
-        scatter_k1 = pg.ScatterPlotItem(
-            pen=BASELINE_COLORS[i],
-            brush=color,
-            symbol="x",
-            size=12,
-            name="K1",
-        )
-        p.addItem(scatter_k2)
-        p.addItem(scatter_k1)
-        scatter_plots.append(p)
-        scatter_items_k2.append(scatter_k2)
-        scatter_items_k1.append(scatter_k1)
-
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
     win.resize(1200, 900)
@@ -182,6 +139,48 @@ def main():
     legend_layout.addSpacing(10)
     base_label = QtWidgets.QLabel("<b>Baselines</b>")
     legend_layout.addWidget(base_label)
+
+    # --- New Figure for OPD vs V2_K1 and V2_K2 ---
+    # Place this after baseline_names is defined
+    # (Moved here to ensure baseline_names is defined)
+    scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
+    scatter_win.resize(1200, 800)
+    scatter_win.setWindowTitle("Best OPD vs V2_K1 and V2_K2")
+    scatter_plots = []
+    scatter_items_k1 = []
+    scatter_items_k2 = []
+    for i in range(N_BASELINES):
+        p = scatter_win.addPlot(
+            row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}"
+        )
+        p.setLabel("left", "V² Value")
+        p.setLabel("bottom", "OPD")
+        p.showGrid(x=True, y=True)
+        # Scatter for K2 (filled), K1 (open)
+        color = (
+            BASELINE_COLORS[i].color()
+            if hasattr(BASELINE_COLORS[i], "color")
+            else BASELINE_COLORS[i]
+        )
+        scatter_k2 = pg.ScatterPlotItem(
+            pen=BASELINE_COLORS[i],
+            brush=color,
+            symbol="o",
+            size=12,
+            name="K2",
+        )
+        scatter_k1 = pg.ScatterPlotItem(
+            pen=BASELINE_COLORS[i],
+            brush=color,
+            symbol="x",
+            size=12,
+            name="K1",
+        )
+        p.addItem(scatter_k2)
+        p.addItem(scatter_k1)
+        scatter_plots.append(p)
+        scatter_items_k2.append(scatter_k2)
+        scatter_items_k1.append(scatter_k1)
 
     # --- Baseline positions and circle plot ---
     BASELINE_POSITIONS = np.array(
