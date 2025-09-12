@@ -305,8 +305,8 @@ def main():
     reset_button.clicked.connect(reset_best_gd_SNR)
     buttons_layout.addWidget(reset_button)
 
-    # Add the buttons_widget to the main window at the top right (row=0, col=2, rowspan=2)
-    win.addItem(buttons_widget, row=0, col=2, rowspan=2)
+    # Add the buttons_widget to the main window at the top right (row=0, col=2, rowspan=2) using WidgetProxy
+    win.addItem(pg.WidgetProxy(buttons_widget), row=0, col=2, rowspan=2)
 
     # --- Left Column: Telescopes ---
     # Subheader
