@@ -113,16 +113,21 @@ def main():
         p.setLabel("bottom", "OPD")
         p.showGrid(x=True, y=True)
         # Scatter for K2 (filled), K1 (open)
+        color = (
+            BASELINE_COLORS[i].color()
+            if hasattr(BASELINE_COLORS[i], "color")
+            else BASELINE_COLORS[i]
+        )
         scatter_k2 = pg.ScatterPlotItem(
             pen=BASELINE_COLORS[i],
-            brush=BASELINE_COLORS[i],
+            brush=color,
             symbol="o",
             size=12,
             name="K2",
         )
         scatter_k1 = pg.ScatterPlotItem(
             pen=BASELINE_COLORS[i],
-            brush=BASELINE_COLORS[i],
+            brush=color,
             symbol="x",
             size=12,
             name="K1",
