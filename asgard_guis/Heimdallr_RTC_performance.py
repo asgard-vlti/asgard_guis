@@ -77,6 +77,7 @@ def main():
             [0, 0, -1, 1],
         ]
     )
+    inv_M = np.linalg.pinv(M)
 
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
@@ -246,6 +247,39 @@ def main():
 
     # plots = []  # Unused variable removed
     curves = []
+
+    # --- Button to compute and print offsets from median OPD values ---
+    def print_offsets_from_median_opd():
+        # For each baseline, take the median OPD from best_gd_SNR
+        median_opds = []
+        for baseline_idx in range(N_BASELINES):
+            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
+            opds = [opd for _, opd in best_gd_SNR[baseline_idx]]
+            if opds:
+                median_opd = float(np.median(opds))
+            else:
+                median_opd = 0.0
+            median_opds.append(median_opd)
+        median_opds = np.array(median_opds)
+        offsets = inv_M @ median_opds
+        print("Median OPDs per baseline:", median_opds)
+        print("Computed offsets (inv_M @ median_opds):", offsets)
+
+    offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
+    offset_button.clicked.connect(print_offsets_from_median_opd)
+    legend_layout.addWidget(offset_button)
+
+    # --- Button to reset best_gd_SNR ---
+    def reset_best_gd_SNR():
+        nonlocal best_gd_SNR
+        best_gd_SNR = [
+            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
+        ]
+        print("best_gd_SNR has been reset.")
+
+    reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
+    reset_button.clicked.connect(reset_best_gd_SNR)
+    legend_layout.addWidget(reset_button)
 
     # --- Left Column: Telescopes ---
     # Subheader
