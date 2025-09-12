@@ -37,10 +37,10 @@ class SpiralSearchGUI(QtWidgets.QWidget):
 
         # X/Y controls
         grid = QtWidgets.QGridLayout()
-        self.x_plus_btn = QtWidgets.QPushButton("+X (Right)")
-        self.x_minus_btn = QtWidgets.QPushButton("-X (Left)")
-        self.y_plus_btn = QtWidgets.QPushButton("+Y (Up)")
-        self.y_minus_btn = QtWidgets.QPushButton("-Y (Down)")
+        self.x_plus_btn = QtWidgets.QPushButton("-X (Right)")
+        self.x_minus_btn = QtWidgets.QPushButton("+X (Left)")
+        self.y_plus_btn = QtWidgets.QPushButton("-Y (Up)")
+        self.y_minus_btn = QtWidgets.QPushButton("+Y (Down)")
         # Arrange so +Y is up, +X is right
         grid.addWidget(self.y_plus_btn, 0, 1)  # Up
         grid.addWidget(self.x_minus_btn, 1, 0)  # Left
@@ -56,10 +56,10 @@ class SpiralSearchGUI(QtWidgets.QWidget):
 
         # Connect signals
         # +X is right, -X is left, +Y is up, -Y is down
-        self.x_plus_btn.clicked.connect(lambda: self.move_offset(1, 0))  # Right
-        self.x_minus_btn.clicked.connect(lambda: self.move_offset(-1, 0))  # Left
-        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, 1))  # Up
-        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, -1))  # Down
+        self.x_plus_btn.clicked.connect(lambda: self.move_offset(-1, 0))  # Right
+        self.x_minus_btn.clicked.connect(lambda: self.move_offset(1, 0))  # Left
+        self.y_plus_btn.clicked.connect(lambda: self.move_offset(0, -1))  # Up
+        self.y_minus_btn.clicked.connect(lambda: self.move_offset(0, 1))  # Down
         self.done_btn.clicked.connect(self.finish_and_close)
 
     def move_offset(self, dx, dy):
