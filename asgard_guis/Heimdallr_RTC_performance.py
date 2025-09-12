@@ -53,20 +53,48 @@ def main():
             "#E69F00",
             "#56B4E9",
             "#009E73",
-            "#F0E442", # correct
+            "#F0E442",  # correct
             "#0072B2",
-            "#D55E00", # 34 for real though?
+            "#D55E00",  # 34 for real though?
         ]
     ]
     baseline_names = [
-        "24",
-        "14",
-        "34",
-        "23",
-        "13",
         "12",
+        "13",
+        "14",
+        "23",
+        "24",
+        "34",
     ]
+    BASELINE_POSITIONS = np.array(
+        [
+            [-0.12, -4.425],
+            [-1.025, 2.46],
+            [-3.81, 2.425],
+            [-1.145, -1.965],
+            [-3.93, -2.0],
+            [-2.785, -0.035],
+        ]
+    )  # shape: (N_BASELINES, 2), adjust as needed
 
+    # baseline_names = [
+    #     "24",
+    #     "14",
+    #     "34",
+    #     "23",
+    #     "13",
+    #     "12",
+    # ]
+    # BASELINE_POSITIONS = np.array(
+    #     [
+    #         [-3.93, -2.0],
+    #         [-3.81, 2.425],
+    #         [-2.785, -0.035],
+    #         [-1.145, -1.965],
+    #         [-1.025, 2.46],
+    #         [-0.12, -4.425],
+    #     ]
+    # )  # shape: (N_BASELINES, 2), adjust as needed
     M = np.array(
         [
             [-1, 1, 0, 0],
@@ -192,16 +220,6 @@ def main():
         # scatter_items_k1.append(scatter_k1)
 
     # --- Baseline positions and circle plot ---
-    BASELINE_POSITIONS = np.array(
-        [
-            [-3.93, -2.0],
-            [-3.81, 2.425],
-            [-2.785, -0.035],
-            [-1.145, -1.965],
-            [-1.025, 2.46],
-            [-0.12, -4.425],
-        ]
-    )  # shape: (N_BASELINES, 2), adjust as needed
 
     baseline_plot_widget = pg.PlotWidget()
     baseline_plot_widget.setBackground("#222")
