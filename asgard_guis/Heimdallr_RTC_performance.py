@@ -378,7 +378,7 @@ def main():
             curves[6][i].setData(time_axis, gd_snr[:, i])
             curves[7][i].setData(time_axis, pd_snr[:, i])
 
-        print(M.shape, offload[-1].shape)
+        # print(M.shape, offload[-1].shape)
         opds = M @ offload[-1]
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
