@@ -133,7 +133,7 @@ def main():
     # --- Color legend window ---
     legend_win = QtWidgets.QWidget()
     legend_win.setWindowTitle("Color Legend")
-    legend_win.setFixedSize(350, 550)
+    legend_win.setFixedSize(350, 450)
     legend_layout = QtWidgets.QVBoxLayout()
     legend_win.setLayout(legend_layout)
     # Set dark theme for legend_win
