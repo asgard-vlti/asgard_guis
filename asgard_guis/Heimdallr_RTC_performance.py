@@ -58,16 +58,25 @@ def main():
             "#D55E00",
         ]
     ]
+    baseline_names = [
+        "24",
+        "14",
+        "34",
+        "23",
+        "13",
+        "12",
+    ]
+
     M = np.array(
         [
-            [-1, 1, 0, 0],
-            [-1, 0, 1, 0],
-            [-1, 0, 0, 1],
-            [0, -1, 1, 0],
             [0, -1, 0, 1],
+            [-1, 0, 0, 1],
             [0, 0, -1, 1],
+            [0, -1, 1, 0],
+            [-1, 0, 1, 0],
+            [-1, 1, 0, 0],
         ]
-    ).T
+    )
 
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
@@ -85,15 +94,6 @@ def main():
     n_max_samples = 20  # number of samples to keep track of as the best so far
     best_v2_K1 = [[] for _ in range(N_BASELINES)]
     best_v2_K2 = [[] for _ in range(N_BASELINES)]
-
-    baseline_names = [
-        "24",
-        "14",
-        "34",
-        "23",
-        "13",
-        "12",
-    ]
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
