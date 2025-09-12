@@ -92,8 +92,9 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     n_max_samples = 5  # number of samples to keep track of as the best so far
-    best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
-    best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
+    # best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
+    best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
+    # best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
@@ -150,32 +151,43 @@ def main():
     scatter_plot.setLabel("left", "V² Value")
     scatter_plot.setLabel("bottom", "OPD")
     scatter_plot.showGrid(x=True, y=True)
-    scatter_items_k1 = []
-    scatter_items_k2 = []
+    # scatter_items_k1 = []
+    # scatter_items_k2 = []
+    scatter_items_gd = []
     for i in range(N_BASELINES):
         color = (
             BASELINE_COLORS[i].color()
             if hasattr(BASELINE_COLORS[i], "color")
             else BASELINE_COLORS[i]
         )
-        scatter_k2 = pg.ScatterPlotItem(
+        scatter_gd = pg.ScatterPlotItem(
             pen=BASELINE_COLORS[i],
             brush=color,
             symbol="o",
             size=12,
-            name=f"K2 {baseline_names[i]}",
+            name=f"GD {baseline_names[i]}",
         )
-        scatter_k1 = pg.ScatterPlotItem(
-            pen=BASELINE_COLORS[i],
-            brush=None,
-            symbol="x",
-            size=12,
-            name=f"K1 {baseline_names[i]}",
-        )
-        scatter_plot.addItem(scatter_k2)
-        scatter_plot.addItem(scatter_k1)
-        scatter_items_k2.append(scatter_k2)
-        scatter_items_k1.append(scatter_k1)
+        scatter_plot.addItem(scatter_gd)
+        scatter_items_gd.append(scatter_gd)
+
+        # scatter_k2 = pg.ScatterPlotItem(
+        #     pen=BASELINE_COLORS[i],
+        #     brush=color,
+        #     symbol="o",
+        #     size=12,
+        #     name=f"K2 {baseline_names[i]}",
+        # )
+        # scatter_k1 = pg.ScatterPlotItem(
+        #     pen=BASELINE_COLORS[i],
+        #     brush=None,
+        #     symbol="x",
+        #     size=12,
+        #     name=f"K1 {baseline_names[i]}",
+        # )
+        # scatter_plot.addItem(scatter_k2)
+        # scatter_plot.addItem(scatter_k1)
+        # scatter_items_k2.append(scatter_k2)
+        # scatter_items_k1.append(scatter_k1)
 
     # --- Baseline positions and circle plot ---
     BASELINE_POSITIONS = np.array(
@@ -378,29 +390,38 @@ def main():
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
         for baseline_idx in range(N_BASELINES):
-            cur_v2K1 = v2_K1[-1, baseline_idx]
-            cur_v2K2 = v2_K2[-1, baseline_idx]
+            # cur_v2K1 = v2_K1[-1, baseline_idx]
+            # cur_v2K2 = v2_K2[-1, baseline_idx]
 
+            # heapq.heappushpop(
+            #     best_v2_K1[baseline_idx],
+            #     (cur_v2K1, opds[baseline_idx]),
+            # )
+            # heapq.heappushpop(
+            #     best_v2_K2[baseline_idx],
+            #     (cur_v2K2, opds[baseline_idx]),
+            # )
+            cur_gdSNR = gd_snr[-1, baseline_idx]
             heapq.heappushpop(
-                best_v2_K1[baseline_idx],
-                (cur_v2K1, opds[baseline_idx]),
-            )
-            heapq.heappushpop(
-                best_v2_K2[baseline_idx],
-                (cur_v2K2, opds[baseline_idx]),
+                best_gd_SNR[baseline_idx],
+                (cur_gdSNR, opds[baseline_idx]),
             )
 
         # Update scatter plots for best_v2_K1 and best_v2_K2
         for i in range(N_BASELINES):
             # Unpack (value, opd) pairs
-            k1_points = best_v2_K1[i]
-            k2_points = best_v2_K2[i]
+            # k1_points = best_v2_K1[i]
+            # k2_points = best_v2_K2[i]
 
-            y1, x1 = zip(*k1_points)
-            y2, x2 = zip(*k2_points)
+            # y1, x1 = zip(*k1_points)
+            # y2, x2 = zip(*k2_points)
 
-            scatter_items_k1[i].setData(x=x1, y=y1)
-            scatter_items_k2[i].setData(x=x2, y=y2)
+            y1, x1 = zip(*best_gd_SNR[i])
+
+            scatter_items_gd[i].setData(x=x1, y=y1)
+
+            # scatter_items_k1[i].setData(x=x1, y=y1)
+            # scatter_items_k2[i].setData(x=x2, y=y2)
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
