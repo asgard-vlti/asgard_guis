@@ -15,10 +15,6 @@ N_BASELINES = 6
 
 
 def main():
-    # Enable OpenGL and performance optimizations
-    pg.setConfigOptions(useOpenGL=True)
-    pg.setConfigOptions(antialias=True)
-    pg.setConfigOptions(clipToView=True)
     parser = argparse.ArgumentParser(
         description="Real-time scrolling plots for Heimdallr."
     )
@@ -94,8 +90,6 @@ def main():
     offload = np.zeros((samples, N_TSCOPES))
     gd_snr = np.zeros((samples, N_BASELINES))
     pd_snr = np.zeros((samples, N_BASELINES))
-    # Circular buffer index
-    buf_idx = 0
 
     n_max_samples = 5  # number of samples to keep track of as the best so far
     best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
@@ -146,23 +140,19 @@ def main():
     base_label = QtWidgets.QLabel("<b>Baselines</b>")
     legend_layout.addWidget(base_label)
 
-    # --- New Figure for OPD vs V2_K1 and V2_K2 ---
-    # Place this after baseline_names is defined
-    # (Moved here to ensure baseline_names is defined)
+    # --- New Figure for OPD vs V2_K1 and V2_K2 (all baselines on one plot) ---
     scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
     scatter_win.resize(1200, 800)
-    scatter_win.setWindowTitle("Best OPD vs V2_K1 and V2_K2")
-    scatter_plots = []
+    scatter_win.setWindowTitle("Best OPD vs V2_K1 and V2_K2 (All Baselines)")
+    scatter_plot = scatter_win.addPlot(
+        row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
+    )
+    scatter_plot.setLabel("left", "V² Value")
+    scatter_plot.setLabel("bottom", "OPD")
+    scatter_plot.showGrid(x=True, y=True)
     scatter_items_k1 = []
     scatter_items_k2 = []
     for i in range(N_BASELINES):
-        p = scatter_win.addPlot(
-            row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}"
-        )
-        p.setLabel("left", "V² Value")
-        p.setLabel("bottom", "OPD")
-        p.showGrid(x=True, y=True)
-        # Scatter for K2 (filled), K1 (open)
         color = (
             BASELINE_COLORS[i].color()
             if hasattr(BASELINE_COLORS[i], "color")
@@ -173,18 +163,17 @@ def main():
             brush=color,
             symbol="o",
             size=12,
-            name="K2",
+            name=f"K2 {baseline_names[i]}",
         )
         scatter_k1 = pg.ScatterPlotItem(
             pen=BASELINE_COLORS[i],
-            brush=color,
+            brush=None,
             symbol="x",
             size=12,
-            name="K1",
+            name=f"K1 {baseline_names[i]}",
         )
-        p.addItem(scatter_k2)
-        p.addItem(scatter_k1)
-        scatter_plots.append(p)
+        scatter_plot.addItem(scatter_k2)
+        scatter_plot.addItem(scatter_k1)
         scatter_items_k2.append(scatter_k2)
         scatter_items_k1.append(scatter_k1)
 
@@ -357,65 +346,41 @@ def main():
     ]
 
     def update():
-        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, buf_idx
-        status_new = Z.send("status")
+        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
+        status = Z.send("status")
         arrays = [
-            (gd_tel, "gd_tel", N_TSCOPES),
-            (pd_tel, "pd_tel", N_TSCOPES),
-            (offload, "dl_offload", N_TSCOPES),
-            (dm, "dm_piston", N_TSCOPES),
-            (v2_K1, "v2_K1", N_BASELINES),
-            (v2_K2, "v2_K2", N_BASELINES),
-            (gd_snr, "gd_snr", N_BASELINES),
-            (pd_snr, "pd_snr", N_BASELINES),
+            (gd_tel, "gd_tel"),
+            (pd_tel, "pd_tel"),
+            (offload, "dl_offload"),
+            (dm, "dm_piston"),
+            (v2_K1, "v2_K1"),
+            (v2_K2, "v2_K2"),
+            (gd_snr, "gd_snr"),
+            (pd_snr, "pd_snr"),
         ]
-        data_changed = False
-        for arr, key, ncol in arrays:
-            # Only update if data has changed
-            if not np.allclose(arr[buf_idx], status_new[key]):
-                arr[buf_idx] = status_new[key]
-                data_changed = True
+        for arr, key in arrays:
+            arr[:] = np.roll(arr, -1, axis=0)
+            arr[-1] = status[key]
 
-        if not data_changed:
-            return  # Skip plot update if nothing changed
-
-        # Prepare circular buffer view for plotting
-        idxs = np.arange(buf_idx + 1, buf_idx + 1 + samples) % samples
-        # Update telescope plots
         for i in range(N_TSCOPES):
-            curves[0][i].setData(
-                time_axis, gd_tel[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[1][i].setData(
-                time_axis, pd_tel[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[2][i].setData(
-                time_axis, offload[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[3][i].setData(
-                time_axis, dm[idxs, i], downsample=2, autoDownsample=True
-            )
+            curves[0][i].setData(time_axis, gd_tel[:, i])
+            curves[1][i].setData(time_axis, pd_tel[:, i])
+            curves[2][i].setData(time_axis, offload[:, i])
+            curves[3][i].setData(time_axis, dm[:, i])
         for i in range(N_BASELINES):
-            curves[4][i].setData(
-                time_axis, v2_K1[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[5][i].setData(
-                time_axis, v2_K2[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[6][i].setData(
-                time_axis, gd_snr[idxs, i], downsample=2, autoDownsample=True
-            )
-            curves[7][i].setData(
-                time_axis, pd_snr[idxs, i], downsample=2, autoDownsample=True
-            )
+            curves[4][i].setData(time_axis, v2_K1[:, i])
+            curves[5][i].setData(time_axis, v2_K2[:, i])
+            curves[6][i].setData(time_axis, gd_snr[:, i])
+            curves[7][i].setData(time_axis, pd_snr[:, i])
 
-        # Use latest offload for OPD
-        opds = M @ offload[buf_idx]
+        # print(M.shape, offload[-1].shape)
+        opds = M @ offload[-1]
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
         for baseline_idx in range(N_BASELINES):
-            cur_v2K1 = v2_K1[buf_idx, baseline_idx]
-            cur_v2K2 = v2_K2[buf_idx, baseline_idx]
+            cur_v2K1 = v2_K1[-1, baseline_idx]
+            cur_v2K2 = v2_K2[-1, baseline_idx]
+
             heapq.heappushpop(
                 best_v2_K1[baseline_idx],
                 (cur_v2K1, opds[baseline_idx]),
@@ -427,15 +392,15 @@ def main():
 
         # Update scatter plots for best_v2_K1 and best_v2_K2
         for i in range(N_BASELINES):
+            # Unpack (value, opd) pairs
             k1_points = best_v2_K1[i]
             k2_points = best_v2_K2[i]
+
             y1, x1 = zip(*k1_points)
             y2, x2 = zip(*k2_points)
+
             scatter_items_k1[i].setData(x=x1, y=y1)
             scatter_items_k2[i].setData(x=x2, y=y2)
-
-        # Advance circular buffer index
-        buf_idx = (buf_idx + 1) % samples
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
