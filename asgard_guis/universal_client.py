@@ -50,9 +50,12 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
                 current_text = self.text()
                 dropdown = parent.command_dropdown
                 matches = []
+                print(current_text)
                 for i in range(dropdown.count()):
                     cmd = dropdown.itemText(i)
+                    print(f"Checking {cmd}")
                     if cmd.startswith(current_text):
+                        print("Match!")
                         matches.append(cmd)
                 if matches:
                     # If only one match, autocomplete fully
