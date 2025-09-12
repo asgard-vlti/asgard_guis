@@ -86,6 +86,14 @@ def main():
     best_v2_K1 = [[] for _ in range(N_BASELINES)]
     best_v2_K2 = [[] for _ in range(N_BASELINES)]
 
+    baseline_names = [
+        "24",
+        "14",
+        "34",
+        "23",
+        "13",
+        "12",
+    ]
 
     # --- New Figure for OPD vs V2_K1 and V2_K2 ---
     # Place this after baseline_names is defined
@@ -96,19 +104,28 @@ def main():
     scatter_plots = []
     scatter_items_k1 = []
     scatter_items_k2 = []
-    marker_symbols = ['o', 't', 's', 'd', '+', 'x']  # 6 different marker types
+    marker_symbols = ["o", "t", "s", "d", "+", "x"]  # 6 different marker types
     for i in range(N_BASELINES):
-        p = scatter_win.addPlot(row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}")
+        p = scatter_win.addPlot(
+            row=i // 3, col=i % 3, title=f"Baseline {baseline_names[i]}"
+        )
         p.setLabel("left", "V² Value")
         p.setLabel("bottom", "OPD")
         p.showGrid(x=True, y=True)
         # Scatter for K2 (filled), K1 (open)
-        symbol = marker_symbols[i % len(marker_symbols)]
         scatter_k2 = pg.ScatterPlotItem(
-            pen=BASELINE_COLORS[i], brush=BASELINE_COLORS[i], symbol="o", size=12, name="K2"
+            pen=BASELINE_COLORS[i],
+            brush=BASELINE_COLORS[i],
+            symbol="o",
+            size=12,
+            name="K2",
         )
         scatter_k1 = pg.ScatterPlotItem(
-            pen=BASELINE_COLORS[i], brush=BASELINE_COLORS[i], symbol="x", size=12, name="K1"
+            pen=BASELINE_COLORS[i],
+            brush=BASELINE_COLORS[i],
+            symbol="x",
+            size=12,
+            name="K1",
         )
         p.addItem(scatter_k2)
         p.addItem(scatter_k1)
@@ -172,15 +189,6 @@ def main():
             [-0.12, -4.425],
         ]
     )  # shape: (N_BASELINES, 2), adjust as needed
-
-    baseline_names = [
-        "24",
-        "14",
-        "34",
-        "23",
-        "13",
-        "12",
-    ]
 
     baseline_plot_widget = pg.PlotWidget()
     baseline_plot_widget.setBackground("#222")
