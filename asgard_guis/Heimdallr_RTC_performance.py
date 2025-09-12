@@ -92,8 +92,8 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     n_max_samples = 20  # number of samples to keep track of as the best so far
-    best_v2_K1 = [[] for _ in range(N_BASELINES)]
-    best_v2_K2 = [[] for _ in range(N_BASELINES)]
+    best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
+    best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
@@ -384,26 +384,31 @@ def main():
         # Update best samples if V2_K1 or V2_K2 is among the best so far
 
         for baseline_idx in range(N_BASELINES):
-            if len(best_v2_K1[baseline_idx]) < n_max_samples:
-                # we are still accumulating the first samples
-                heapq.heappush(
-                    best_v2_K1[baseline_idx],
-                    (opds[baseline_idx], v2_K1[-1, baseline_idx]),
-                )
-                heapq.heappush(
-                    best_v2_K2[baseline_idx],
-                    (opds[baseline_idx], v2_K2[-1, baseline_idx]),
-                )
-            else:
-                # add the using heappushpop
-                heapq.heappushpop(
-                    best_v2_K1[baseline_idx],
-                    (opds[baseline_idx], v2_K1[-1, baseline_idx]),
-                )
-                heapq.heappushpop(
-                    best_v2_K2[baseline_idx],
-                    (opds[baseline_idx], v2_K2[-1, baseline_idx]),
-                )
+            cur_v2K1 = v2_K1[-1, baseline_idx]
+            cur_v2K2 = v2_K2[-1, baseline_idx]
+
+            # if len(best_v2_K1[baseline_idx]) < n_max_samples:
+            #     # we are still accumulating the first samples
+            #     heapq.heappush(
+            #         best_v2_K1[baseline_idx],
+            #         (opds[baseline_idx], cur_v2K1),
+            #     )
+            #     heapq.heappush(
+            #         best_v2_K2[baseline_idx],
+            #         (opds[baseline_idx], cur_v2K2),
+            #     )
+            # else:
+            # smallest_vis_K1 = best_v2_K1[baseline_idx][0]
+            # smallest_vis_K2 = best_v2_K2[baseline_idx][0]
+            # add the using heappushpop
+            heapq.heappushpop(
+                best_v2_K1[baseline_idx],
+                (cur_v2K1, opds[baseline_idx]),
+            )
+            heapq.heappushpop(
+                best_v2_K2[baseline_idx],
+                (cur_v2K2, opds[baseline_idx]),
+            )
 
         # Update scatter plots for best_v2_K1 and best_v2_K2
         for i in range(N_BASELINES):
