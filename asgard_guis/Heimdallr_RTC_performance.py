@@ -147,6 +147,7 @@ def main():
     # --- New Figure for OPD vs V2_K1 and V2_K2 (all baselines on one plot) ---
     scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
     scatter_win.resize(1200, 800)
+
     scatter_win.setWindowTitle("Best OPD vs vis (All Baselines)")
     scatter_plot = scatter_win.addPlot(
         row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
@@ -250,10 +251,12 @@ def main():
     # plots = []  # Unused variable removed
     curves = []
 
-    # --- Buttons for scatter_win (Best OPD figure) ---
+    # --- Button to compute and print offsets from median OPD values ---
     def print_offsets_from_median_opd():
+        # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
         for baseline_idx in range(N_BASELINES):
+            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
             opds = [opd for _, opd in best_gd_SNR[baseline_idx]]
             if opds:
                 median_opd = float(np.median(opds))
@@ -265,6 +268,11 @@ def main():
         print("Median OPDs per baseline:", median_opds)
         print("Computed offsets (inv_M @ median_opds):", offsets)
 
+    offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
+    offset_button.clicked.connect(print_offsets_from_median_opd)
+    legend_layout.addWidget(offset_button)
+
+    # --- Button to reset best_gd_SNR ---
     def reset_best_gd_SNR():
         nonlocal best_gd_SNR
         best_gd_SNR = [
@@ -272,18 +280,9 @@ def main():
         ]
         print("best_gd_SNR has been reset.")
 
-    # Create a QWidget to hold the buttons and a layout
-    button_widget = QtWidgets.QWidget()
-    button_layout = QtWidgets.QHBoxLayout()
-    button_widget.setLayout(button_layout)
-    offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
-    offset_button.clicked.connect(print_offsets_from_median_opd)
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
     reset_button.clicked.connect(reset_best_gd_SNR)
-    button_layout.addWidget(offset_button)
-    button_layout.addWidget(reset_button)
-    # Add the button_widget below the scatter_plot in scatter_win
-    scatter_win.ci.layout.addWidget(button_widget, 1, 0, 1, 1)
+    legend_layout.addWidget(reset_button)
 
     # --- Left Column: Telescopes ---
     # Subheader
