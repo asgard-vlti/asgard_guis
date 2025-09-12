@@ -53,9 +53,9 @@ def main():
             "#E69F00",
             "#56B4E9",
             "#009E73",
-            "#F0E442",
+            "#F0E442", # correct
             "#0072B2",
-            "#D55E00",
+            "#D55E00", # 34 for real though?
         ]
     ]
     baseline_names = [
