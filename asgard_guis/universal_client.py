@@ -121,13 +121,13 @@ class ServerTab(QtWidgets.QWidget):
             self.zmq_socket.send_string(f'arguments "{cmd}"')
             reply = self.zmq_socket.recv_string()
         except zmq.error.Again:
-            self.text_area.append(
+            self.append_colored(
                 "[Error] ZMQ request timed out while fetching arguments."
             )
             return
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
-                self.text_area.append(
+                self.append_colored(
                     "[Warning] Socket out of state, attempting to reconnect for arguments..."
                 )
                 self.reconnect_socket()
@@ -135,15 +135,15 @@ class ServerTab(QtWidgets.QWidget):
                     self.zmq_socket.send_string(f'arguments "{cmd}"')
                     reply = self.zmq_socket.recv_string()
                 except Exception:
-                    self.text_area.append(
+                    self.append_colored(
                         "[Error] Could not fetch arguments after reconnect."
                     )
                     return
             else:
-                self.text_area.append(f"[Error] {e}")
+                self.append_colored(f"[Error] {e}")
                 return
         except Exception as e:
-            self.text_area.append(f"[Error] {e}")
+            self.append_colored(f"[Error] {e}")
             return
 
         # Try to parse the reply and display as a table
@@ -161,10 +161,10 @@ class ServerTab(QtWidgets.QWidget):
                 table += "</table>"
                 self.text_area.append(table)
             else:
-                self.text_area.append(str(args))
+                self.append_colored(str(args))
         except Exception:
             # Fallback: just show the reply
-            self.text_area.append(reply.replace("\\n", "\n"))
+            self.append_colored(reply.replace("\\n", "\n"))
 
     def reconnect_socket(self):
         # Recreate the socket and reconnect
@@ -194,7 +194,7 @@ class ServerTab(QtWidgets.QWidget):
             reply = "[Error] ZMQ request timed out."
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
-                self.text_area.append(
+                self.append_colored(
                     "[Warning] Socket out of state, attempting to reconnect..."
                 )
                 self.reconnect_socket()
@@ -214,10 +214,25 @@ class ServerTab(QtWidgets.QWidget):
                 pretty = json.dumps(resp, indent=4)
                 self.text_area.append(pretty)
             else:
-                self.text_area.append(str(resp).replace("\\n", "\n"))
+                self.append_colored(str(resp).replace("\\n", "\n"))
         except json.JSONDecodeError:
-            self.text_area.append(reply.replace("\\n", "\n"))
+            self.append_colored(reply.replace("\\n", "\n"))
         self.input_line.clear()
+
+    def append_colored(self, text):
+        # If 'error' (case-insensitive) is in the text, show in red, else normal
+        import html
+
+        if "error" in text.lower():
+            self.text_area.append(
+                f'<span style="color:red;">{html.escape(text)}</span>'
+            )
+        elif "warning" in text.lower():
+            self.text_area.append(
+                f'<span style="color:orange;">{html.escape(text)}</span>'
+            )
+        else:
+            self.text_area.append(text)
 
     def populate_commands(self):
         # Send "command_names" and populate the dropdown
