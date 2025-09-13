@@ -298,6 +298,8 @@ class UniversalClient(QtWidgets.QMainWindow):
                     tab_idx = key - QtCore.Qt.Key_1
                     if tab_idx < self.tabs.count():
                         self.tabs.setCurrentIndex(tab_idx)
+                        # Ensure focus returns to the main window after tab switch
+                        self.setFocus(QtCore.Qt.ActiveWindowFocusReason)
                         return True
         return super().eventFilter(obj, event)
 
