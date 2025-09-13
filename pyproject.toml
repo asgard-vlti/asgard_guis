@@ -11,7 +11,7 @@ temperature-plotting = "asgard_guis.plot_temps:main"
 mimir-startup = "asgard_guis.startup_mimir:main"
 mimir-shutdown = "asgard_guis.shutdown_mimir:main"
 text-clients = "asgard_guis.universal_client:main"
-im-search-gui = "asgard_guis.spiral_search_gui:main"
+im-search-gui = "asgard_guis.image_search_gui:main"
 pu-search-gui = "asgard_guis.pupil_search_gui:main"
 
 [tool.hatch.build.targets.wheel]
