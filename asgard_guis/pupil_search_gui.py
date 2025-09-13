@@ -7,7 +7,7 @@ from asgard_guis.spiral_search import PupilSearchIntegrator
 class PupilSearchGUI(QtWidgets.QWidget):
     def __init__(self, debug=False):
         super().__init__()
-        self.setWindowTitle("Image search GUI")
+        self.setWindowTitle("Pupil search GUI")
         self.integrator = PupilSearchIntegrator(debug=debug)
         self.init_ui()
 
@@ -28,8 +28,8 @@ class PupilSearchGUI(QtWidgets.QWidget):
         step_label = QtWidgets.QLabel("Step Size:")
         self.step_box = QtWidgets.QDoubleSpinBox()
         self.step_box.setDecimals(1)
-        self.step_box.setSingleStep(5.0)
-        self.step_box.setValue(40.0)
+        self.step_box.setSingleStep(0.1)
+        self.step_box.setValue(1.0)
         self.step_box.setMinimum(0.01)
         step_layout.addWidget(step_label)
         step_layout.addWidget(self.step_box)
