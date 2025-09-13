@@ -285,6 +285,22 @@ class UniversalClient(QtWidgets.QMainWindow):
         if self.tab_widgets:
             self.tab_widgets[0].populate_commands()
 
+        # Install event filter for Ctrl+Number tab switching
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QtCore.QEvent.KeyPress:
+            key = event.key()
+            modifiers = event.modifiers()
+            # Qt.Key_1 is 0x31, Qt.Key_9 is 0x39
+            if modifiers & QtCore.Qt.ControlModifier:
+                if QtCore.Qt.Key_1 <= key <= QtCore.Qt.Key_9:
+                    tab_idx = key - QtCore.Qt.Key_1
+                    if tab_idx < self.tabs.count():
+                        self.tabs.setCurrentIndex(tab_idx)
+                        return True
+        return super().eventFilter(obj, event)
+
     def on_tab_changed(self, idx):
         if 0 <= idx < len(self.tab_widgets):
             self.tab_widgets[idx].populate_commands()
