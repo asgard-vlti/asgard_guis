@@ -204,7 +204,9 @@ def main():
         state_swatch.setFixedWidth(70)
         state_swatch.setFixedHeight(15)
         state_swatch.setAlignment(QtCore.Qt.AlignCenter)
-        state_swatch.setStyleSheet("background-color: #888; color: black; border: 1px solid #333;")
+        state_swatch.setStyleSheet(
+            "background-color: #888; color: black; border: 1px solid #333;"
+        )
         tracking_state_swatches.append(state_swatch)
         row = QtWidgets.QHBoxLayout()
         row.addWidget(swatch)
@@ -226,7 +228,9 @@ def main():
             else:
                 bg = "#888"
             state_label.setText(state)
-            state_label.setStyleSheet(f"background-color: {bg}; color: black; border: 1px solid #333;")
+            state_label.setStyleSheet(
+                f"background-color: {bg}; color: black; border: 1px solid #333;"
+            )
 
     # Timer to update tracking state swatches
     tracking_timer = QtCore.QTimer()
@@ -471,6 +475,8 @@ def main():
 
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
+        # where gd_snr < 10, set variance very high (1e6)
+        gd_var = np.where(gd_snr[-1] < 10, 1e6, gd_var)
 
         M = np.array(
             [
@@ -490,7 +496,7 @@ def main():
 
         # count the number of zeros in each column
         zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
-        print(zero_counts)
+        # print(zero_counts)
 
         # if the count is 4, then the state is no fringes
         matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
