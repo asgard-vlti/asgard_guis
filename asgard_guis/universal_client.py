@@ -224,13 +224,13 @@ class ServerTab(QtWidgets.QWidget):
         import html
 
         if "error" in text.lower():
-            self.text_area.append(
-                f'<span style="color:red;">{html.escape(text)}</span>'
-            )
+            html_text = f'<span style="color:red;">{html.escape(text)}</span>'
+            self.text_area.moveCursor(QtGui.QTextCursor.End)
+            self.text_area.insertHtml(html_text + "<br>")
         elif "warning" in text.lower():
-            self.text_area.append(
-                f'<span style="color:orange;">{html.escape(text)}</span>'
-            )
+            html_text = f'<span style="color:orange;">{html.escape(text)}</span>'
+            self.text_area.moveCursor(QtGui.QTextCursor.End)
+            self.text_area.insertHtml(html_text + "<br>")
         else:
             self.text_area.append(text)
 
