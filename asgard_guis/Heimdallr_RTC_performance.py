@@ -120,6 +120,9 @@ def main():
     gd_snr = np.zeros((samples, N_BASELINES))
     pd_snr = np.zeros((samples, N_BASELINES))
 
+    # tracking_states: 4 vector of strings
+    tracking_states = ["" for _ in range(N_TSCOPES)]
+
     n_max_samples = 5  # number of samples to keep track of as the best so far
     # best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
     best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
@@ -184,10 +187,11 @@ def main():
     legend_layout.addWidget(offset_button)
     legend_layout.addWidget(reset_button)
 
-    # Telescopes legend
+    # Telescopes legend with tracking state swatch
     tel_label = QtWidgets.QLabel("<b>Telescopes</b>")
     legend_layout.addWidget(tel_label)
     telescope_names = ["T1", "T2", "T3", "T4"]
+    tracking_state_swatches = []
     for i, name in enumerate(telescope_names):
         color = TELESCOPE_COLORS[i % N_TSCOPES].color()
         color_hex = color.name() if hasattr(color, "name") else color
@@ -195,11 +199,39 @@ def main():
         swatch.setFixedWidth(30)
         swatch.setFixedHeight(15)
         swatch.setStyleSheet(f"background-color: {color_hex}; border: 1px solid #333;")
+        # Tracking state swatch
+        state_swatch = QtWidgets.QLabel()
+        state_swatch.setFixedWidth(70)
+        state_swatch.setFixedHeight(15)
+        state_swatch.setAlignment(QtCore.Qt.AlignCenter)
+        state_swatch.setStyleSheet("background-color: #888; color: black; border: 1px solid #333;")
+        tracking_state_swatches.append(state_swatch)
         row = QtWidgets.QHBoxLayout()
         row.addWidget(swatch)
         row.addWidget(QtWidgets.QLabel(name))
+        row.addWidget(state_swatch)
         row.addStretch()
         legend_layout.addLayout(row)
+
+    def update_tracking_state_swatches():
+        # Color: red for 'No fringes', dark green for 'Group 1', light green for 'Group 2', black text
+        for i, state_label in enumerate(tracking_state_swatches):
+            state = tracking_states[i] if i < len(tracking_states) else ""
+            if state == "No fringes":
+                bg = "#FF3333"  # red
+            elif state == "Group 1":
+                bg = "#228B22"  # dark green
+            elif state == "Group 2":
+                bg = "#90EE90"  # light green
+            else:
+                bg = "#888"
+            state_label.setText(state)
+            state_label.setStyleSheet(f"background-color: {bg}; color: black; border: 1px solid #333;")
+
+    # Timer to update tracking state swatches
+    tracking_timer = QtCore.QTimer()
+    tracking_timer.timeout.connect(update_tracking_state_swatches)
+    tracking_timer.start(200)
 
     legend_layout.addSpacing(10)
     base_label = QtWidgets.QLabel("<b>Baselines</b>")
@@ -410,7 +442,7 @@ def main():
     ]
 
     def update():
-        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
+        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, tracking_states
         status = Z.send("status")
         arrays = [
             (gd_tel, "gd_tel"),
@@ -436,6 +468,48 @@ def main():
             curves[5][i].setData(time_axis, v2_K2[:, i])
             curves[6][i].setData(time_axis, gd_snr[:, i])
             curves[7][i].setData(time_axis, pd_snr[:, i])
+
+        # Compute variance of GD for each telescope
+        gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
+
+        M = np.array(
+            [
+                [-1, 1, 0, 0],
+                [-1, 0, 1, 0],
+                [-1, 0, 0, 1],
+                [0, -1, 1, 0],
+                [0, -1, 0, 1],
+                [0, 0, -1, 1],
+            ]
+        )
+        M_dag = 1 / 4 * M.T
+        W = np.diag(gd_var)
+
+        Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
+        cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
+
+        # count the number of zeros in each column
+        zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
+        print(zero_counts)
+
+        # if the count is 4, then the state is no fringes
+        matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
+
+        # if there are 4 zero counts, then the state is no fringes
+        # otherwise, the state is Group X, where X=1 or 2, and the group is where
+        # there is a match of the columns of the matrix
+        group_0 = []
+        group_1 = []
+        for col_idx in range(matching_matrix.shape[1]):
+            if zero_counts[col_idx] == 4:
+                tracking_states[col_idx] = "No fringes"
+            else:
+                if np.array_equal(matching_matrix[:, col_idx], matching_matrix[:, 0]):
+                    group_0.append(col_idx + 1)
+                    tracking_states[col_idx] = "Group 1"
+                else:
+                    group_1.append(col_idx + 1)
+                    tracking_states[col_idx] = "Group 2"
 
         # print(M.shape, offload[-1].shape)
         opds = M @ offload[-1]
