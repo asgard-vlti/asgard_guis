@@ -281,9 +281,9 @@ class UniversalClient(QtWidgets.QMainWindow):
             self.tab_widgets.append(tab)
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
-        # Populate commands for the first tab
-        if self.tab_widgets:
-            self.tab_widgets[0].populate_commands()
+        # Populate commands for all tabs once at startup
+        for tab in self.tab_widgets:
+            tab.populate_commands()
 
         # Install event filter for Ctrl+Number tab switching
         self.installEventFilter(self)
@@ -306,8 +306,8 @@ class UniversalClient(QtWidgets.QMainWindow):
         return super().eventFilter(obj, event)
 
     def on_tab_changed(self, idx):
-        if 0 <= idx < len(self.tab_widgets):
-            self.tab_widgets[idx].populate_commands()
+        # No longer repopulate commands or clear history on tab change
+        pass
 
 
 def main():
