@@ -494,7 +494,8 @@ def main():
         # 1.83**2/((gd_snr)**2)
         W = np.diag(1 / gd_var)
 
-        print(M.shape, W.shape, np.linalg.pinv(M.T @ W @ M).shape)
+        print(M.shape, W.shape)
+        print( np.linalg.pinv(M.T @ W @ M).shape)
         Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
 
         cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
