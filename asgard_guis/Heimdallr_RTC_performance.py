@@ -475,8 +475,9 @@ def main():
 
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
+        #print(gd_var)
         # where gd_snr < 10, set variance very high (1e6)
-        gd_var = np.where(gd_snr[-1] < 10, 1e6, gd_var)
+        gd_var = np.where(gd_snr[-1] < 10, 1e-6, gd_var)
 
         M = np.array(
             [
@@ -490,7 +491,7 @@ def main():
         )
         M_dag = 1 / 4 * M.T
         W = np.diag(gd_var)
-
+        print(gd_var)
         Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
         cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
 
@@ -500,14 +501,14 @@ def main():
 
         # if the count is 4, then the state is no fringes
         matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
-
+        #print(matching_matrix)
         # if there are 4 zero counts, then the state is no fringes
         # otherwise, the state is Group X, where X=1 or 2, and the group is where
         # there is a match of the columns of the matrix
         group_0 = []
         group_1 = []
         for col_idx in range(matching_matrix.shape[1]):
-            if zero_counts[col_idx] == 4:
+            if zero_counts[col_idx] >= 3:
                 tracking_states[col_idx] = "No fringes"
             else:
                 if np.array_equal(matching_matrix[:, col_idx], matching_matrix[:, 0]):
