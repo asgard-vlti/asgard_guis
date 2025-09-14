@@ -263,12 +263,14 @@ class ServerTab(QtWidgets.QWidget):
         try:
             commands = json.loads(reply)
             if isinstance(commands, list):
+                commands = sorted(commands, key=str.lower)
                 self.command_dropdown.addItems(commands)
         except Exception:
             try:
                 commands = eval(reply)
                 if isinstance(commands, list):
-                    self.command_dropdown.addItems([str(c) for c in commands])
+                    commands = sorted([str(c) for c in commands], key=str.lower)
+                    self.command_dropdown.addItems(commands)
             except Exception:
                 pass
 
