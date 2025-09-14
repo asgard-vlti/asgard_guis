@@ -146,6 +146,12 @@ def main():
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
     win.resize(900, 700)
     win.setWindowTitle("Heimdallr Real-Time Plots")
+    # Move to top right (flush with edges)
+    screen = QtWidgets.QApplication.primaryScreen()
+    screen_geometry = screen.availableGeometry()
+    win_x = screen_geometry.right() - win.width()
+    win_y = screen_geometry.top()
+    win.move(win_x, win_y)
 
     # --- Color legend window ---
     legend_win = QtWidgets.QWidget()
@@ -153,6 +159,10 @@ def main():
     legend_win.setFixedSize(350, 450)
     legend_layout = QtWidgets.QVBoxLayout()
     legend_win.setLayout(legend_layout)
+    # Move below win, left-aligned with win
+    legend_x = win_x
+    legend_y = win_y + win.height()
+    legend_win.move(legend_x, legend_y)
     # Set dark theme for legend_win
     legend_win.setStyleSheet(
         """
@@ -281,9 +291,13 @@ def main():
 
     # --- New Figure for OPD vs V2_K1 and V2_K2 (all baselines on one plot) ---
     scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
-    scatter_win.resize(400, 300)
+    scatter_win.resize(900, 450)
 
     scatter_win.setWindowTitle("Best OPD vs vis (All Baselines)")
+    # Move to bottom right, below win, right-aligned with win
+    scatter_x = win_x
+    scatter_y = legend_y + legend_win.height()
+    scatter_win.move(scatter_x, scatter_y)
     scatter_plot = scatter_win.addPlot(
         row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
     )
