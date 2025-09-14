@@ -477,7 +477,7 @@ def main():
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
         #print(gd_var)
         # where gd_snr < 10, set variance very high (1e6)
-        gd_var = np.where(gd_snr[-1] < 10, 1e-6, gd_var)
+        # gd_var = np.where(gd_snr[-1] < 10, 1e6, gd_var)
 
         M = np.array(
             [
@@ -490,8 +490,8 @@ def main():
             ]
         )
         M_dag = 1 / 4 * M.T
-        W = np.diag(gd_var)
-        print(gd_var)
+        W = np.diag(1 / gd_var)
+
         Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
         cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
 
