@@ -445,6 +445,74 @@ def main():
         c_pd_snr,  # 7
     ]
 
+    
+
+    def status_given_gd_snr(gd_snr):
+        # gd_var = 1.83**2 / ((gd_snr) ** 2)
+        gd_var = 1 / ((gd_snr) ** 2)
+        gd_var = np.where(gd_snr < 30, 1e6, gd_var)
+
+        M = np.array(
+            [
+                [-1, 1, 0, 0],
+                [-1, 0, 1, 0],
+                [-1, 0, 0, 1],
+                [0, -1, 1, 0],
+                [0, -1, 0, 1],
+                [0, 0, -1, 1],
+            ]
+        )
+        M_dag = 1 / 4 * M.T
+
+        # units wavelengths
+        # 1.83**2/((gd_snr)**2)
+        W = np.diag(1 / gd_var)
+
+        Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
+        print(Igd)
+        print(np.linalg.matrix_rank(Igd))
+        # eigs
+        print(np.linalg.eigvals(Igd))
+
+        # evecs
+
+        cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
+        print(cov_gd)
+
+        tracking_states = [""] * 4
+
+        # count the number of zeros in each column
+        zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
+        print(zero_counts)
+
+        # if the count is 4, then the state is no fringes
+        matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
+
+        print(matching_matrix)
+        # if there are 4 zero counts, then the state is no fringes
+        # otherwise, the state is Group X, where X=1 or 2, and the group is where
+        # there is a match of the columns of the matrix
+        group_0 = []
+        group_1 = []
+        if np.sum(zero_counts == 4) == 4:
+            if np.median(gd_var) > 1e5:
+                tracking_states = ["No fringes"] * 4
+            else:
+                tracking_states = ["Group 1"] * 4
+        else:
+            for col_idx in range(matching_matrix.shape[1]):
+                if zero_counts[col_idx] >= 3:
+                    tracking_states[col_idx] = "No fringes"
+                else:
+                    if np.array_equal(matching_matrix[:, col_idx], matching_matrix[:, 0]):
+                        group_0.append(col_idx + 1)
+                        tracking_states[col_idx] = "Group 1"
+                    else:
+                        group_1.append(col_idx + 1)
+                        tracking_states[col_idx] = "Group 2"
+
+        return tracking_states
+
     def update():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, tracking_states
         status = Z.send("status")
@@ -473,64 +541,7 @@ def main():
             curves[6][i].setData(time_axis, gd_snr[:, i])
             curves[7][i].setData(time_axis, pd_snr[:, i])
 
-        # Compute variance of GD for each telescope
-        gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
-        # print(gd_var.shape)
-        gd_var = np.where(gd_snr[-1] < 8, 1e6, gd_var)
-        # print(gd_var.shape, np.diag(gd_var).shape)
-
-        M = np.array(
-            [
-                [-1, 1, 0, 0],
-                [-1, 0, 1, 0],
-                [-1, 0, 0, 1],
-                [0, -1, 1, 0],
-                [0, -1, 0, 1],
-                [0, 0, -1, 1],
-            ]
-        )
-        M_dag = 1 / 4 * M.T
-
-        # units wavelengths
-        # 1.83**2/((gd_snr)**2)
-        W = np.diag(1 / gd_var)
-
-        # print(M.shape, W.shape)
-        # print(np.linalg.pinv(M.T @ W @ M).shape)
-        Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
-
-        cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
-        tracking_states = [""] * 4
-
-        # count the number of zeros in each column
-        zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
-        print(zero_counts)
-
-        # if the count is 4, then the state is no fringes
-        matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
-
-        print(matching_matrix)
-        # if there are 4 zero counts, then the state is no fringes
-        # otherwise, the state is Group X, where X=1 or 2, and the group is where
-        # there is a match of the columns of the matrix
-        group_0 = []
-        group_1 = []
-        if np.sum(zero_counts == 4) == 4:
-            tracking_states = ["Group 1"] * 4
-        else:
-            for col_idx in range(matching_matrix.shape[1]):
-                if zero_counts[col_idx] >= 3:
-                    tracking_states[col_idx] = "No fringes"
-                else:
-                    if np.array_equal(
-                        matching_matrix[:, col_idx], matching_matrix[:, 0]
-                    ):
-                        group_0.append(col_idx + 1)
-                        tracking_states[col_idx] = "Group 1"
-                    else:
-                        group_1.append(col_idx + 1)
-                        tracking_states[col_idx] = "Group 2"
-        print(tracking_states)
+        tracking_states = status_given_gd_snr(gd_snr[-1])
 
         # print(M.shape, offload[-1].shape)
         opds = M @ offload[-1]
