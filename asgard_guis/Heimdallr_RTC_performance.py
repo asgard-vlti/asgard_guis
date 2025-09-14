@@ -130,7 +130,7 @@ def main():
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
-    win.resize(1200, 900)
+    win.resize(900, 700)
     win.setWindowTitle("Heimdallr Real-Time Plots")
 
     # --- Color legend window ---
@@ -243,7 +243,7 @@ def main():
 
     # --- New Figure for OPD vs V2_K1 and V2_K2 (all baselines on one plot) ---
     scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
-    scatter_win.resize(1200, 800)
+    scatter_win.resize(400, 300)
 
     scatter_win.setWindowTitle("Best OPD vs vis (All Baselines)")
     scatter_plot = scatter_win.addPlot(
@@ -510,6 +510,11 @@ def main():
                     else:
                         group_1.append(col_idx + 1)
                         tracking_states[col_idx] = "Group 2"
+
+        # if there is only one "Group 2", change it to "no fringes"
+        if len(group_1) == 1:
+            col_idx = group_1[0] - 1
+            tracking_states[col_idx] = "No fringes"
 
         return tracking_states
 
