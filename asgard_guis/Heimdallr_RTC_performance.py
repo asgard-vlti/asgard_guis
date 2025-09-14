@@ -528,6 +528,7 @@ def main():
                     else:
                         group_1.append(col_idx + 1)
                         tracking_states[col_idx] = "Group 2"
+        print(tracking_states)
 
         # print(M.shape, offload[-1].shape)
         opds = M @ offload[-1]
