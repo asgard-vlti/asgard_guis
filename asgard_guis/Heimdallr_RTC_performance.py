@@ -118,7 +118,7 @@ def main():
         import zmq
 
         context = zmq.Context()
-        socket = context.socket(zmq.PUSH)
+        socket = context.socket(zmq.REQ)
         socket.connect("tcp://mimir:6660")
 
     # Time axis: from -window to 0, in seconds
@@ -196,6 +196,7 @@ def main():
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
             socket.send_string(msg)
+            res = socket.recv_string()
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
