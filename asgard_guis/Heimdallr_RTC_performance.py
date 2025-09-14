@@ -165,15 +165,11 @@ def main():
             median_opds.append(np.median(opds) if opds else 0.0)
             snrs.append(np.median(snrs) if snrs else 0.0)
 
-        # find which are the n best snrs, and mark a boolean array
-        # with the values we will use (based on n)
+        # find which are the n best snrs (indices)
         best_indices = np.argsort(snrs)[-n:]
-        # make boolean array
-        best_mask = np.zeros(N_BASELINES, dtype=bool)
-        best_mask[best_indices] = True
 
         # Compute estimated OPDs for the best baselines
-        est_opls = np.linalg.pinv(M[best_mask, :]) @ opds[best_mask]
+        est_opls = np.linalg.pinv(M[best_indices, :]) @ np.array(opds)[best_indices]
 
         print("Estimated OPLs from best baselines:", est_opls)
 
