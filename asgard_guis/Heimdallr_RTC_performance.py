@@ -36,6 +36,13 @@ def main():
         default=2.0,
         help="Line width for plot curves (default: 2.0)",
     )
+    parser.add_argument(
+        "--output",
+        type=str,
+        options=["print", "heim"],
+        default="print",
+        help="Output method for offsets (default: print)",
+    )
     args = parser.parse_args()
 
     samples = args.samples
@@ -107,6 +114,13 @@ def main():
     )
     inv_M = np.linalg.pinv(M)
 
+    if args.output == "heim":
+        import zmq
+
+        context = zmq.Context()
+        socket = context.socket(zmq.PUSH)
+        socket.connect("tcp://mimir:6660")
+
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
 
@@ -168,9 +182,20 @@ def main():
         # find which are the n best snrs (indices)
         best_indices = np.argsort(snrs)[-n:]
         # Compute estimated OPDs for the best baselines
-        est_opls = np.linalg.pinv(M[best_indices, :]) @ np.array(median_opds)[best_indices]
+        est_opls = (
+            np.linalg.pinv(M[best_indices, :]) @ np.array(median_opds)[best_indices]
+        )
 
-        print("Estimated OPLs from best baselines:", est_opls)
+        if args.output == "print":
+            # print with format x1, x2, x3, x4 to 3 decimal places
+            print(
+                "Estimated OPLs from best baselines: "
+                + ", ".join(f"{opl:.3f}" for opl in est_opls)
+            )
+        elif args.output == "heim":
+            # Send the estimated OPLs to the Heimdallr server
+            msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
+            socket.send_string(msg)
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
