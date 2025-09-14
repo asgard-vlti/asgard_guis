@@ -152,7 +152,7 @@ def main():
     legend_fixed_height = 450
     total_height = screen_geometry.height()
     # Assign win to take the remaining height above the legend
-    win_height = total_height - legend_fixed_height
+    win_height = total_height - legend_fixed_height - 50
     win_width = 900
     win.resize(win_width, win_height)
     win_x = screen_geometry.right() - win.width()
