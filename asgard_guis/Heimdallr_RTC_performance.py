@@ -171,7 +171,6 @@ def main():
         # make boolean array
         best_mask = np.zeros(N_BASELINES, dtype=bool)
         best_mask[best_indices] = True
-
         # Compute estimated OPDs for the best baselines
         est_opls = np.linalg.pinv(M[best_mask, :]) @ opds[best_mask]
 
