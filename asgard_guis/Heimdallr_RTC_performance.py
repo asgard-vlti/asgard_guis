@@ -475,8 +475,6 @@ def main():
 
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
-
-        gd_var = 1.83**2 / ((gd_snr) ** 2)
         gd_var = np.where(gd_snr < 8, 1e6, gd_var)
 
         M = np.array(
