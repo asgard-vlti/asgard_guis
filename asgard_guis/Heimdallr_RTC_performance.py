@@ -448,7 +448,7 @@ def main():
     def status_given_gd_snr(gd_snr):
         # gd_var = 1.83**2 / ((gd_snr) ** 2)
         gd_var = 1 / ((gd_snr) ** 2)
-        gd_var = np.where(gd_snr < 30, 1e6, gd_var)
+        gd_var = np.where(gd_snr < 8, 1e6, gd_var)
 
         M = np.array(
             [
