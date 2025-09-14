@@ -114,13 +114,6 @@ def main():
     )
     inv_M = np.linalg.pinv(M)
 
-    if args.output == "heim":
-        import zmq
-
-        context = zmq.Context()
-        socket = context.socket(zmq.REQ)
-        socket.connect("tcp://mimir:6660")
-
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
 
@@ -211,8 +204,7 @@ def main():
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
-            socket.send_string(msg)
-            res = socket.recv_string()
+            Z.send(msg)
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
@@ -659,3 +651,58 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# --- Additional GUI: Offset Tweaker ---
+def run_offset_tweaker():
+    """
+    Launch a simple GUI with 3 sliders (offset 0, 1, 3) and an Apply button.
+    On Apply, sends 'tweak_gd_offsets x,y,z' to the Heimdallr server via Z.
+    """
+    import sys
+    from pyqtgraph.Qt import QtWidgets
+
+    class OffsetTweaker(QtWidgets.QWidget):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle("Heimdallr Offset Tweaker")
+            self.setFixedSize(350, 250)
+            layout = QtWidgets.QVBoxLayout()
+
+            self.sliders = []
+            self.labels = []
+            for i, label in zip([0, 1, 3], ["offset 0", "offset 1", "offset 3"]):
+                row = QtWidgets.QHBoxLayout()
+                lab = QtWidgets.QLabel(label)
+                slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+                slider.setMinimum(-50)
+                slider.setMaximum(50)
+                slider.setValue(0)
+                slider.setTickInterval(5)
+                slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+                value_label = QtWidgets.QLabel("0.0")
+                slider.valueChanged.connect(lambda val, l=value_label: l.setText(f"{val/10:.1f}"))
+                row.addWidget(lab)
+                row.addWidget(slider)
+                row.addWidget(value_label)
+                layout.addLayout(row)
+                self.sliders.append(slider)
+                self.labels.append(value_label)
+
+            self.apply_btn = QtWidgets.QPushButton("Apply")
+            self.apply_btn.clicked.connect(self.apply_offsets)
+            layout.addWidget(self.apply_btn)
+
+            self.setLayout(layout)
+
+        def apply_offsets(self):
+            # Get slider values, convert to float in range -5.0 to 5.0
+            values = [s.value() / 10.0 for s in self.sliders]
+            msg = f"tweak_gd_offsets {values[0]:.2f},{values[1]:.2f},{values[2]:.2f}"
+            Z.send(msg)
+            QtWidgets.QMessageBox.information(self, "Offsets Sent", f"Sent: {msg}")
+
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    win = OffsetTweaker()
+    win.show()
+    app.exec_()
