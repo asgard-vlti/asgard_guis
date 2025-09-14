@@ -144,11 +144,17 @@ def main():
 
     app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
-    win.resize(900, 700)
     win.setWindowTitle("Heimdallr Real-Time Plots")
     # Move to top right (flush with edges)
     screen = QtWidgets.QApplication.primaryScreen()
     screen_geometry = screen.availableGeometry()
+    # Calculate available height for win and scatter_win
+    legend_fixed_height = 450
+    total_height = screen_geometry.height()
+    # Assign win to take the remaining height above the legend
+    win_height = total_height - legend_fixed_height
+    win_width = 900
+    win.resize(win_width, win_height)
     win_x = screen_geometry.right() - win.width()
     win_y = screen_geometry.top()
     win.move(win_x, win_y)
@@ -156,7 +162,7 @@ def main():
     # --- Color legend window ---
     legend_win = QtWidgets.QWidget()
     legend_win.setWindowTitle("Color Legend")
-    legend_win.setFixedSize(350, 450)
+    legend_win.setFixedSize(350, legend_fixed_height)
     legend_layout = QtWidgets.QVBoxLayout()
     legend_win.setLayout(legend_layout)
     # Move below win, left-aligned with win
@@ -300,6 +306,9 @@ def main():
     scatter_y = legend_y
     scatter_width = win_x + win.width() - scatter_x
     scatter_height = legend_win.height()
+    # Make scatter_win and legend_win together span the full height
+    # If legend is at the bottom, scatter_win's height = legend + win's height
+    scatter_height = legend_fixed_height
     scatter_win.resize(scatter_width, scatter_height)
     scatter_win.move(scatter_x, scatter_y)
     scatter_plot = scatter_win.addPlot(
