@@ -475,9 +475,9 @@ def main():
 
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
-        #print(gd_var)
-        # where gd_snr < 10, set variance very high (1e6)
-        # gd_var = np.where(gd_snr[-1] < 10, 1e6, gd_var)
+
+        gd_var = 1.83**2 / ((gd_snr) ** 2)
+        gd_var = np.where(gd_snr < 8, 1e6, gd_var)
 
         M = np.array(
             [
@@ -490,33 +490,44 @@ def main():
             ]
         )
         M_dag = 1 / 4 * M.T
+
+        # units wavelengths
+        # 1.83**2/((gd_snr)**2)
         W = np.diag(1 / gd_var)
 
         Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
+
         cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
+        tracking_states = [""] * 4
 
         # count the number of zeros in each column
         zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
-        # print(zero_counts)
+        print(zero_counts)
 
         # if the count is 4, then the state is no fringes
         matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
-        #print(matching_matrix)
+
+        print(matching_matrix)
         # if there are 4 zero counts, then the state is no fringes
         # otherwise, the state is Group X, where X=1 or 2, and the group is where
         # there is a match of the columns of the matrix
         group_0 = []
         group_1 = []
-        for col_idx in range(matching_matrix.shape[1]):
-            if zero_counts[col_idx] >= 3:
-                tracking_states[col_idx] = "No fringes"
-            else:
-                if np.array_equal(matching_matrix[:, col_idx], matching_matrix[:, 0]):
-                    group_0.append(col_idx + 1)
-                    tracking_states[col_idx] = "Group 1"
+        if np.sum(zero_counts == 4) == 4:
+            tracking_states = ["Group 1"] * 4
+        else:
+            for col_idx in range(matching_matrix.shape[1]):
+                if zero_counts[col_idx] >= 3:
+                    tracking_states[col_idx] = "No fringes"
                 else:
-                    group_1.append(col_idx + 1)
-                    tracking_states[col_idx] = "Group 2"
+                    if np.array_equal(
+                        matching_matrix[:, col_idx], matching_matrix[:, 0]
+                    ):
+                        group_0.append(col_idx + 1)
+                        tracking_states[col_idx] = "Group 1"
+                    else:
+                        group_1.append(col_idx + 1)
+                        tracking_states[col_idx] = "Group 2"
 
         # print(M.shape, offload[-1].shape)
         opds = M @ offload[-1]
