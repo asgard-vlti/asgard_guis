@@ -475,6 +475,7 @@ def main():
 
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
+        print(gd_var.shape)
         gd_var = np.where(gd_snr < 8, 1e6, gd_var)
 
         M = np.array(
@@ -493,6 +494,7 @@ def main():
         # 1.83**2/((gd_snr)**2)
         W = np.diag(1 / gd_var)
 
+        print(M.shape, W.shape, np.linalg.pinv(M.T @ W @ M).shape)
         Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
 
         cov_gd = M_dag @ Igd @ W @ Igd.T @ M_dag.T
