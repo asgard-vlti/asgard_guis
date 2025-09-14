@@ -303,6 +303,15 @@ class UniversalClient(QtWidgets.QMainWindow):
         # Install event filter for Ctrl+Number tab switching
         self.installEventFilter(self)
 
+        # Move window to bottom left corner of available screen
+        screen = QtWidgets.QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        win_width = self.width()
+        win_height = self.height()
+        win_x = screen_geometry.left()
+        win_y = screen_geometry.bottom() - win_height
+        self.move(win_x, win_y)
+
     def eventFilter(self, obj, event):
         if event.type() == QtCore.QEvent.KeyPress:
             key = event.key()
