@@ -153,24 +153,38 @@ def main():
     )
 
     # --- Button to compute and print offsets from median OPD values ---
-    def print_offsets_from_median_opd():
+    def print_offsets_from_n_best(n):
+        assert n >= 4, "n should be at least 4 to compute median"
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
+        snrs = []
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
             opds = [opd for _, opd in best_gd_SNR[baseline_idx]]
-            if opds:
-                median_opd = float(np.median(opds))
-            else:
-                median_opd = 0.0
-            median_opds.append(median_opd)
-        median_opds = np.array(median_opds)
-        offsets = inv_M @ median_opds
-        print("Median OPDs per baseline:", median_opds)
-        print("Computed offsets (inv_M @ median_opds):", offsets)
+            snrs = [snr for snr, _ in best_gd_SNR[baseline_idx]]
+            median_opds.append(np.median(opds) if opds else 0.0)
+            snrs.append(np.median(snrs) if snrs else 0.0)
 
-    offset_button = QtWidgets.QPushButton("Print Offsets from Median OPD")
-    offset_button.clicked.connect(print_offsets_from_median_opd)
+        # find which are the n best snrs
+        best_indices = np.argsort(snrs)[-n:]
+        print(f"Indices of the {n} best baselines by GD SNR:", best_indices)
+
+        # Compute estimated OPDs for the best baselines
+        est_opls = np.linalg.pinv(M[best_indices, :]) @ opds[best_indices]
+
+        print("Estimated OPLs from best baselines:", est_opls)
+
+    # --- Three offset buttons for n=4,5,6 ---
+    offset_buttons_layout = QtWidgets.QHBoxLayout()
+    offset_button_4 = QtWidgets.QPushButton("Offsets n=4")
+    offset_button_5 = QtWidgets.QPushButton("Offsets n=5")
+    offset_button_6 = QtWidgets.QPushButton("Offsets n=6")
+    offset_button_4.clicked.connect(lambda _: print_offsets_from_n_best(4))
+    offset_button_5.clicked.connect(lambda _: print_offsets_from_n_best(5))
+    offset_button_6.clicked.connect(lambda _: print_offsets_from_n_best(6))
+    offset_buttons_layout.addWidget(offset_button_4)
+    offset_buttons_layout.addWidget(offset_button_5)
+    offset_buttons_layout.addWidget(offset_button_6)
 
     # --- Button to reset best_gd_SNR ---
     def reset_best_gd_SNR():
@@ -184,7 +198,7 @@ def main():
     reset_button.clicked.connect(reset_best_gd_SNR)
 
     # Insert buttons above the Telescopes label
-    legend_layout.addWidget(offset_button)
+    legend_layout.addLayout(offset_buttons_layout)
     legend_layout.addWidget(reset_button)
 
     # Telescopes legend with tracking state swatch
@@ -291,7 +305,6 @@ def main():
         # scatter_items_k1.append(scatter_k1)
 
     # --- Baseline positions and circle plot ---
-
     baseline_plot_widget = pg.PlotWidget()
     baseline_plot_widget.setBackground("#222")
     baseline_plot_widget.setFixedHeight(200)
