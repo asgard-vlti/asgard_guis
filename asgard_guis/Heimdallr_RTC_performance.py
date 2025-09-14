@@ -127,6 +127,8 @@ def main():
     gd_snr = np.zeros((samples, N_BASELINES))
     pd_snr = np.zeros((samples, N_BASELINES))
 
+    gd_threshold = 5.0
+
     # tracking_states: 4 vector of strings
     tracking_states = ["" for _ in range(N_TSCOPES)]
 
@@ -557,7 +559,7 @@ def main():
     def status_given_gd_snr(gd_snr):
         # gd_var = 1.83**2 / ((gd_snr) ** 2)
         gd_var = 1 / ((gd_snr) ** 2)
-        gd_var = np.where(gd_snr < 8, 1e6, gd_var)
+        gd_var = np.where(gd_snr < gd_threshold, 1e6, gd_var)
 
         M = np.array(
             [
@@ -628,7 +630,7 @@ def main():
         return tracking_states
 
     def update():
-        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, tracking_states
+        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, tracking_states, gd_threshold
         status = Z.send("status")
         arrays = [
             (gd_tel, "gd_tel"),
@@ -643,6 +645,8 @@ def main():
         for arr, key in arrays:
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
+
+        gd_threshold = float(Z.send("get_gd_threshold"))
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
