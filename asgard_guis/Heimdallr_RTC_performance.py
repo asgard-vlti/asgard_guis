@@ -39,7 +39,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        options=["print", "heim"],
+        # options=["print", "heim"],
         default="print",
         help="Output method for offsets (default: print)",
     )
