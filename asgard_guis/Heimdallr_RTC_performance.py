@@ -476,7 +476,7 @@ def main():
         # Compute variance of GD for each telescope
         gd_var = 1.83**2 / ((gd_snr[-1]) ** 2)
         # print(gd_var.shape)
-        gd_var = np.where(gd_snr[-1] < 8, 1e6, gd_var)
+        gd_var = np.where(gd_snr[-1] < 20, 1e6, gd_var)
         # print(gd_var.shape, np.diag(gd_var).shape)
 
         M = np.array(
@@ -504,12 +504,10 @@ def main():
 
         # count the number of zeros in each column
         zero_counts = np.sum(np.isclose(cov_gd, 0, atol=1e-3), axis=0)
-        print(zero_counts)
 
         # if the count is 4, then the state is no fringes
         matching_matrix = np.logical_not(np.isclose(cov_gd, 0, atol=1e-3))
 
-        print(matching_matrix)
         # if there are 4 zero counts, then the state is no fringes
         # otherwise, the state is Group X, where X=1 or 2, and the group is where
         # there is a match of the columns of the matrix
