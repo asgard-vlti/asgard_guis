@@ -15,6 +15,21 @@ N_BASELINES = 6
 
 
 def main():
+    # --- Global hotkey to close all windows ---
+    class GlobalHotkeyFilter(QtCore.QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QtCore.QEvent.KeyPress:
+                key = event.key()
+                if key in (QtCore.Qt.Key_Q, QtCore.Qt.Key_Escape):
+                    for widget in QtWidgets.QApplication.topLevelWidgets():
+                        widget.close()
+                    QtCore.QCoreApplication.quit()
+                    print("Closed all windows via global hotkey.")
+                    return True
+            return super().eventFilter(obj, event)
+
+    hotkey_filter = GlobalHotkeyFilter()
+    app.installEventFilter(hotkey_filter)
     parser = argparse.ArgumentParser(
         description="Real-time scrolling plots for Heimdallr."
     )
