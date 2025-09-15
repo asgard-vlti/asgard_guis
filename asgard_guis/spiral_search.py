@@ -45,7 +45,9 @@ class SpiralSearchIntegrator:
                 print(f"[DEBUG] Would run: {cmd_y}")
             else:
                 os.system(cmd_x)
+                print(f"Sent: {cmd_x}")
                 os.system(cmd_y)
+                print(f"Sent: {cmd_y}")
 
 
 class PupilSearchIntegrator:
