@@ -185,6 +185,17 @@ class ServerTab(QtWidgets.QWidget):
         cmd = self.input_line.text().strip()
         if not cmd:
             return
+        # Check if the command exists in the dropdown
+        command_set = set(
+            self.command_dropdown.itemText(i)
+            for i in range(self.command_dropdown.count())
+        )
+        cmd_name = cmd.split(" ", 1)[0] if " " in cmd else cmd
+        if cmd_name not in command_set:
+            self.append_colored(f"[Error] Command '{cmd_name}' not recognized.")
+            self.input_line.clear()
+            self.text_area.moveCursor(QtGui.QTextCursor.End)
+            return
         self.input_line.add_history(cmd)
         self.text_area.append(f"> {cmd}")
         try:
@@ -218,6 +229,8 @@ class ServerTab(QtWidgets.QWidget):
         except json.JSONDecodeError:
             self.append_colored(reply.replace("\\n", "\n"))
         self.input_line.clear()
+        # Scroll to the bottom after new output
+        self.text_area.moveCursor(QtGui.QTextCursor.End)
 
     def append_colored(self, text):
         # If 'error' (case-insensitive) is in the text, show in red, else normal
