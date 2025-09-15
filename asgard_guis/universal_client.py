@@ -243,11 +243,14 @@ class ServerTab(QtWidgets.QWidget):
         # If 'error' (case-insensitive) is in the text, show in red, else normal
         import html
 
+        # Always insert a new line before colored messages for clarity
         if "error" in text.lower():
+            self.text_area.append("")
             html_text = f'<span style="color:red;">{html.escape(text)}</span>'
             self.text_area.moveCursor(QtGui.QTextCursor.End)
             self.text_area.insertHtml(html_text + "<br>")
         elif "warning" in text.lower():
+            self.text_area.append("")
             html_text = f'<span style="color:orange;">{html.escape(text)}</span>'
             self.text_area.moveCursor(QtGui.QTextCursor.End)
             self.text_area.insertHtml(html_text + "<br>")
