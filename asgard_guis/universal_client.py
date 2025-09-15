@@ -3,6 +3,7 @@ import zmq
 import json
 
 from PyQt5 import QtWidgets, QtGui, QtCore
+import html
 
 
 sockets = [
@@ -241,7 +242,6 @@ class ServerTab(QtWidgets.QWidget):
 
     def append_colored(self, text):
         # If 'error' (case-insensitive) is in the text, show in red, else normal
-        import html
 
         # Always insert a new line before colored messages for clarity
         if "error" in text.lower():
@@ -360,7 +360,9 @@ class UniversalClient(QtWidgets.QMainWindow):
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) == 2:
+        ip_addr = "mimir"
+    elif len(sys.argv) > 2:
         print("Usage: python universal_client.py <ip_address>")
         sys.exit(1)
     ip_addr = sys.argv[1]

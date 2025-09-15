@@ -13,6 +13,7 @@ mimir-shutdown = "asgard_guis.shutdown_mimir:main"
 text-clients = "asgard_guis.universal_client:main"
 im-search-gui = "asgard_guis.image_search_gui:main"
 pu-search-gui = "asgard_guis.pupil_search_gui:main"
+h-guis = "asgard_guis.Heimdallr_RTC_performance:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
