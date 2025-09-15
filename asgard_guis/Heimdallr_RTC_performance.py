@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 import argparse
-import time
+
 import heapq
 
 N_TSCOPES = 4
@@ -15,8 +15,6 @@ N_BASELINES = 6
 
 
 def main():
-    # --- Throttled settings cache ---
-    settings_cache = {"settings": None, "last_time": 0.0}
     parser = argparse.ArgumentParser(
         description="Real-time scrolling plots for Heimdallr."
     )
@@ -646,9 +644,7 @@ def main():
         for i in range(N_BASELINES)
     ]
     # Add a horizontal line for gd_threshold
-    gd_threshold_line = pg.InfiniteLine(
-        pos=gd_threshold, angle=0, pen=pg.mkPen("r", style=QtCore.Qt.DashLine)
-    )
+    gd_threshold_line = pg.InfiniteLine(pos=gd_threshold, angle=0, pen=pg.mkPen('r', style=QtCore.Qt.DashLine))
     p_gd_snr.addItem(gd_threshold_line)
 
     # pd_snr
@@ -766,15 +762,7 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-        now = time.monotonic()
-        # Only query settings every 2 seconds
-        if (
-            now - settings_cache["last_time"] > 2.0
-            or settings_cache["settings"] is None
-        ):
-            settings_cache["settings"] = Z.send("settings")
-            settings_cache["last_time"] = now
-        settings = settings_cache["settings"]
+        settings = Z.send("settings")
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
@@ -797,30 +785,27 @@ def main():
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
         for baseline_idx in range(N_BASELINES):
-            now = time.monotonic()
-            # Only query settings every 2 seconds
-            if (
-                now - settings_cache["last_time"] > 2.0
-                or settings_cache["settings"] is None
-            ):
-                settings_cache["settings"] = Z.send("settings")
-                settings_cache["last_time"] = now
-            settings = settings_cache["settings"]
-            gd_threshold = float(settings.get("gd_threshold", gd_threshold))
-            # Update the horizontal line position
-            gd_threshold_line.setValue(gd_threshold)
+            cur_gdSNR = gd_snr[-1, baseline_idx]
+            heapq.heappushpop(
+                best_gd_SNR[baseline_idx],
+                (cur_gdSNR, opds[baseline_idx]),
+            )
+
+        # Update scatter plots for best_v2_K1 and best_v2_K2
+        for i in range(N_BASELINES):
+            # Unpack (value, opd) pairs
             # k1_points = best_v2_K1[i]
             # k2_points = best_v2_K2[i]
 
-        # y1, x1 = zip(*k1_points)
-        # y2, x2 = zip(*k2_points)
+            # y1, x1 = zip(*k1_points)
+            # y2, x2 = zip(*k2_points)
 
-        y1, x1 = zip(*best_gd_SNR[i])
+            y1, x1 = zip(*best_gd_SNR[i])
 
-        scatter_items_gd[i].setData(x=x1, y=y1)
+            scatter_items_gd[i].setData(x=x1, y=y1)
 
-        # scatter_items_k1[i].setData(x=x1, y=y1)
-        # scatter_items_k2[i].setData(x=x2, y=y2)
+            # scatter_items_k1[i].setData(x=x1, y=y1)
+            # scatter_items_k2[i].setData(x=x2, y=y2)
 
         # update gd_snr_vs_offsets
         baselines_of_interest = [0, 1, 3]  # baselines involving telescope 1,2,4 with 3
