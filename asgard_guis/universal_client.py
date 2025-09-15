@@ -362,10 +362,11 @@ class UniversalClient(QtWidgets.QMainWindow):
 def main():
     if len(sys.argv) == 1:
         ip_addr = "mimir"
-    elif len(sys.argv) > 2:
+    elif len(sys.argv) == 2:
+        ip_addr = sys.argv[1]
+    else:
         print("Usage: python universal_client.py <ip_address>")
         sys.exit(1)
-    ip_addr = sys.argv[1]
     servers = sockets
     app = QtWidgets.QApplication(sys.argv)
     client = UniversalClient(ip_addr, servers)
