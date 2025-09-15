@@ -15,6 +15,9 @@ N_BASELINES = 6
 
 
 def main():
+    # --- Create QApplication instance before any usage ---
+    app = QtWidgets.QApplication([])
+
     # --- Global hotkey to close all windows ---
     class GlobalHotkeyFilter(QtCore.QObject):
         def eventFilter(self, obj, event):
