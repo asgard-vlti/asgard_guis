@@ -193,7 +193,6 @@ class ServerTab(QtWidgets.QWidget):
         cmd_name = cmd.split(" ", 1)[0] if " " in cmd else cmd
         if cmd_name not in command_set and cmd_name not in ["exit"]:
             self.append_colored(f"[Error] Command '{cmd_name}' not recognized.")
-            self.input_line.clear()
             self.text_area.moveCursor(QtGui.QTextCursor.End)
             return
         self.input_line.add_history(cmd)
@@ -203,6 +202,7 @@ class ServerTab(QtWidgets.QWidget):
             reply = self.zmq_socket.recv_string()
         except zmq.error.Again:
             reply = "[Error] ZMQ request timed out."
+            error_occurred = True
         except zmq.error.ZMQError as e:
             if "Operation cannot be accomplished in current state" in str(e):
                 self.append_colored(
@@ -212,12 +212,18 @@ class ServerTab(QtWidgets.QWidget):
                 try:
                     self.zmq_socket.send_string(cmd)
                     reply = self.zmq_socket.recv_string()
+                    error_occurred = False
                 except Exception as e2:
                     reply = f"[Error] After reconnect: {e2}"
+                    error_occurred = True
             else:
                 reply = f"[Error] {e}"
+                error_occurred = True
         except Exception as e:
             reply = f"[Error] {e}"
+            error_occurred = True
+        else:
+            error_occurred = False
         # Try to parse as JSON and pretty-print, else just show with \n expanded
         try:
             resp = json.loads(reply)
@@ -228,7 +234,8 @@ class ServerTab(QtWidgets.QWidget):
                 self.append_colored(str(resp).replace("\\n", "\n"))
         except json.JSONDecodeError:
             self.append_colored(reply.replace("\\n", "\n"))
-        self.input_line.clear()
+        if not error_occurred:
+            self.input_line.clear()
         # Scroll to the bottom after new output
         self.text_area.moveCursor(QtGui.QTextCursor.End)
 
