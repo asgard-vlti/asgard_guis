@@ -524,6 +524,33 @@ def main():
         gd_snr_vs_offset_plot.addItem(errorbar)
         gd_snr_vs_offset_scatter.append(scatter)
         gd_snr_vs_offset_errorbars.append(errorbar)
+
+    # --- Button to reset gd_snr_vs_offsets ---
+    def reset_gd_snr_vs_offsets():
+        for obj in gd_snr_vs_offsets:
+            obj.offsets.clear()
+            obj.gd_snr_mean.clear()
+            obj.gd_snr_std.clear()
+            obj.M2.clear()
+            obj.n_measurements.clear()
+        # Clear the plot
+        for i in range(3):
+            gd_snr_vs_offset_scatter[i].setData([])
+            gd_snr_vs_offset_errorbars[i].setData(x=[], y=[], top=[], bottom=[])
+
+    reset_gd_snr_vs_offsets_button = QtWidgets.QPushButton("Reset All GD SNR vs Offset")
+    reset_gd_snr_vs_offsets_button.clicked.connect(reset_gd_snr_vs_offsets)
+    # Add button below the plot
+    layout = QtWidgets.QVBoxLayout()
+    layout.addWidget(gd_snr_vs_offset_win)
+    layout.addWidget(reset_gd_snr_vs_offsets_button)
+    # Create a container widget to hold both
+    gd_snr_vs_offset_container = QtWidgets.QWidget()
+    gd_snr_vs_offset_container.setLayout(layout)
+    gd_snr_vs_offset_container.move(gd_snr_vs_offset_win.x(), gd_snr_vs_offset_win.y())
+    gd_snr_vs_offset_container.resize(gd_snr_vs_offset_win.width(), gd_snr_vs_offset_win.height() + 40)
+    gd_snr_vs_offset_win.setParent(gd_snr_vs_offset_container)
+    gd_snr_vs_offset_container.show()
     # --- Left Column: Telescopes ---
     # Subheader
     telescopes_label = pg.LabelItem(justify="center", color="w")
