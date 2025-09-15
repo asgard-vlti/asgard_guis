@@ -142,7 +142,7 @@ def main():
         def add_measurement(self, offset, snr):
             # floating point check on if offset is already in the list
             is_offset_in_list = any(
-                np.isclose(offset, o, atol=1e-3) for o in self.offsets
+                np.isclose(offset, o, atol=0.2) for o in self.offsets
             )
             if not is_offset_in_list:
                 self.offsets.append(offset)
