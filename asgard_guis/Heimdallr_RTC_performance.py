@@ -644,7 +644,9 @@ def main():
         for i in range(N_BASELINES)
     ]
     # Add a horizontal line for gd_threshold
-    gd_threshold_line = pg.InfiniteLine(pos=gd_threshold, angle=0, pen=pg.mkPen('r', style=QtCore.Qt.DashLine))
+    gd_threshold_line = pg.InfiniteLine(
+        pos=gd_threshold, angle=0, pen=pg.mkPen("r", style=QtCore.Qt.DashLine)
+    )
     p_gd_snr.addItem(gd_threshold_line)
 
     # pd_snr
@@ -823,10 +825,10 @@ def main():
 
         # --- Update GD SNR vs Offset plot ---
         for i, gd_obj in enumerate(gd_snr_vs_offsets):
-            offsets = np.array(gd_obj.offsets)
-            means = np.array(gd_obj.gd_snr_mean)
-            stds = np.array(gd_obj.gd_snr_std)
-            if len(offsets) > 0:
+            offsets = np.array(gd_obj.offsets, dtype=float)
+            means = np.array(gd_obj.gd_snr_mean, dtype=float)
+            stds = np.array(gd_obj.gd_snr_std, dtype=float)
+            if offsets.size > 0 and means.size > 0 and stds.size > 0:
                 spots = [{"pos": (offsets[j], means[j])} for j in range(len(offsets))]
                 gd_snr_vs_offset_scatter[i].setData(spots)
                 # Error bars: x=offsets, y=means, top=stds, bottom=stds
@@ -834,7 +836,12 @@ def main():
                 gd_snr_vs_offset_errorbars[i].setData(**err_data)
             else:
                 gd_snr_vs_offset_scatter[i].setData([])
-                gd_snr_vs_offset_errorbars[i].setData(x=[], y=[], top=[], bottom=[])
+                gd_snr_vs_offset_errorbars[i].setData(
+                    x=np.array([]),
+                    y=np.array([]),
+                    top=np.array([]),
+                    bottom=np.array([]),
+                )
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
