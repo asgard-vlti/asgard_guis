@@ -23,6 +23,7 @@ def main():
         def eventFilter(self, obj, event):
             if event.type() == QtCore.QEvent.KeyPress:
                 key = event.key()
+                print(f"Key pressed: {key}")
                 if key in (QtCore.Qt.Key_Q, QtCore.Qt.Key_Escape):
                     for widget in QtWidgets.QApplication.topLevelWidgets():
                         widget.close()
