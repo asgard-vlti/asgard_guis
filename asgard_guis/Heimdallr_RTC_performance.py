@@ -812,15 +812,15 @@ def main():
             # k1_points = best_v2_K1[i]
             # k2_points = best_v2_K2[i]
 
-            # y1, x1 = zip(*k1_points)
-            # y2, x2 = zip(*k2_points)
+        # y1, x1 = zip(*k1_points)
+        # y2, x2 = zip(*k2_points)
 
-            y1, x1 = zip(*best_gd_SNR[i])
+        y1, x1 = zip(*best_gd_SNR[i])
 
-            scatter_items_gd[i].setData(x=x1, y=y1)
+        scatter_items_gd[i].setData(x=x1, y=y1)
 
-            # scatter_items_k1[i].setData(x=x1, y=y1)
-            # scatter_items_k2[i].setData(x=x2, y=y2)
+        # scatter_items_k1[i].setData(x=x1, y=y1)
+        # scatter_items_k2[i].setData(x=x2, y=y2)
 
         # update gd_snr_vs_offsets
         baselines_of_interest = [0, 1, 3]  # baselines involving telescope 1,2,4 with 3
