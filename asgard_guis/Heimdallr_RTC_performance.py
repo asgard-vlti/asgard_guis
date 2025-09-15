@@ -643,10 +643,8 @@ def main():
         )
         for i in range(N_BASELINES)
     ]
-    # plot gd_threshold as a horizontal line
-    gd_threshold_line = pg.InfiniteLine(
-        pos=gd_threshold, angle=0, pen=pg.mkPen("r", style=QtCore.Qt.DashLine)
-    )
+    # Add a horizontal line for gd_threshold
+    gd_threshold_line = pg.InfiniteLine(pos=gd_threshold, angle=0, pen=pg.mkPen('r', style=QtCore.Qt.DashLine))
     p_gd_snr.addItem(gd_threshold_line)
 
     # pd_snr
@@ -764,10 +762,10 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-        settings = Z.send("settings")
-        print(f"settings: {settings}")
-        gd_threshold = float(settings.get("gd_threshold", gd_threshold))
-        print("gd_threshold now is:", gd_threshold)
+    settings = Z.send("settings")
+    gd_threshold = float(settings.get("gd_threshold", gd_threshold))
+    # Update the horizontal line position
+    gd_threshold_line.setValue(gd_threshold)
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
