@@ -356,8 +356,8 @@ def main():
     legend_layout.addWidget(base_label)
 
     # --- New Figure for OPD vs V2_K1 and V2_K2 (all baselines on one plot) ---
-    scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs V2_K1 and V2_K2")
-    scatter_win.setWindowTitle("Best OPD vs vis (All Baselines)")
+    scatter_win = pg.GraphicsLayoutWidget(show=True, title="OPD vs GD SNR")
+    scatter_win.setWindowTitle("Best OPD vs GD SNR (All Baselines)")
     # Calculate position and size so:
     # - left edge flush with right edge of legend
     # - bottom edge aligned with bottom of legend
@@ -372,9 +372,9 @@ def main():
     scatter_win.resize(scatter_width, scatter_height)
     scatter_win.move(scatter_x, scatter_y)
     scatter_plot = scatter_win.addPlot(
-        row=0, col=0, title="All Baselines: OPD vs V² K1/K2"
+        row=0, col=0, title="All Baselines: OPD vs GD SNR"
     )
-    scatter_plot.setLabel("left", "GD Value")
+    scatter_plot.setLabel("left", "GD SNR")
     scatter_plot.setLabel("bottom", "OPD")
     scatter_plot.showGrid(x=True, y=True)
     # scatter_items_k1 = []
