@@ -810,7 +810,7 @@ def main():
             # scatter_items_k2[i].setData(x=x2, y=y2)
 
         # update gd_snr_vs_offsets
-        baselines_of_interest = [0, 1, 3]  # baselines involving telescope 1,2,4 with 3
+        baselines_of_interest = [1, 3, 5]  # baselines involving telescope 1,2,4 with 3
         gd_re = np.array(status["gd_phasor_real"])
         gd_im = np.array(status["gd_phasor_imag"])
         gd_phasor = gd_re + 1j * gd_im
