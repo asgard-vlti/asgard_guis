@@ -548,7 +548,9 @@ def main():
     gd_snr_vs_offset_container = QtWidgets.QWidget()
     gd_snr_vs_offset_container.setLayout(layout)
     gd_snr_vs_offset_container.move(gd_snr_vs_offset_win.x(), gd_snr_vs_offset_win.y())
-    gd_snr_vs_offset_container.resize(gd_snr_vs_offset_win.width(), gd_snr_vs_offset_win.height() + 40)
+    gd_snr_vs_offset_container.resize(
+        gd_snr_vs_offset_win.width(), gd_snr_vs_offset_win.height() + 40
+    )
     gd_snr_vs_offset_win.setParent(gd_snr_vs_offset_container)
     gd_snr_vs_offset_container.show()
     # --- Left Column: Telescopes ---
@@ -758,6 +760,7 @@ def main():
             arr[-1] = status[key]
 
         settings = Z.send("settings")
+        print(f"settings: {settings}")
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
 
         for i in range(N_TSCOPES):
