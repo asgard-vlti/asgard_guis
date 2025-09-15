@@ -453,7 +453,7 @@ def main():
             self.sliders = []
             self.labels = []
             self.value_labels = []
-            slider_names = ["offset 0", "offset 1", "offset 3"]
+            slider_names = ["offset 1", "offset 2", "offset 4"]
             for i, name in enumerate(slider_names):
                 row = QtWidgets.QHBoxLayout()
                 label = QtWidgets.QLabel(name)
@@ -487,6 +487,10 @@ def main():
             msg = f"tweak_gd_offsets {values[0]:.2f},{values[1]:.2f},{values[2]:.2f}"
             Z.send(msg)
             QtWidgets.QMessageBox.information(self, "Offsets Applied", f"Sent: {msg}")
+            # Reset sliders to 0 after apply
+            for slider, value_label in zip(self.sliders, self.value_labels):
+                slider.setValue(0)
+                value_label.setText("0.0")
 
     # Create and show the offset tweaker window
     offset_tweaker_win = OffsetTweakerWindow()
