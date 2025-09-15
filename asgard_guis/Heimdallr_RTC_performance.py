@@ -2,7 +2,7 @@
 Various methods of drawing scrolling plots using pyqtgraph for speed and simplicity.
 """
 
-import ZMQ_control_client as Z
+import asgard_guis.ZMQ_control_client as Z
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
