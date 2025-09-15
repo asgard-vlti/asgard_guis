@@ -762,10 +762,10 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-    settings = Z.send("settings")
-    gd_threshold = float(settings.get("gd_threshold", gd_threshold))
-    # Update the horizontal line position
-    gd_threshold_line.setValue(gd_threshold)
+        settings = Z.send("settings")
+        gd_threshold = float(settings.get("gd_threshold", gd_threshold))
+        # Update the horizontal line position
+        gd_threshold_line.setValue(gd_threshold)
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
