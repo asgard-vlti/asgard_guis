@@ -762,6 +762,7 @@ def main():
         settings = Z.send("settings")
         print(f"settings: {settings}")
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
+        print("gd_threshold now is:", gd_threshold)
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
@@ -812,9 +813,10 @@ def main():
         gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
 
         for i, baseline_idx in enumerate(baselines_of_interest):
-            gd_snr_vs_offsets[i].add_measurement(
-                gd_offsets[i], gd_snr[-1, baseline_idx]
-            )
+            if gd_snr[-1, baseline_idx] > gd_threshold:
+                gd_snr_vs_offsets[i].add_measurement(
+                    gd_offsets[i], gd_snr[-1, baseline_idx]
+                )
 
         # --- Update GD SNR vs Offset plot ---
         for i, gd_obj in enumerate(gd_snr_vs_offsets):
