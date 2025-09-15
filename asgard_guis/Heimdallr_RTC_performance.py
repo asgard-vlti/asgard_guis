@@ -204,7 +204,6 @@ def main():
     best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
     # best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
-    app = QtWidgets.QApplication([])
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
     win.setWindowTitle("Heimdallr Real-Time Plots")
     # Move to top right (flush with edges)
