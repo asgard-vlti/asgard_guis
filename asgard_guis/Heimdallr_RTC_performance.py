@@ -609,6 +609,11 @@ def main():
         )
         for i in range(N_BASELINES)
     ]
+    # plot gd_threshold as a horizontal line
+    gd_threshold_line = pg.InfiniteLine(
+        pos=gd_threshold, angle=0, pen=pg.mkPen("r", style=QtCore.Qt.DashLine)
+    )
+    p_gd_snr.addItem(gd_threshold_line)
 
     # pd_snr
     p_pd_snr = win.addPlot(row=4, col=1, title="Phase Delay SNR")
