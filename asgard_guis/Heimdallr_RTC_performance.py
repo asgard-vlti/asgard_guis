@@ -847,7 +847,15 @@ def main():
     timer.timeout.connect(update)
     timer.start(update_time)
 
-    app.exec_()
+    # Handle KeyboardInterrupt to close all windows
+    try:
+        app.exec_()
+    except KeyboardInterrupt:
+        # Close all top-level windows
+        for widget in QtWidgets.QApplication.topLevelWidgets():
+            widget.close()
+        QtCore.QCoreApplication.quit()
+        print("Closed all windows due to KeyboardInterrupt.")
 
 
 if __name__ == "__main__":
