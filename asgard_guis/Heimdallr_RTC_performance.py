@@ -40,8 +40,9 @@ def main():
         "--output",
         type=str,
         # options=["print", "heim"],
-        default="print",
-        help="Output method for offsets (default: print)",
+        choices=["print", "heim"],
+        default="heim",
+        help="Output method for offsets (default: heim)",
     )
     args = parser.parse_args()
 
