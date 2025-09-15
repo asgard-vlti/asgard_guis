@@ -191,7 +191,7 @@ class ServerTab(QtWidgets.QWidget):
             for i in range(self.command_dropdown.count())
         )
         cmd_name = cmd.split(" ", 1)[0] if " " in cmd else cmd
-        if cmd_name not in command_set:
+        if cmd_name not in command_set and cmd_name not in ["exit"]:
             self.append_colored(f"[Error] Command '{cmd_name}' not recognized.")
             self.input_line.clear()
             self.text_area.moveCursor(QtGui.QTextCursor.End)
