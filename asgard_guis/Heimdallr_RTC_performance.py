@@ -510,7 +510,7 @@ def main():
         title="GD SNR vs Offset (T1, T2, T4 rel. T3)"
     )
     gd_snr_vs_offset_plot.setLabel("left", "GD SNR (mean ± std)")
-    gd_snr_vs_offset_plot.setLabel("bottom", "Offset (rad)")
+    gd_snr_vs_offset_plot.setLabel("bottom", "arg(GD phasor) (rad)")
     gd_snr_vs_offset_plot.showGrid(x=True, y=True)
     # One error bar item per telescope (relative to T3)
     gd_snr_vs_offset_errorbars = []
