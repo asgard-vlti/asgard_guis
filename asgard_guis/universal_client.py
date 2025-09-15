@@ -360,7 +360,7 @@ class UniversalClient(QtWidgets.QMainWindow):
 
 
 def main():
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 1:
         ip_addr = "mimir"
     elif len(sys.argv) > 2:
         print("Usage: python universal_client.py <ip_address>")
