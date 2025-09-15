@@ -129,6 +129,53 @@ def main():
 
     gd_threshold = 5.0
 
+    class GD_SNR_vs_Offset:
+        def __init__(self, beam_no):
+            self.beam_no = beam_no
+
+            self.offsets = []
+            self.gd_snr_mean = []
+            self.M2 = []
+            self.gd_snr_std = []
+            self.n_measurements = []
+
+        def add_measurement(self, offset, snr):
+            # floating point check on if offset is already in the list
+            is_offset_in_list = any(
+                np.isclose(offset, o, atol=1e-3) for o in self.offsets
+            )
+            if not is_offset_in_list:
+                self.offsets.append(offset)
+                idx = self.offsets.index(offset)
+                self.n_measurements.append(1)
+                self.gd_snr_mean.append(snr)
+                self.gd_snr_std.append(0.0)
+                self.M2.append(0.0)
+            else:
+                idx = -1
+                for i, o in enumerate(self.offsets):
+                    if np.isclose(offset, o, atol=1e-3):
+                        idx = i
+                        break
+
+                # Welford's online algorithm for mean and stddev
+                n = self.n_measurements[idx]
+
+                self.n_measurements[idx] += 1
+                delta = snr - self.gd_snr_mean[idx]
+                self.gd_snr_mean[idx] += delta / self.n_measurements[idx]
+                self.M2[idx] += delta * (snr - self.gd_snr_mean[idx])
+                if self.n_measurements[idx] > 1:
+                    self.gd_snr_std[idx] = (
+                        self.M2[idx] / (self.n_measurements[idx] - 1)
+                    ) ** 0.5
+                else:
+                    self.gd_snr_std[idx] = 0.0
+
+    gd_snr_vs_offsets = [
+        GD_SNR_vs_Offset(i) for i in [1, 2, 4]
+    ]  # one per telescope relative to 3
+
     # tracking_states: 4 vector of strings
     tracking_states = ["" for _ in range(N_TSCOPES)]
 
@@ -392,8 +439,8 @@ def main():
     legend_layout.addWidget(baseline_plot_widget)
 
     legend_win.show()
-    # --- Offset Tweaker Window ---
 
+    # --- Offset Tweaker Window ---
     class OffsetTweakerWindow(QtWidgets.QWidget):
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -446,6 +493,37 @@ def main():
     offset_tweaker_win.move(win.x() + win.width() + 20, win.y())
     offset_tweaker_win.show()
 
+    # --- New Figure: GD SNR vs Offset (with error bars) ---
+    gd_snr_vs_offset_win = pg.GraphicsLayoutWidget(show=True, title="GD SNR vs Offset")
+    gd_snr_vs_offset_win.setWindowTitle("GD SNR vs Offset (per telescope)")
+    # Place to the right of offset tweaker window
+    gd_snr_vs_offset_win.resize(400, 300)
+    gd_snr_vs_offset_win.move(
+        offset_tweaker_win.x() + offset_tweaker_win.width() + 20, offset_tweaker_win.y()
+    )
+    gd_snr_vs_offset_plot = gd_snr_vs_offset_win.addPlot(
+        title="GD SNR vs Offset (T1, T2, T4 rel. T3)"
+    )
+    gd_snr_vs_offset_plot.setLabel("left", "GD SNR (mean ± std)")
+    gd_snr_vs_offset_plot.setLabel("bottom", "Offset (rad)")
+    gd_snr_vs_offset_plot.showGrid(x=True, y=True)
+    # One error bar item per telescope (relative to T3)
+    gd_snr_vs_offset_errorbars = []
+    gd_snr_vs_offset_scatter = []
+    offset_colors = [pg.mkPen("#601A4A"), pg.mkPen("#EE442F"), pg.mkPen("#F9F4EC")]
+    for i in range(3):
+        scatter = pg.ScatterPlotItem(
+            pen=offset_colors[i],
+            brush=offset_colors[i].color(),
+            symbol="o",
+            size=10,
+            name=f"T{[1,2,4][i]} vs T3",
+        )
+        errorbar = pg.ErrorBarItem(pen=offset_colors[i])
+        gd_snr_vs_offset_plot.addItem(scatter)
+        gd_snr_vs_offset_plot.addItem(errorbar)
+        gd_snr_vs_offset_scatter.append(scatter)
+        gd_snr_vs_offset_errorbars.append(errorbar)
     # --- Left Column: Telescopes ---
     # Subheader
     telescopes_label = pg.LabelItem(justify="center", color="w")
@@ -630,7 +708,8 @@ def main():
         return tracking_states
 
     def update():
-        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr, tracking_states, gd_threshold
+        nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
+        nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
         arrays = [
             (gd_tel, "gd_tel"),
@@ -646,7 +725,8 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-        gd_threshold = float(Z.send("get_gd_threshold"))
+        settings = Z.send("settings")
+        gd_threshold = float(settings.get("gd_threshold", gd_threshold))
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
@@ -666,17 +746,6 @@ def main():
 
         # Update best samples if V2_K1 or V2_K2 is among the best so far
         for baseline_idx in range(N_BASELINES):
-            # cur_v2K1 = v2_K1[-1, baseline_idx]
-            # cur_v2K2 = v2_K2[-1, baseline_idx]
-
-            # heapq.heappushpop(
-            #     best_v2_K1[baseline_idx],
-            #     (cur_v2K1, opds[baseline_idx]),
-            # )
-            # heapq.heappushpop(
-            #     best_v2_K2[baseline_idx],
-            #     (cur_v2K2, opds[baseline_idx]),
-            # )
             cur_gdSNR = gd_snr[-1, baseline_idx]
             heapq.heappushpop(
                 best_gd_SNR[baseline_idx],
@@ -698,6 +767,34 @@ def main():
 
             # scatter_items_k1[i].setData(x=x1, y=y1)
             # scatter_items_k2[i].setData(x=x2, y=y2)
+
+        # update gd_snr_vs_offsets
+        baselines_of_interest = [0, 1, 3]  # baselines involving telescope 1,2,4 with 3
+        gd_re = np.array(status["gd_phasor_real"])
+        gd_im = np.array(status["gd_phasor_imag"])
+        gd_phasor = gd_re + 1j * gd_im
+
+        gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
+
+        for i, baseline_idx in enumerate(baselines_of_interest):
+            gd_snr_vs_offsets[i].add_measurement(
+                gd_offsets[i], gd_snr[-1, baseline_idx]
+            )
+
+        # --- Update GD SNR vs Offset plot ---
+        for i, gd_obj in enumerate(gd_snr_vs_offsets):
+            offsets = np.array(gd_obj.offsets)
+            means = np.array(gd_obj.gd_snr_mean)
+            stds = np.array(gd_obj.gd_snr_std)
+            if len(offsets) > 0:
+                spots = [{"pos": (offsets[j], means[j])} for j in range(len(offsets))]
+                gd_snr_vs_offset_scatter[i].setData(spots)
+                # Error bars: x=offsets, y=means, top=stds, bottom=stds
+                err_data = dict(x=offsets, y=means, top=stds, bottom=stds)
+                gd_snr_vs_offset_errorbars[i].setData(**err_data)
+            else:
+                gd_snr_vs_offset_scatter[i].setData([])
+                gd_snr_vs_offset_errorbars[i].setData(x=[], y=[], top=[], bottom=[])
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
