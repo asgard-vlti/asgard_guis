@@ -349,8 +349,22 @@ def main():
     )
 
     # ...existing code...
-    # After both heimdallr_sm and win are defined, show the control window ONCE
-    # This should be after the main window and state machine are created
+    # Create the main window first so 'win' is defined
+    win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
+    win.setWindowTitle("Heimdallr Real-Time Plots")
+    # Move to top right (flush with edges)
+    screen = QtWidgets.QApplication.primaryScreen()
+    screen_geometry = screen.availableGeometry()
+    legend_fixed_height = 450
+    total_height = screen_geometry.height()
+    win_height = total_height - legend_fixed_height - 50
+    win_width = 900
+    win.resize(win_width, win_height)
+    win_x = screen_geometry.right() - win.width()
+    win_y = screen_geometry.top()
+    win.move(win_x, win_y)
+
+    # Now create and show the state machine control window
     sm_control_win = StateMachineControlWindow(heimdallr_sm)
     sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
     sm_control_win.show()
