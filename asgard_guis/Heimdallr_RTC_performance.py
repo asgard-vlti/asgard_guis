@@ -102,7 +102,7 @@ class HeimdallrStateMachine(StateMachine):
         print(f"Set threshold to {value}")
 
     def on_enter_searching(self, event):
-        from_state = event.transition.source
+        from_state = event.source if hasattr(event, "source") else None
         self.set_threshold(self.threshold_lower)
         self.server.send_payload('offload "gd"')
         if from_state == self.offload_gd:
@@ -123,7 +123,7 @@ class HeimdallrStateMachine(StateMachine):
         print("Kicks should go here...")
 
     def on_enter_offload_gd(self, event):
-        from_state = event.transition.source
+        from_state = event.source if hasattr(event, "source") else None
         if from_state == self.searching:
             self.set_threshold(self.threshold_lower)
         elif from_state == self.sidelobe:
@@ -282,8 +282,6 @@ def main():
         def on_upper_changed(self, value):
             self.sm.threshold_upper = value
 
-
-
     # --- Create QApplication instance before any usage ---
     app = QtWidgets.QApplication([])
 
@@ -327,14 +325,12 @@ def main():
     n_max_samples = 5  # number of samples to keep track of as the best so far
     best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
-
     def reset_best_gd_SNR():
         nonlocal best_gd_SNR
         best_gd_SNR = [
             [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
         ]
         print("best_gd_SNR has been reset.")
-
 
     # --- Setup HeimdallrStateMachine ---
     # Determine status keys and shapes from first status message
@@ -348,7 +344,6 @@ def main():
         best_gd_SNR_ref=best_gd_SNR,
         reset_best_gd_SNR_func=reset_best_gd_SNR,
     )
-
 
     # ...existing code...
     # After both heimdallr_sm and win are defined, show the control window ONCE
