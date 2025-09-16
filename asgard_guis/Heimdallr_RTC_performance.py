@@ -244,8 +244,10 @@ def main():
 
             # Enable/disable tickbox
             self.enable_checkbox = QtWidgets.QCheckBox("Enable State Machine")
-            self.enable_checkbox.setChecked(True)
+            self.enable_checkbox.setChecked(False)
             layout.addWidget(self.enable_checkbox)
+            # Set state machine inactive by default
+            setattr(sm, "active", False)
 
             # Lower threshold input
             lower_layout = QtWidgets.QHBoxLayout()
