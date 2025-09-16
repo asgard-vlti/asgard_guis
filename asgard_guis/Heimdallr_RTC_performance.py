@@ -100,19 +100,19 @@ class HeimdallrStateMachine(StateMachine):
         self._status_idx = (self._status_idx + 1) % self.n_lookback
 
     def set_threshold(self, value):
-        self.server.send_payload(f"set_gd_threshold {value}")
+        self.server.send(f"set_gd_threshold {value}")
         print(f"Set threshold to {value}")
 
     def on_enter_searching(self, event):
         from_state = event.source if hasattr(event, "source") else None
         self.set_threshold(self.threshold_lower)
-        self.server.send_payload('offload "gd"')
+        self.server.send('offload "gd"')
         if from_state == self.offload_gd:
             pass
         elif from_state == self.sidelobe:
             pass
         elif from_state == self.servo_on:
-            self.server.send_payload('servo "off"')
+            self.server.send('servo "off"')
 
         # Reset best_gd_SNR history (same as GUI reset button)
         self.reset_best_gd_SNR()
@@ -131,13 +131,13 @@ class HeimdallrStateMachine(StateMachine):
         elif from_state == self.sidelobe:
             self.set_threshold(self.threshold_lower)
         elif from_state == self.servo_on:
-            self.server.send_payload('servo "off"')
+            self.server.send('servo "off"')
             self.set_threshold(self.threshold_lower)
 
     def on_enter_servo_on(self):
         # Operations to perform when entering 'servo_on'
-        self.server.send_payload(f"set_gain {self.servo_start_gain}")
-        self.server.send_payload('servo "on"')
+        self.server.send(f"set_gain {self.servo_start_gain}")
+        self.server.send('servo "on"')
 
     @property
     def M(self):
