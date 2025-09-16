@@ -8,15 +8,348 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 import argparse
 
+from statemachine import StateMachine, State
+
 import heapq
 
 N_TSCOPES = 4
 N_BASELINES = 6
 
 
+class HeimdallrStateMachine(StateMachine):
+    searching = State("Searching", initial=True)
+    sidelobe = State("Sidelobe")
+    offload_gd = State("Offload GD")
+    servo_on = State("Servo On")
+
+    # linear state machine, states are in order:
+    # searching, sidelobe, offload_gd, servo
+    # can only move forward one step at a time
+    # but can move back any number of steps:
+    # forward steps:
+    to_sidelobe_from_searching = searching.to(sidelobe)
+    to_offload_gd_from_sidelobe = sidelobe.to(offload_gd)
+    to_servo_from_offload_gd = offload_gd.to(servo_on)
+
+    # backward steps:
+    to_searching_from_sidelobe = sidelobe.to(searching)
+    to_searching_from_offload_gd = offload_gd.to(searching)
+    to_searching_from_servo = servo_on.to(searching)
+
+    to_sidelobe_from_offload_gd = offload_gd.to(sidelobe)
+    to_sidelobe_from_servo = servo_on.to(sidelobe)
+
+    to_offload_gd_from_servo = servo_on.to(offload_gd)
+
+    def __init__(
+        self,
+        status_keys,
+        status_shapes,
+        buffer_length,
+        best_gd_SNR_ref,
+        reset_best_gd_SNR_func,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.status_keys = status_keys
+        self.status_buffers = {}
+        for k in status_keys:
+            shape = status_shapes[k]
+            dtype = np.float64
+            if isinstance(shape, tuple):
+                if len(shape) == 0:
+                    self.status_buffers[k] = np.full(
+                        (buffer_length,), np.nan, dtype=dtype
+                    )
+                elif len(shape) == 1:
+                    self.status_buffers[k] = np.full(
+                        (buffer_length, shape[0]), np.nan, dtype=dtype
+                    )
+                else:
+                    self.status_buffers[k] = np.full(
+                        (buffer_length,) + shape, np.nan, dtype=dtype
+                    )
+            else:
+                self.status_buffers[k] = np.full((buffer_length,), np.nan, dtype=dtype)
+        self._status_idx = 0  # rolling index for lookback
+
+        self.threshold_lower = 8
+        self.threshold_upper = 25
+
+        self.servo_start_gain = 0.05
+        self.servo_final_gain = 0.4
+
+        # Shared best_gd_SNR and reset logic
+        self.best_gd_SNR = best_gd_SNR_ref
+        self.reset_best_gd_SNR = reset_best_gd_SNR_func
+
+    def update_status_buffers(self, status):
+        """
+        Update rolling buffers with new status dict (from main GUI).
+        """
+        for k in self.status_keys:
+            arr = np.array(status[k])
+            buf = self.status_buffers[k]
+            if arr.ndim == 0 or (arr.ndim == 1 and arr.shape == ()):  # scalar
+                buf[self._status_idx] = arr
+            else:
+                buf[self._status_idx] = arr
+        self._status_idx = (self._status_idx + 1) % self.n_lookback
+
+    def set_threshold(self, value):
+        self.server.send_payload(f"set_gd_threshold {value}")
+        print(f"Set threshold to {value}")
+
+    def on_enter_searching(self, event):
+        from_state = event.transition.source
+        self.set_threshold(self.threshold_lower)
+        self.server.send_payload('offload "gd"')
+        if from_state == self.offload_gd:
+            pass
+        elif from_state == self.sidelobe:
+            pass
+        elif from_state == self.servo_on:
+            self.server.send_payload('servo "off"')
+
+        # Reset best_gd_SNR history (same as GUI reset button)
+        self.reset_best_gd_SNR()
+
+    def on_enter_sidelobe(self):
+        # Operations to perform when entering 'sidelobe'
+        self.set_threshold(self.threshold_upper)
+
+        # kicks and see what happens to gd
+        print("Kicks should go here...")
+
+    def on_enter_offload_gd(self, event):
+        from_state = event.transition.source
+        if from_state == self.searching:
+            self.set_threshold(self.threshold_lower)
+        elif from_state == self.sidelobe:
+            self.set_threshold(self.threshold_lower)
+        elif from_state == self.servo_on:
+            self.server.send_payload('servo "off"')
+            self.set_threshold(self.threshold_lower)
+
+    def on_enter_servo_on(self):
+        # Operations to perform when entering 'servo_on'
+        self.server.send_payload(f"set_gain {self.servo_start_gain}")
+        self.server.send_payload('servo "on"')
+
+    @property
+    def M(self):
+        return np.array(
+            [
+                [-1, 1, 0, 0],
+                [-1, 0, 1, 0],
+                [-1, 0, 0, 1],
+                [0, -1, 1, 0],
+                [0, -1, 0, 1],
+                [0, 0, -1, 1],
+            ]
+        )
+
+    def poll_transitions(self):
+        """
+        Poll transition conditions and trigger transitions as needed.
+        This should be called after update_status_buffers.
+        """
+        print("Current State:", self.current_state.name)
+
+        # State transitions
+        if self.current_state == self.searching:
+            if self.should_go_to_offload_gd(from_state="searching"):
+                self.to_offload_gd_from_searching()
+            elif self.should_go_to_sidelobe():
+                self.to_sidelobe()
+        elif self.current_state == self.sidelobe:
+            if self.should_go_to_offload_gd(from_state="sidelobe"):
+                self.to_offload_gd_from_sidelobe()
+            elif self.should_go_to_searching():
+                self.to_searching()
+        elif self.current_state == self.offload_gd:
+            if self.should_go_to_servo_on():
+                self.to_servo_on()
+            elif self.should_go_to_searching():
+                self.to_searching()
+            elif self.should_go_to_sidelobe():
+                self.to_sidelobe()
+        elif self.current_state == self.servo_on:
+            if self.should_go_to_offload_gd(from_state="servo_on"):
+                self.to_offload_gd_from_servo_on()
+            elif self.should_go_to_searching():
+                self.to_searching()
+
+    # Placeholder condition methods
+    def should_go_to_sidelobe(self):
+        # check if the gd_snr is on average between threshold_lower and threshold_upper
+        buf = self.status_buffers.get("gd_snr")
+        if buf is not None:
+            avg_gd_snr = np.mean(buf)
+            return self.threshold_lower < avg_gd_snr < self.threshold_upper
+
+    def should_go_to_offload_gd(self, from_state):
+        if from_state == "searching":
+            # check if median gd_snr for all baselines exceeds lower threshold
+            buf = self.status_buffers.get("gd_snr")
+            if buf is not None:
+                median_gd_snr = np.median(buf, axis=0)
+                return np.all(median_gd_snr > self.threshold_lower)
+
+            # alternatively could check if history had 4 or 5 baselines and do the calc...
+        elif from_state == "sidelobe":
+            # check if median gd_snr for all baselines exceeds upper threshold
+            buf = self.status_buffers.get("gd_snr")
+            if buf is not None:
+                median_gd_snr = np.median(buf, axis=0)
+                return np.all(median_gd_snr > self.threshold_upper)
+        elif from_state == "servo_on":
+            # if all baselines gd_snr drop below lower threshold
+            buf = self.status_buffers.get("gd_snr")
+            if buf is not None:
+                median_gd_snr = np.median(buf, axis=0)
+                return np.all(median_gd_snr < self.threshold_lower)
+
+    def should_go_to_servo_on(self):
+        # if gd_snr has been above upper threshold over 95% of samples in the lookback
+        buf = self.status_buffers.get("gd_snr")
+        if buf is not None:
+            above_threshold = buf > self.threshold_upper
+            fraction_above = np.mean(above_threshold, axis=0)
+            return np.all(fraction_above >= 0.95)
+
+    def should_go_to_searching(self):
+        # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
+        buf = self.status_buffers.get("gd_snr")
+        if buf is not None:
+            below_threshold = buf < self.threshold_upper
+            fraction_below = np.mean(below_threshold, axis=0)
+            return np.sum(fraction_below >= 0.95) <= 3
+
+
 def main():
+    # --- State Machine Control Window ---
+    class StateMachineControlWindow(QtWidgets.QWidget):
+        def __init__(self, sm, parent=None):
+            super().__init__(parent)
+            self.setWindowTitle("State Machine Control")
+            self.setFixedSize(300, 150)
+            layout = QtWidgets.QVBoxLayout()
+            self.setLayout(layout)
+
+            # Enable/disable tickbox
+            self.enable_checkbox = QtWidgets.QCheckBox("Enable State Machine")
+            self.enable_checkbox.setChecked(True)
+            layout.addWidget(self.enable_checkbox)
+
+            # Lower threshold input
+            lower_layout = QtWidgets.QHBoxLayout()
+            lower_label = QtWidgets.QLabel("Lower GD SNR threshold:")
+            self.lower_spin = QtWidgets.QDoubleSpinBox()
+            self.lower_spin.setDecimals(2)
+            self.lower_spin.setRange(0, 100)
+            self.lower_spin.setValue(sm.threshold_lower)
+            lower_layout.addWidget(lower_label)
+            lower_layout.addWidget(self.lower_spin)
+            layout.addLayout(lower_layout)
+
+            # Upper threshold input
+            upper_layout = QtWidgets.QHBoxLayout()
+            upper_label = QtWidgets.QLabel("Upper GD SNR threshold:")
+            self.upper_spin = QtWidgets.QDoubleSpinBox()
+            self.upper_spin.setDecimals(2)
+            self.upper_spin.setRange(0, 100)
+            self.upper_spin.setValue(sm.threshold_upper)
+            upper_layout.addWidget(upper_label)
+            upper_layout.addWidget(self.upper_spin)
+            layout.addLayout(upper_layout)
+
+            # Connect signals
+            self.enable_checkbox.stateChanged.connect(self.on_enable_changed)
+            self.lower_spin.valueChanged.connect(self.on_lower_changed)
+            self.upper_spin.valueChanged.connect(self.on_upper_changed)
+            self.sm = sm
+
+        def on_enable_changed(self, state):
+            enabled = state == QtCore.Qt.Checked
+            # Store on the state machine for access in update()
+            setattr(self.sm, "active", enabled)
+
+        def on_lower_changed(self, value):
+            self.sm.threshold_lower = value
+
+        def on_upper_changed(self, value):
+            self.sm.threshold_upper = value
+
+    # ...existing code...
+    # After both heimdallr_sm and win are defined, show the control window ONCE
+    # This should be after the main window and state machine are created
+    sm_control_win = StateMachineControlWindow(heimdallr_sm)
+    sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
+    sm_control_win.show()
     # --- Create QApplication instance before any usage ---
     app = QtWidgets.QApplication([])
+
+    # --- Parse arguments before constructing state machine ---
+    parser = argparse.ArgumentParser(
+        description="Real-time scrolling plots for Heimdallr."
+    )
+    parser.add_argument(
+        "--update-time",
+        type=int,
+        default=50,
+        help="Update interval in ms (default: 50)",
+    )
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=100,
+        help="Number of samples to hold (default: 100)",
+    )
+    parser.add_argument(
+        "--linewidth",
+        type=float,
+        default=2.0,
+        help="Line width for plot curves (default: 2.0)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        # options=["print", "heim"],
+        choices=["print", "heim"],
+        default="heim",
+        help="Output method for offsets (default: heim)",
+    )
+    args = parser.parse_args()
+
+    samples = args.samples
+    update_time = args.update_time
+    linewidth = args.linewidth
+
+    n_max_samples = 5  # number of samples to keep track of as the best so far
+    best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
+
+    def reset_best_gd_SNR():
+        nonlocal best_gd_SNR
+        best_gd_SNR = [
+            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
+        ]
+        print("best_gd_SNR has been reset.")
+
+    # --- Setup HeimdallrStateMachine ---
+    # Determine status keys and shapes from first status message
+    status0 = Z.send("status")
+    status_keys = list(status0.keys())
+    status_shapes = {k: np.array(status0[k]).shape for k in status_keys}
+    heimdallr_sm = HeimdallrStateMachine(
+        status_keys=status_keys,
+        status_shapes=status_shapes,
+        buffer_length=samples,
+        best_gd_SNR_ref=best_gd_SNR,
+        reset_best_gd_SNR_func=reset_best_gd_SNR,
+    )
 
     # --- Global hotkey to close all windows ---
     class GlobalHotkeyFilter(QtCore.QObject):
@@ -132,7 +465,7 @@ def main():
             [0, 0, -1, 1],
         ]
     )
-    inv_M = np.linalg.pinv(M)
+    # inv_M = np.linalg.pinv(M)  # Unused variable removed
 
     # Time axis: from -window to 0, in seconds
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
@@ -179,7 +512,7 @@ def main():
                         break
 
                 # Welford's online algorithm for mean and stddev
-                n = self.n_measurements[idx]
+                # n = self.n_measurements[idx]  # Unused variable removed
 
                 self.n_measurements[idx] += 1
                 delta = snr - self.gd_snr_mean[idx]
@@ -198,11 +531,6 @@ def main():
 
     # tracking_states: 4 vector of strings
     tracking_states = ["" for _ in range(N_TSCOPES)]
-
-    n_max_samples = 5  # number of samples to keep track of as the best so far
-    # best_v2_K1 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
-    best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
-    # best_v2_K2 = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
     win = pg.GraphicsLayoutWidget(show=True, title="Scrolling Plots")
     win.setWindowTitle("Heimdallr Real-Time Plots")
@@ -287,13 +615,6 @@ def main():
     offset_buttons_layout.addWidget(offset_button_6)
 
     # --- Button to reset best_gd_SNR ---
-    def reset_best_gd_SNR():
-        nonlocal best_gd_SNR
-        best_gd_SNR = [
-            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
-        ]
-        print("best_gd_SNR has been reset.")
-
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
     reset_button.clicked.connect(reset_best_gd_SNR)
 
@@ -472,7 +793,7 @@ def main():
             self.labels = []
             self.value_labels = []
             slider_names = ["offset 1", "offset 2", "offset 4"]
-            for i, name in enumerate(slider_names):
+            for name in slider_names:
                 row = QtWidgets.QHBoxLayout()
                 label = QtWidgets.QLabel(name)
                 slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -540,7 +861,7 @@ def main():
             brush=offset_colors[i].color(),
             symbol="o",
             size=10,
-            name=f"T{[1,2,4][i]} vs T3",
+            name=f"T{[1, 2, 4][i]} vs T3",
         )
         errorbar = pg.ErrorBarItem(pen=offset_colors[i])
         gd_snr_vs_offset_plot.addItem(scatter)
@@ -768,6 +1089,11 @@ def main():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
+        # Update state machine buffers and transitions
+        # Only update/poll state machine if enabled
+        if getattr(heimdallr_sm, "active", True):
+            heimdallr_sm.update_status_buffers(status)
+            heimdallr_sm.poll_transitions()
         arrays = [
             (gd_tel, "gd_tel"),
             (pd_tel, "pd_tel"),
@@ -807,7 +1133,7 @@ def main():
         for baseline_idx in range(N_BASELINES):
             cur_gdSNR = gd_snr[-1, baseline_idx]
             heapq.heappushpop(
-                best_gd_SNR[baseline_idx],
+                heimdallr_sm.best_gd_SNR[baseline_idx],
                 (cur_gdSNR, opds[baseline_idx]),
             )
 
