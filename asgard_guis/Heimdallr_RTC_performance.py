@@ -48,6 +48,7 @@ class HeimdallrStateMachine(StateMachine):
         buffer_length,
         best_gd_SNR_ref,
         reset_best_gd_SNR_func,
+        server,
         *args,
         **kwargs,
     ):
@@ -75,14 +76,14 @@ class HeimdallrStateMachine(StateMachine):
                 self.status_buffers[k] = np.full((buffer_length,), np.nan, dtype=dtype)
         self._status_idx = 0  # rolling index for lookback
 
-
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
 
         # Shared best_gd_SNR and reset logic
         self.best_gd_SNR = best_gd_SNR_ref
         self.reset_best_gd_SNR = reset_best_gd_SNR_func
-        
+
+        self.server = server
         super().__init__(*args, **kwargs)
 
     def update_status_buffers(self, status):
@@ -344,6 +345,7 @@ def main():
         buffer_length=samples,
         best_gd_SNR_ref=best_gd_SNR,
         reset_best_gd_SNR_func=reset_best_gd_SNR,
+        server=Z,
     )
 
     # ...existing code...
