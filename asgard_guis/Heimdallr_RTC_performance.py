@@ -282,12 +282,8 @@ def main():
         def on_upper_changed(self, value):
             self.sm.threshold_upper = value
 
-    # ...existing code...
-    # After both heimdallr_sm and win are defined, show the control window ONCE
-    # This should be after the main window and state machine are created
-    sm_control_win = StateMachineControlWindow(heimdallr_sm)
-    sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
-    sm_control_win.show()
+
+
     # --- Create QApplication instance before any usage ---
     app = QtWidgets.QApplication([])
 
@@ -331,12 +327,6 @@ def main():
     n_max_samples = 5  # number of samples to keep track of as the best so far
     best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
-    def reset_best_gd_SNR():
-        nonlocal best_gd_SNR
-        best_gd_SNR = [
-            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
-        ]
-        print("best_gd_SNR has been reset.")
 
     # --- Setup HeimdallrStateMachine ---
     # Determine status keys and shapes from first status message
@@ -350,6 +340,21 @@ def main():
         best_gd_SNR_ref=best_gd_SNR,
         reset_best_gd_SNR_func=reset_best_gd_SNR,
     )
+
+
+    # ...existing code...
+    # After both heimdallr_sm and win are defined, show the control window ONCE
+    # This should be after the main window and state machine are created
+    sm_control_win = StateMachineControlWindow(heimdallr_sm)
+    sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
+    sm_control_win.show()
+    def reset_best_gd_SNR():
+        nonlocal best_gd_SNR
+        best_gd_SNR = [
+            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
+        ]
+        print("best_gd_SNR has been reset.")
+
 
     # --- Global hotkey to close all windows ---
     class GlobalHotkeyFilter(QtCore.QObject):
