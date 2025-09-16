@@ -328,6 +328,14 @@ def main():
     best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
 
 
+    def reset_best_gd_SNR():
+        nonlocal best_gd_SNR
+        best_gd_SNR = [
+            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
+        ]
+        print("best_gd_SNR has been reset.")
+
+
     # --- Setup HeimdallrStateMachine ---
     # Determine status keys and shapes from first status message
     status0 = Z.send("status")
@@ -348,13 +356,6 @@ def main():
     sm_control_win = StateMachineControlWindow(heimdallr_sm)
     sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
     sm_control_win.show()
-    def reset_best_gd_SNR():
-        nonlocal best_gd_SNR
-        best_gd_SNR = [
-            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
-        ]
-        print("best_gd_SNR has been reset.")
-
 
     # --- Global hotkey to close all windows ---
     class GlobalHotkeyFilter(QtCore.QObject):
