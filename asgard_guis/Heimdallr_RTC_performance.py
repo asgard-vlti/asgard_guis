@@ -76,6 +76,8 @@ class HeimdallrStateMachine(StateMachine):
                 self.status_buffers[k] = np.full((buffer_length,), np.nan, dtype=dtype)
         self._status_idx = 0  # rolling index for lookback
 
+        self.buffer_length = buffer_length
+
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
 
@@ -97,7 +99,7 @@ class HeimdallrStateMachine(StateMachine):
                 buf[self._status_idx] = arr
             else:
                 buf[self._status_idx] = arr
-        self._status_idx = (self._status_idx + 1) % self.n_lookback
+        self._status_idx = (self._status_idx + 1) % self.buffer_length
 
     def set_threshold(self, value):
         self.server.send(f"set_gd_threshold {value}")
