@@ -31,17 +31,17 @@ class HeimdallrStateMachine(StateMachine):
     # forward steps:
     to_sidelobe_from_searching = searching.to(sidelobe)
     to_offload_gd_from_sidelobe = sidelobe.to(offload_gd)
-    to_servo_from_offload_gd = offload_gd.to(servo_on)
+    to_servo_on_from_offload_gd = offload_gd.to(servo_on)
 
     # backward steps:
     to_searching_from_sidelobe = sidelobe.to(searching)
     to_searching_from_offload_gd = offload_gd.to(searching)
-    to_searching_from_servo = servo_on.to(searching)
+    to_searching_from_servo_on = servo_on.to(searching)
 
     to_sidelobe_from_offload_gd = offload_gd.to(sidelobe)
-    to_sidelobe_from_servo = servo_on.to(sidelobe)
+    to_sidelobe_from_servo_on = servo_on.to(sidelobe)
 
-    to_offload_gd_from_servo = servo_on.to(offload_gd)
+    to_offload_gd_from_servo_on = servo_on.to(offload_gd)
 
     def __init__(
         self,
@@ -231,7 +231,8 @@ class HeimdallrStateMachine(StateMachine):
             self.kick_if_needed()
         elif self.current_state == self.offload_gd:
             if self.should_go_to_servo_on():
-                self.to_servo_on_from_offload_gd()
+                pass
+                # self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
                 self.to_searching_from_offload_gd()
             elif self.should_go_to_sidelobe():
@@ -264,7 +265,7 @@ class HeimdallrStateMachine(StateMachine):
             if buf is not None:
                 recent_buf = buf[-3:, :]
                 median_gd_snr = np.median(recent_buf, axis=0)
-                return np.sum(median_gd_snr < self.threshold_lower) >= 3 
+                return np.sum(median_gd_snr < self.threshold_lower) >= 3
 
     def should_go_to_servo_on(self):
         # if gd_snr has been above upper threshold over 95% of samples in the lookback
