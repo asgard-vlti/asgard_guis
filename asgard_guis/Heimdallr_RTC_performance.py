@@ -222,9 +222,7 @@ class HeimdallrStateMachine(StateMachine):
 
         # State transitions
         if self.current_state == self.searching:
-            if self.should_go_to_offload_gd(from_state="searching"):
-                self.to_offload_gd_from_searching()
-            elif self.should_go_to_sidelobe():
+            if self.should_go_to_sidelobe():
                 self.to_sidelobe_from_searching()
         elif self.current_state == self.sidelobe:
             if self.should_go_to_offload_gd(from_state="sidelobe"):
@@ -250,7 +248,7 @@ class HeimdallrStateMachine(StateMachine):
         buf = self.status_buffers.get("gd_snr")
         if buf is not None:
             avg_gd_snr = np.mean(buf)
-            return self.threshold_lower < avg_gd_snr < self.threshold_upper
+            return self.threshold_lower < avg_gd_snr
 
     def should_go_to_offload_gd(self, from_state):
         if from_state == "searching":
@@ -436,40 +434,6 @@ def main():
 
     hotkey_filter = GlobalHotkeyFilter()
     app.installEventFilter(hotkey_filter)
-    parser = argparse.ArgumentParser(
-        description="Real-time scrolling plots for Heimdallr."
-    )
-    parser.add_argument(
-        "--update-time",
-        type=int,
-        default=50,
-        help="Update interval in ms (default: 50)",
-    )
-    parser.add_argument(
-        "--samples",
-        type=int,
-        default=100,
-        help="Number of samples to hold (default: 100)",
-    )
-    parser.add_argument(
-        "--linewidth",
-        type=float,
-        default=2.0,
-        help="Line width for plot curves (default: 2.0)",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        # options=["print", "heim"],
-        choices=["print", "heim"],
-        default="heim",
-        help="Output method for offsets (default: heim)",
-    )
-    args = parser.parse_args()
-
-    samples = args.samples
-    update_time = args.update_time
-    linewidth = args.linewidth
 
     # Define color sets for each column (move before legend_win)
     TELESCOPE_COLORS = [
