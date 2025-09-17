@@ -46,8 +46,6 @@ class HeimdallrStateMachine(StateMachine):
         status_keys,
         status_shapes,
         buffer_length,
-        best_gd_SNR_ref,
-        reset_best_gd_SNR_func,
         server,
         *args,
         **kwargs,
@@ -81,12 +79,20 @@ class HeimdallrStateMachine(StateMachine):
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
 
-        # Shared best_gd_SNR and reset logic
-        self.best_gd_SNR = best_gd_SNR_ref
-        self.reset_best_gd_SNR = reset_best_gd_SNR_func
-
         self.server = server
+
+        self.n_max_samples = 5  # number of samples to keep track of as the best so far
+        self.best_gd_SNR = [
+            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+        ]
+
         super().__init__(*args, **kwargs)
+
+    def reset_best_gd_SNR(self):
+        self.best_gd_SNR = [
+            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+        ]
+        print("best_gd_SNR has been reset.")
 
     def update_status_buffers(self, status):
         """
@@ -328,16 +334,6 @@ def main():
     update_time = args.update_time
     linewidth = args.linewidth
 
-    n_max_samples = 5  # number of samples to keep track of as the best so far
-    best_gd_SNR = [[(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)]
-
-    def reset_best_gd_SNR():
-        nonlocal best_gd_SNR
-        best_gd_SNR = [
-            [(0, 0) for __ in range(n_max_samples)] for _ in range(N_BASELINES)
-        ]
-        print("best_gd_SNR has been reset.")
-
     # --- Setup HeimdallrStateMachine ---
     # Determine status keys and shapes from first status message
     status0 = Z.send("status")
@@ -347,8 +343,6 @@ def main():
         status_keys=status_keys,
         status_shapes=status_shapes,
         buffer_length=samples,
-        best_gd_SNR_ref=best_gd_SNR,
-        reset_best_gd_SNR_func=reset_best_gd_SNR,
         server=Z,
     )
 
@@ -457,26 +451,7 @@ def main():
             [-3.93, -2.0],
             [-2.785, -0.035],
         ]
-    )  # shape: (N_BASELINES, 2), adjust as needed
-
-    # baseline_names = [
-    #     "24",
-    #     "14",
-    #     "34",
-    #     "23",
-    #     "13",
-    #     "12",
-    # ]
-    # BASELINE_POSITIONS = np.array(
-    #     [
-    #         [-3.93, -2.0],
-    #         [-3.81, 2.425],
-    #         [-2.785, -0.035],
-    #         [-1.145, -1.965],
-    #         [-1.025, 2.46],
-    #         [-0.12, -4.425],
-    #     ]
-    # )  # shape: (N_BASELINES, 2), adjust as needed
+    ) 
     M = np.array(
         [
             [-1, 1, 0, 0],
@@ -601,8 +576,8 @@ def main():
         snrs = []
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
-            opds = [opd for _, opd in best_gd_SNR[baseline_idx]]
-            snrs = [snr for snr, _ in best_gd_SNR[baseline_idx]]
+            opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
             median_opds.append(np.median(opds) if opds else 0.0)
             snrs.append(np.median(snrs) if snrs else 0.0)
 
@@ -638,7 +613,7 @@ def main():
 
     # --- Button to reset best_gd_SNR ---
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
-    reset_button.clicked.connect(reset_best_gd_SNR)
+    reset_button.clicked.connect(heimdallr_sm.reset_best_gd_SNR)
 
     # Insert buttons above the Telescopes label
     legend_layout.addLayout(offset_buttons_layout)
@@ -1168,7 +1143,7 @@ def main():
             # y1, x1 = zip(*k1_points)
             # y2, x2 = zip(*k2_points)
 
-            y1, x1 = zip(*best_gd_SNR[i])
+            y1, x1 = zip(*heimdallr_sm.best_gd_SNR[i])
 
             scatter_items_gd[i].setData(x=x1, y=y1)
 
