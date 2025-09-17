@@ -195,7 +195,7 @@ class HeimdallrStateMachine(StateMachine):
 
         # State transitions
         if self.current_state == self.searching:
-            if self.should_go_to_sidelobe_from_offload_gd():
+            if self.should_go_to_sidelobe():
                 self.to_sidelobe_from_searching()
                 self.last_change_time = time.time()
         elif self.current_state == self.sidelobe:
@@ -226,13 +226,18 @@ class HeimdallrStateMachine(StateMachine):
             # 2nd lowest eigenvalue
             second_lowest_snr = np.partition(baseline_snrs, 1)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
-            return self.threshold_lower < second_lowest_snr
+            return self.threshold_lower < second_lowest_snr < self.threshold_upper
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
-        # Use the most recent gd_snr vector
-        buf_recent = self.most_recent_gd_snr
-        return np.all(buf_recent > self.threshold_lower)
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+
+            # 2nd lowest eigenvalue
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            print(f"Second lowest eigenvalue: {second_lowest_snr}")
+            return self.threshold_lower < second_lowest_snr
 
     def should_go_to_offload_gd(self, from_state):
         if from_state == "sidelobe":
