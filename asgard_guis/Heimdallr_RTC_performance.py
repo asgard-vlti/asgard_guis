@@ -118,6 +118,10 @@ class HeimdallrStateMachine(StateMachine):
                 buf[self._status_idx] = arr
         self._status_idx = (self._status_idx + 1) % self.buffer_length
 
+    @property
+    def last_idx(self):
+        return (self._status_idx + 1) % self.buffer_length
+
     def set_threshold(self, value):
         self.server.send(f"set_gd_threshold {value}")
         print(f"Set threshold to {value}")
@@ -129,7 +133,7 @@ class HeimdallrStateMachine(StateMachine):
 
         # the telescope that needs a kick is the one where
         # the GD SNR is the worst
-        median_gd_snr_per_baseline = self.status_buffers.get("gd_snr")[-1,:]
+        median_gd_snr_per_baseline = self.status_buffers.get("gd_snr")[self.last_idx, :]
         baseline_to_tscope_average_matrix = (
             1
             / 3
@@ -158,7 +162,7 @@ class HeimdallrStateMachine(StateMachine):
 
         self.time_since_last_kick = cur_time
         if self.kick_scale == 1:
-            self.kick_scale = -2
+            self.kick_scale = -1
         else:
             self.kick_scale = 1
 
@@ -247,9 +251,9 @@ class HeimdallrStateMachine(StateMachine):
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
         buf = self.status_buffers.get("gd_snr")
-        if buf is not None:# !!!
+        if buf is not None:  # !!!
             # check if most recent value minimum value is above the threshold
-            buf_recent = buf[-1, :]
+            buf_recent = buf[self.last_idx, :]
             return np.all(buf_recent > self.threshold_lower)
 
     def should_go_to_offload_gd(self, from_state):
@@ -257,7 +261,7 @@ class HeimdallrStateMachine(StateMachine):
         if from_state == "sidelobe":
             buf = self.status_buffers.get("gd_snr")
             if buf is not None:
-                most_recent_gd_snr = buf[-1, :]
+                most_recent_gd_snr = buf[self.last_idx, :]
                 return np.all(most_recent_gd_snr > self.threshold_upper)
         elif from_state == "servo_on":
             # if the GD SNR in the last 3 samples has gone bad
