@@ -152,6 +152,7 @@ class HeimdallrStateMachine(StateMachine):
 
     def on_enter_offload_gd(self, event):
         from_state = event.source if hasattr(event, "source") else None
+        print(f"on_enter_offload_gd: event.source = {from_state}")
         if from_state == self.searching:
             self.set_threshold(self.threshold_lower)
         elif from_state == self.sidelobe:
