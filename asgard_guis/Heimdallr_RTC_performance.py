@@ -12,10 +12,15 @@ from statemachine import StateMachine, State
 
 import heapq
 
+import numpy as np
+
 import time
 
 N_TSCOPES = 4
 N_BASELINES = 6
+
+
+# MT W M : check the second lowest eigenvalue and compare threshold
 
 
 class HeimdallrStateMachine(StateMachine):
@@ -61,6 +66,7 @@ class HeimdallrStateMachine(StateMachine):
         self.kick_delay = 3  # sec
         self.last_change_time = time.time()
         self.server = server
+        self.mtwm = None
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
             [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
@@ -143,9 +149,6 @@ class HeimdallrStateMachine(StateMachine):
         elif from_state == self.servo_on:
             self.server.send('servo "off"')
 
-        # Reset best_gd_SNR history (same as GUI reset button)
-        # self.reset_best_gd_SNR()
-
     def on_enter_sidelobe(self):
         # Operations to perform when entering 'sidelobe'
         self.set_threshold(self.threshold_upper)
@@ -206,13 +209,23 @@ class HeimdallrStateMachine(StateMachine):
                 # self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
                 self.to_searching_from_offload_gd()
-            elif self.should_go_to_sidelobe():
+            elif self.should_go_to_sidelobe_from_offload_gd():
                 self.to_sidelobe_from_offload_gd()
         elif self.current_state == self.servo_on:
             if self.should_go_to_offload_gd(from_state="servo_on"):
                 self.to_offload_gd_from_servo_on()
             elif self.should_go_to_searching():
                 self.to_searching_from_servo_on()
+
+    def should_go_to_sidelobe_from_offload_gd(self):
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+
+            # 2nd lowest eigenvalue
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            print(f"Second lowest eigenvalue: {second_lowest_snr}")
+            return self.threshold_lower < second_lowest_snr < self.threshold_upper
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
@@ -236,11 +249,15 @@ class HeimdallrStateMachine(StateMachine):
 
     def should_go_to_searching(self):
         # Use most recent gd_snr only
-        if self.last_change_time - time.time() < 5:
+        if self.last_change_time - time.time() < 2:
             return False
-        buf = self.most_recent_gd_snr
-        below_threshold = buf < self.threshold_lower
-        return np.sum(below_threshold) <= 5
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+
+            # 2nd lowest eigenvalue
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            return second_lowest_snr < self.threshold_lower
 
 
 def main():
@@ -998,11 +1015,9 @@ def main():
         # 1.83**2/((gd_snr)**2)
         W = np.diag(1 / gd_var)
 
-        Igd = M @ np.linalg.pinv(M.T @ W @ M) @ M.T @ W
-        # print(Igd)
-        # print(np.linalg.matrix_rank(Igd))
-        # # eigs
-        # print(np.linalg.eigvals(Igd))
+        mtwm = M.T @ W @ M
+        heimdallr_sm.mtwm = mtwm  # Store for access in state machine
+        Igd = M @ np.linalg.pinv(mtwm) @ M.T @ W
 
         # evecs
 
