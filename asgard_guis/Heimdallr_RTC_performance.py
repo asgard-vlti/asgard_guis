@@ -194,7 +194,7 @@ class HeimdallrStateMachine(StateMachine):
 
         # State transitions
         if self.current_state == self.searching:
-            if self.should_go_to_sidelobe():
+            if self.should_go_to_sidelobe_from_offload_gd():
                 self.to_sidelobe_from_searching()
                 self.last_change_time = time.time()
         elif self.current_state == self.sidelobe:
@@ -238,9 +238,7 @@ class HeimdallrStateMachine(StateMachine):
             most_recent_gd_snr = self.most_recent_gd_snr
             return np.all(most_recent_gd_snr > self.threshold_upper)
         elif from_state == "servo_on":
-            # Not enough history, so just use most recent
-            median_gd_snr = self.most_recent_gd_snr
-            return np.sum(median_gd_snr < self.threshold_lower) >= 3
+            return np.sum(self.most_recent_gd_snr < self.threshold_lower) >= 3
 
     def should_go_to_servo_on(self):
         # Use most recent gd_snr only
