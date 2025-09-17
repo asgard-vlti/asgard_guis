@@ -57,7 +57,7 @@ class HeimdallrStateMachine(StateMachine):
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
         self.kick_scale = 1
-        self.time_since_last_kick = 10000
+        self.last_kick_time = 10000
         self.kick_delay = 3  # sec
         self.last_change_time = time.time()
         self.server = server
@@ -91,7 +91,7 @@ class HeimdallrStateMachine(StateMachine):
 
     def kick_if_needed(self):
         cur_time = time.time()
-        if cur_time - self.time_since_last_kick < self.kick_delay:
+        if cur_time - self.last_kick_time < self.kick_delay:
             return
 
         # Use the most recent gd_snr vector
@@ -122,7 +122,7 @@ class HeimdallrStateMachine(StateMachine):
         print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
         self.server.send(msg)
 
-        self.time_since_last_kick = cur_time
+        self.last_kick_time = cur_time
         if self.kick_scale == 1:
             self.kick_scale = -1
         else:
@@ -149,6 +149,8 @@ class HeimdallrStateMachine(StateMachine):
     def on_enter_sidelobe(self):
         # Operations to perform when entering 'sidelobe'
         self.set_threshold(self.threshold_upper)
+
+        self.last_kick_time = time.time()
 
     def on_enter_offload_gd(self, event):
         from_state = event.source if hasattr(event, "source") else None
