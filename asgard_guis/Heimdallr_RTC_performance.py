@@ -160,6 +160,7 @@ class HeimdallrStateMachine(StateMachine):
         elif from_state == self.servo_on:
             self.server.send('servo "off"')
             self.set_threshold(self.threshold_lower)
+        self.set_threshold(self.threshold_lower)
 
     def on_enter_servo_on(self):
         # Operations to perform when entering 'servo_on'
