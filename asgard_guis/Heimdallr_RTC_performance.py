@@ -121,46 +121,48 @@ class HeimdallrStateMachine(StateMachine):
         print(f"Set threshold to {value}")
 
     def kick_if_needed(self):
-        cur_time = time.time()
-        if cur_time - self.time_since_last_kick < self.kick_delay:
-            return
+        # cur_time = time.time()
+        # if cur_time - self.time_since_last_kick < self.kick_delay:
+        #     return
+
+
 
         # the telescope that needs a kick is the one where
         # the GD SNR is the worst
-        median_gd_snr_per_baseline = np.median(
-            self.status_buffers.get("gd_snr"), axis=0
-        )
-        baseline_to_tscope_average_matrix = (
-            1
-            / 3
-            * np.array(
-                [
-                    [1, 1, 1, 0, 0, 0],
-                    [1, 0, 0, 1, 1, 0],
-                    [0, 1, 0, 1, 0, 1],
-                    [0, 0, 1, 0, 1, 1],
-                ]
-            )
-        )
+        # median_gd_snr_per_baseline = np.median(
+        #     self.status_buffers.get("gd_snr"), axis=0
+        # )
+        # baseline_to_tscope_average_matrix = (
+        #     1
+        #     / 3
+        #     * np.array(
+        #         [
+        #             [1, 1, 1, 0, 0, 0],
+        #             [1, 0, 0, 1, 1, 0],
+        #             [0, 1, 0, 1, 0, 1],
+        #             [0, 0, 1, 0, 1, 1],
+        #         ]
+        #     )
+        # )
 
-        median_gd_snr_per_telescope = (
-            baseline_to_tscope_average_matrix @ median_gd_snr_per_baseline
-        )
+        # median_gd_snr_per_telescope = (
+        #     baseline_to_tscope_average_matrix @ median_gd_snr_per_baseline
+        # )
 
-        # choose lowest telescope
-        worst_tscope_idx = np.argmin(median_gd_snr_per_telescope)
-        kick_values = np.array([0, 0, 0, 0], dtype=np.float64)
-        kick_values[worst_tscope_idx] = 20 * self.kick_scale
+        # # choose lowest telescope
+        # worst_tscope_idx = np.argmin(median_gd_snr_per_telescope)
+        # kick_values = np.array([0, 0, 0, 0], dtype=np.float64)
+        # kick_values[worst_tscope_idx] = 20 * self.kick_scale
 
-        msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
-        print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
-        self.server.send(msg)
+        # msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
+        # print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
+        # self.server.send(msg)
 
-        self.time_since_last_kick = cur_time
-        if self.kick_scale == 1:
-            self.kick_scale = -2
-        else:
-            self.kick_scale = 1
+        # self.time_since_last_kick = cur_time
+        # if self.kick_scale == 1:
+        #     self.kick_scale = -2
+        # else:
+        #     self.kick_scale = 1
 
     def on_enter_searching(self, event):
         # Only run the logic below if this is not the very first entry (i.e., not on program launch)
@@ -282,7 +284,7 @@ class HeimdallrStateMachine(StateMachine):
             below_threshold = buf < self.threshold_lower
             fraction_below = np.mean(below_threshold, axis=0)
             print(f"fraction below is {fraction_below}")
-            return np.sum(fraction_below) <= 3
+            return np.sum(fraction_below) <= 5
 
 
 def main():
