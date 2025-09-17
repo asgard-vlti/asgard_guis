@@ -127,8 +127,8 @@ class HeimdallrStateMachine(StateMachine):
 
 
 
-        the telescope that needs a kick is the one where
-        the GD SNR is the worst
+        # the telescope that needs a kick is the one where
+        # the GD SNR is the worst
         median_gd_snr_per_baseline = np.median(
             self.status_buffers.get("gd_snr"), axis=0
         )
