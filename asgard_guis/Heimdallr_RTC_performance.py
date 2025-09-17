@@ -86,7 +86,7 @@ class HeimdallrStateMachine(StateMachine):
 
         self.kick_scale = 1
         self.time_since_last_kick = 10000
-        self.kick_delay = 5  # sec
+        self.kick_delay = 10  # sec
 
         self.last_change_time = time.time()
 
@@ -160,7 +160,7 @@ class HeimdallrStateMachine(StateMachine):
 
         self.time_since_last_kick = cur_time
         if self.kick_scale == 1:
-            self.kick_scale = -2
+            self.kick_scale = -1
         else:
             self.kick_scale = 1
 
