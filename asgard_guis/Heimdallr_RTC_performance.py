@@ -45,9 +45,6 @@ class HeimdallrStateMachine(StateMachine):
 
     def __init__(
         self,
-        status_keys,
-        status_shapes,
-        buffer_length,
         server,
         *args,
         **kwargs,
@@ -57,46 +54,19 @@ class HeimdallrStateMachine(StateMachine):
         )
         self.threshold_lower = 8
         self.threshold_upper = 25
-        self.status_keys = status_keys
-        self.status_buffers = {}
-        for k in status_keys:
-            shape = status_shapes[k]
-            dtype = np.float64
-            if isinstance(shape, tuple):
-                if len(shape) == 0:
-                    self.status_buffers[k] = np.full(
-                        (buffer_length,), np.nan, dtype=dtype
-                    )
-                elif len(shape) == 1:
-                    self.status_buffers[k] = np.full(
-                        (buffer_length, shape[0]), np.nan, dtype=dtype
-                    )
-                else:
-                    self.status_buffers[k] = np.full(
-                        (buffer_length,) + shape, np.nan, dtype=dtype
-                    )
-            else:
-                self.status_buffers[k] = np.full((buffer_length,), np.nan, dtype=dtype)
-        self._status_idx = 0  # rolling index for lookback
-
-        self.buffer_length = buffer_length
-
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
-
         self.kick_scale = 1
         self.time_since_last_kick = 10000
         self.kick_delay = 3  # sec
-
         self.last_change_time = time.time()
-
         self.server = server
-
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
             [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
         ]
-
+        # New: just a vector for most recent gd_snr
+        self.most_recent_gd_snr = np.full((N_BASELINES,), np.nan, dtype=np.float64)
         super().__init__(*args, **kwargs)
 
     def reset_best_gd_SNR(self):
@@ -105,18 +75,11 @@ class HeimdallrStateMachine(StateMachine):
         ]
         print("best_gd_SNR has been reset.")
 
-    def update_status_buffers(self, status):
+    def update_gd_snr(self, gd_snr):
         """
-        Update rolling buffers with new status dict (from main GUI).
+        Update the most recent gd_snr vector.
         """
-        for k in self.status_keys:
-            arr = np.array(status[k])
-            buf = self.status_buffers[k]
-            if arr.ndim == 0 or (arr.ndim == 1 and arr.shape == ()):  # scalar
-                buf[self._status_idx] = arr
-            else:
-                buf[self._status_idx] = arr
-        self._status_idx = (self._status_idx + 1) % self.buffer_length
+        self.most_recent_gd_snr = np.array(gd_snr, dtype=np.float64)
 
     @property
     def last_idx(self):
@@ -131,9 +94,8 @@ class HeimdallrStateMachine(StateMachine):
         if cur_time - self.time_since_last_kick < self.kick_delay:
             return
 
-        # the telescope that needs a kick is the one where
-        # the GD SNR is the worst
-        median_gd_snr_per_baseline = self.status_buffers.get("gd_snr")[self.last_idx, :]
+        # Use the most recent gd_snr vector
+        median_gd_snr_per_baseline = self.most_recent_gd_snr
         baseline_to_tscope_average_matrix = (
             1
             / 3
@@ -250,46 +212,31 @@ class HeimdallrStateMachine(StateMachine):
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
-        buf = self.status_buffers.get("gd_snr")
-        if buf is not None:  # !!!
-            # check if most recent value minimum value is above the threshold
-            buf_recent = buf[self.last_idx, :]
-            return np.all(buf_recent > self.threshold_lower)
+        # Use the most recent gd_snr vector
+        buf_recent = self.most_recent_gd_snr
+        return np.all(buf_recent > self.threshold_lower)
 
     def should_go_to_offload_gd(self, from_state):
-        # alternatively could check if history had 4 or 5 baselines and do the calc...
         if from_state == "sidelobe":
-            buf = self.status_buffers.get("gd_snr")
-            if buf is not None:
-                most_recent_gd_snr = buf[self.last_idx, :]
-                return np.all(most_recent_gd_snr > self.threshold_upper)
+            most_recent_gd_snr = self.most_recent_gd_snr
+            return np.all(most_recent_gd_snr > self.threshold_upper)
         elif from_state == "servo_on":
-            # if the GD SNR in the last 3 samples has gone bad
-            buf = self.status_buffers.get("gd_snr")
-            if buf is not None:
-                recent_buf = buf[-3:, :]
-                median_gd_snr = np.median(recent_buf, axis=0)
-                return np.sum(median_gd_snr < self.threshold_lower) >= 3
+            # Not enough history, so just use most recent
+            median_gd_snr = self.most_recent_gd_snr
+            return np.sum(median_gd_snr < self.threshold_lower) >= 3
 
     def should_go_to_servo_on(self):
-        # if gd_snr has been above upper threshold over 95% of samples in the lookback
-        buf = self.status_buffers.get("gd_snr")
-        if buf is not None:
-            above_threshold = buf > self.threshold_upper
-            fraction_above = np.mean(above_threshold, axis=0)
-            return np.all(fraction_above >= 0.95)
+        # Use most recent gd_snr only
+        buf = self.most_recent_gd_snr
+        return np.all(buf > self.threshold_upper)
 
     def should_go_to_searching(self):
-        # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
+        # Use most recent gd_snr only
         if self.last_change_time - time.time() < 5:
             return False
-
-        buf = self.status_buffers.get("gd_snr")
-        if buf is not None:
-            below_threshold = buf < self.threshold_lower
-            fraction_below = np.mean(below_threshold, axis=0)
-            print(f"fraction below is {fraction_below}")
-            return np.sum(fraction_below) <= 5
+        buf = self.most_recent_gd_snr
+        below_threshold = buf < self.threshold_lower
+        return np.sum(below_threshold) <= 5
 
 
 def main():
@@ -394,9 +341,6 @@ def main():
     status_keys = list(status0.keys())
     status_shapes = {k: np.array(status0[k]).shape for k in status_keys}
     heimdallr_sm = HeimdallrStateMachine(
-        status_keys=status_keys,
-        status_shapes=status_shapes,
-        buffer_length=samples,
         server=Z,
     )
 
@@ -1106,10 +1050,9 @@ def main():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
-        # Update state machine buffers and transitions
-        # Only update/poll state machine if enabled
+        # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
-            heimdallr_sm.update_status_buffers(status)
+            heimdallr_sm.update_gd_snr(status["gd_snr"])
             heimdallr_sm.poll_transitions()
         arrays = [
             (gd_tel, "gd_tel"),
