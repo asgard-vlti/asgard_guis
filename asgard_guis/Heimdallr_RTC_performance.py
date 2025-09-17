@@ -155,7 +155,6 @@ class HeimdallrStateMachine(StateMachine):
         msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
         print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
         self.server.send(msg)
-        res = self.server.recv()
 
         self.time_since_last_kick = cur_time
         if self.kick_scale == 1:
