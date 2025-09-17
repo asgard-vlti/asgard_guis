@@ -179,7 +179,7 @@ class HeimdallrStateMachine(StateMachine):
             self.server.send('servo "off"')
 
         # Reset best_gd_SNR history (same as GUI reset button)
-        self.reset_best_gd_SNR()
+        # self.reset_best_gd_SNR()
 
     def on_enter_sidelobe(self):
         # Operations to perform when entering 'sidelobe'
@@ -229,6 +229,7 @@ class HeimdallrStateMachine(StateMachine):
                 self.to_offload_gd_from_sidelobe()
             elif self.should_go_to_searching():
                 self.to_searching_from_sidelobe()
+            self.kick_if_needed()
         elif self.current_state == self.offload_gd:
             if self.should_go_to_servo_on():
                 self.to_servo_on_from_offload_gd()
@@ -251,26 +252,20 @@ class HeimdallrStateMachine(StateMachine):
             return self.threshold_lower < avg_gd_snr
 
     def should_go_to_offload_gd(self, from_state):
-        if from_state == "searching":
-            # check if median gd_snr for all baselines exceeds lower threshold
-            buf = self.status_buffers.get("gd_snr")
-            if buf is not None:
-                median_gd_snr = np.median(buf, axis=0)
-                return np.all(median_gd_snr > self.threshold_lower)
-
-            # alternatively could check if history had 4 or 5 baselines and do the calc...
-        elif from_state == "sidelobe":
+        # alternatively could check if history had 4 or 5 baselines and do the calc...
+        if from_state == "sidelobe":
             # check if median gd_snr for all baselines exceeds upper threshold
             buf = self.status_buffers.get("gd_snr")
             if buf is not None:
                 median_gd_snr = np.median(buf, axis=0)
                 return np.all(median_gd_snr > self.threshold_upper)
         elif from_state == "servo_on":
-            # if all baselines gd_snr drop below lower threshold
+            # if the GD SNR in the last 3 samples has gone bad
             buf = self.status_buffers.get("gd_snr")
             if buf is not None:
-                median_gd_snr = np.median(buf, axis=0)
-                return np.all(median_gd_snr < self.threshold_lower)
+                recent_buf = buf[-3:, :]
+                median_gd_snr = np.median(recent_buf, axis=0)
+                return np.sum(median_gd_snr < self.threshold_lower) >= 3 
 
     def should_go_to_servo_on(self):
         # if gd_snr has been above upper threshold over 95% of samples in the lookback
