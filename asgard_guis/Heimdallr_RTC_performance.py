@@ -12,6 +12,8 @@ from statemachine import StateMachine, State
 
 import heapq
 
+import time
+
 N_TSCOPES = 4
 N_BASELINES = 6
 
@@ -82,6 +84,10 @@ class HeimdallrStateMachine(StateMachine):
         self.servo_start_gain = 0.05
         self.servo_final_gain = 0.4
 
+        self.kick_scale = 1
+        self.time_since_last_kick = 10000
+        self.kick_delay = 5  # sec
+
         self.server = server
 
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
@@ -114,6 +120,49 @@ class HeimdallrStateMachine(StateMachine):
         self.server.send(f"set_gd_threshold {value}")
         print(f"Set threshold to {value}")
 
+    def kick_if_needed(self):
+        cur_time = time.time()
+        if cur_time - self.time_since_last_kick < self.kick_delay:
+            return
+
+        # the telescope that needs a kick is the one where
+        # the GD SNR is the worst
+        median_gd_snr_per_baseline = np.median(
+            self.status_buffers.get("gd_snr"), axis=0
+        )
+        baseline_to_tscope_average_matrix = (
+            1
+            / 3
+            * np.array(
+                [
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 0, 0, 1, 1, 0],
+                    [0, 1, 0, 1, 0, 1],
+                    [0, 0, 1, 0, 1, 1],
+                ]
+            )
+        )
+
+        median_gd_snr_per_telescope = (
+            baseline_to_tscope_average_matrix @ median_gd_snr_per_baseline
+        )
+
+        # choose lowest telescope
+        worst_tscope_idx = np.argmin(median_gd_snr_per_telescope)
+        kick_values = np.array([0, 0, 0, 0], dtype=np.float64)
+        kick_values[worst_tscope_idx] = 20 * self.kick_scale
+
+        msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
+        print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
+        self.server.send(msg)
+        res = self.server.recv()
+
+        self.time_since_last_kick = cur_time
+        if self.kick_scale == 1:
+            self.kick_scale = -2
+        else:
+            self.kick_scale = 1
+
     def on_enter_searching(self, event):
         # Only run the logic below if this is not the very first entry (i.e., not on program launch)
         if getattr(self, "_first_entry", False):
@@ -135,9 +184,6 @@ class HeimdallrStateMachine(StateMachine):
     def on_enter_sidelobe(self):
         # Operations to perform when entering 'sidelobe'
         self.set_threshold(self.threshold_upper)
-
-        # kicks and see what happens to gd
-        print("Kicks should go here...")
 
     def on_enter_offload_gd(self, event):
         from_state = event.source if hasattr(event, "source") else None
@@ -179,24 +225,24 @@ class HeimdallrStateMachine(StateMachine):
             if self.should_go_to_offload_gd(from_state="searching"):
                 self.to_offload_gd_from_searching()
             elif self.should_go_to_sidelobe():
-                self.to_sidelobe()
+                self.to_sidelobe_from_searching()
         elif self.current_state == self.sidelobe:
             if self.should_go_to_offload_gd(from_state="sidelobe"):
                 self.to_offload_gd_from_sidelobe()
             elif self.should_go_to_searching():
-                self.to_searching()
+                self.to_searching_from_sidelobe()
         elif self.current_state == self.offload_gd:
             if self.should_go_to_servo_on():
-                self.to_servo_on()
+                self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
-                self.to_searching()
+                self.to_searching_from_offload_gd()
             elif self.should_go_to_sidelobe():
-                self.to_sidelobe()
+                self.to_sidelobe_from_offload_gd()
         elif self.current_state == self.servo_on:
             if self.should_go_to_offload_gd(from_state="servo_on"):
                 self.to_offload_gd_from_servo_on()
             elif self.should_go_to_searching():
-                self.to_searching()
+                self.to_searching_from_servo_on()
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
@@ -240,7 +286,7 @@ class HeimdallrStateMachine(StateMachine):
         # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
         buf = self.status_buffers.get("gd_snr")
         if buf is not None:
-            below_threshold = buf < self.threshold_upper
+            below_threshold = buf < self.threshold_lower
             fraction_below = np.mean(below_threshold, axis=0)
             return np.sum(fraction_below >= 0.95) <= 3
 
