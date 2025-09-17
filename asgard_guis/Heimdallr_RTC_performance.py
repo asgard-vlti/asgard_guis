@@ -86,7 +86,7 @@ class HeimdallrStateMachine(StateMachine):
 
         self.kick_scale = 1
         self.time_since_last_kick = 10000
-        self.kick_delay = 10  # sec
+        self.kick_delay = 3  # sec
 
         self.last_change_time = time.time()
 
@@ -129,9 +129,7 @@ class HeimdallrStateMachine(StateMachine):
 
         # the telescope that needs a kick is the one where
         # the GD SNR is the worst
-        median_gd_snr_per_baseline = np.median(
-            self.status_buffers.get("gd_snr"), axis=0
-        )
+        median_gd_snr_per_baseline = self.status_buffers.get("gd_snr")[-1,:]
         baseline_to_tscope_average_matrix = (
             1
             / 3
@@ -160,7 +158,7 @@ class HeimdallrStateMachine(StateMachine):
 
         self.time_since_last_kick = cur_time
         if self.kick_scale == 1:
-            self.kick_scale = -1
+            self.kick_scale = -2
         else:
             self.kick_scale = 1
 
@@ -248,20 +246,19 @@ class HeimdallrStateMachine(StateMachine):
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
-        # check if the gd_snr is on average between threshold_lower and threshold_upper
         buf = self.status_buffers.get("gd_snr")
-        if buf is not None:
-            avg_gd_snr = np.mean(buf)
-            return self.threshold_lower < avg_gd_snr
+        if buf is not None:# !!!
+            # check if most recent value minimum value is above the threshold
+            buf_recent = buf[-1, :]
+            return np.all(buf_recent > self.threshold_lower)
 
     def should_go_to_offload_gd(self, from_state):
         # alternatively could check if history had 4 or 5 baselines and do the calc...
         if from_state == "sidelobe":
-            # check if median gd_snr for all baselines exceeds upper threshold
             buf = self.status_buffers.get("gd_snr")
             if buf is not None:
-                median_gd_snr = np.median(buf, axis=0)
-                return np.all(median_gd_snr > self.threshold_upper)
+                most_recent_gd_snr = buf[-1, :]
+                return np.all(most_recent_gd_snr > self.threshold_upper)
         elif from_state == "servo_on":
             # if the GD SNR in the last 3 samples has gone bad
             buf = self.status_buffers.get("gd_snr")
@@ -280,7 +277,7 @@ class HeimdallrStateMachine(StateMachine):
 
     def should_go_to_searching(self):
         # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
-        if self.last_change_time - time.time() < 15:
+        if self.last_change_time - time.time() < 5:
             return False
 
         buf = self.status_buffers.get("gd_snr")
