@@ -67,6 +67,8 @@ class HeimdallrStateMachine(StateMachine):
         self.last_change_time = time.time()
         self.server = server
 
+        self.cur_threshold = "low"
+
         self.mtwm = None
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
@@ -94,6 +96,7 @@ class HeimdallrStateMachine(StateMachine):
 
     def set_threshold(self, value):
         self.server.send(f"set_gd_threshold {value}")
+        self.cur_threshold = "low" if value == self.threshold_lower else "high"
         print(f"Set threshold to {value}")
 
     def kick_if_needed(self):
@@ -316,9 +319,13 @@ def main():
 
         def on_lower_changed(self, value):
             self.sm.threshold_lower = value
+            if self.sm.cur_threshold == "low":
+                self.sm.set_threshold(value)
 
         def on_upper_changed(self, value):
             self.sm.threshold_upper = value
+            if self.sm.cur_threshold == "high":
+                self.sm.set_threshold(value)
 
     # --- Create QApplication instance before any usage ---
     app = QtWidgets.QApplication([])
