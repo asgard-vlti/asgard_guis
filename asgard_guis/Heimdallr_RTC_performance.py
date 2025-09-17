@@ -50,6 +50,9 @@ class HeimdallrStateMachine(StateMachine):
         *args,
         **kwargs,
     ):
+        self._first_entry = (
+            True  # Flag to skip on_enter_searching logic on initial entry
+        )
         self.threshold_lower = 8
         self.threshold_upper = 25
         self.status_keys = status_keys
@@ -112,6 +115,10 @@ class HeimdallrStateMachine(StateMachine):
         print(f"Set threshold to {value}")
 
     def on_enter_searching(self, event):
+        # Only run the logic below if this is not the very first entry (i.e., not on program launch)
+        if getattr(self, "_first_entry", False):
+            self._first_entry = False
+            return
         from_state = event.source if hasattr(event, "source") else None
         self.set_threshold(self.threshold_lower)
         self.server.send('offload "gd"')
@@ -451,7 +458,7 @@ def main():
             [-3.93, -2.0],
             [-2.785, -0.035],
         ]
-    ) 
+    )
     M = np.array(
         [
             [-1, 1, 0, 0],
