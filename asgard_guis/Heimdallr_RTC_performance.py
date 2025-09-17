@@ -66,6 +66,7 @@ class HeimdallrStateMachine(StateMachine):
         self.kick_delay = 3  # sec
         self.last_change_time = time.time()
         self.server = server
+
         self.mtwm = None
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
@@ -225,7 +226,7 @@ class HeimdallrStateMachine(StateMachine):
             # 2nd lowest eigenvalue
             second_lowest_snr = np.partition(baseline_snrs, 1)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
-            return self.threshold_lower < second_lowest_snr < self.threshold_upper
+            return self.threshold_lower < second_lowest_snr
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
