@@ -281,7 +281,8 @@ class HeimdallrStateMachine(StateMachine):
         if buf is not None:
             below_threshold = buf < self.threshold_lower
             fraction_below = np.mean(below_threshold, axis=0)
-            return np.sum(fraction_below >= 0.95) <= 3
+            print(f"fraction below is {fraction_below}")
+            return np.sum(fraction_below >= 0.95) <= 5
 
 
 def main():
