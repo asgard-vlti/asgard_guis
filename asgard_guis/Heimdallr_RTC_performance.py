@@ -280,7 +280,7 @@ class HeimdallrStateMachine(StateMachine):
 
     def should_go_to_searching(self):
         # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
-        if self.time_since_last_change < 15:
+        if self.last_change_time - time.time() < 15:
             return False
 
         buf = self.status_buffers.get("gd_snr")
