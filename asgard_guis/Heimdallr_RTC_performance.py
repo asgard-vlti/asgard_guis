@@ -88,6 +88,8 @@ class HeimdallrStateMachine(StateMachine):
         self.time_since_last_kick = 10000
         self.kick_delay = 5  # sec
 
+        self.last_change_time = time.time()
+
         self.server = server
 
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
@@ -124,8 +126,6 @@ class HeimdallrStateMachine(StateMachine):
         cur_time = time.time()
         if cur_time - self.time_since_last_kick < self.kick_delay:
             return
-
-
 
         # the telescope that needs a kick is the one where
         # the GD SNR is the worst
@@ -225,6 +225,7 @@ class HeimdallrStateMachine(StateMachine):
         if self.current_state == self.searching:
             if self.should_go_to_sidelobe():
                 self.to_sidelobe_from_searching()
+                self.last_change_time = time.time()
         elif self.current_state == self.sidelobe:
             if self.should_go_to_offload_gd(from_state="sidelobe"):
                 self.to_offload_gd_from_sidelobe()
@@ -279,6 +280,9 @@ class HeimdallrStateMachine(StateMachine):
 
     def should_go_to_searching(self):
         # if the gd_snr has dropped below upper threshold consistently for at least 3 baselines out of 6
+        if self.time_since_last_change < 15:
+            return False
+
         buf = self.status_buffers.get("gd_snr")
         if buf is not None:
             below_threshold = buf < self.threshold_lower
