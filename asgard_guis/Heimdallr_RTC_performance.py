@@ -566,7 +566,6 @@ def main():
 
     # --- Button to compute and print offsets from median OPD values ---
     def print_offsets_from_n_best(n):
-        assert n >= 4, "n should be at least 4 to compute median"
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
         snrs = []
@@ -597,12 +596,21 @@ def main():
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
-    offset_button_4 = QtWidgets.QPushButton("Offsets n=4")
-    offset_button_5 = QtWidgets.QPushButton("Offsets n=5")
-    offset_button_6 = QtWidgets.QPushButton("Offsets n=6")
+    offset_button_1 = QtWidgets.QPushButton("Set (n=1)")
+    offset_button_2 = QtWidgets.QPushButton("Set (n=2)")
+    offset_button_3 = QtWidgets.QPushButton("Set (n=3)")
+    offset_button_4 = QtWidgets.QPushButton("Set (n=4)")
+    offset_button_5 = QtWidgets.QPushButton("Set (n=5)")
+    offset_button_6 = QtWidgets.QPushButton("Set (n=6)")
+    offset_button_1.clicked.connect(lambda _: print_offsets_from_n_best(1))
+    offset_button_2.clicked.connect(lambda _: print_offsets_from_n_best(2))
+    offset_button_3.clicked.connect(lambda _: print_offsets_from_n_best(3))
     offset_button_4.clicked.connect(lambda _: print_offsets_from_n_best(4))
     offset_button_5.clicked.connect(lambda _: print_offsets_from_n_best(5))
     offset_button_6.clicked.connect(lambda _: print_offsets_from_n_best(6))
+    offset_buttons_layout.addWidget(offset_button_1)
+    offset_buttons_layout.addWidget(offset_button_2)
+    offset_buttons_layout.addWidget(offset_button_3)
     offset_buttons_layout.addWidget(offset_button_4)
     offset_buttons_layout.addWidget(offset_button_5)
     offset_buttons_layout.addWidget(offset_button_6)
