@@ -16,6 +16,8 @@ import numpy as np
 
 import time
 import signal
+import os
+from datetime import datetime
 
 N_TSCOPES = 4
 N_BASELINES = 6
@@ -369,7 +371,23 @@ def main():
     linewidth = args.linewidth
 
     # --- Setup HeimdallrStateMachine ---
+    # Local wrapper around Z.send that logs commands to ~/logs/fsm_YYMMDD.log
+    def send(cmd):
+        try:
+            log_dir = os.path.expanduser("~/logs")
+            os.makedirs(log_dir, exist_ok=True)
+            logfile = os.path.join(
+                log_dir, f"fsm_{datetime.now().strftime('%y%m%d')}.log"
+            )
+            with open(logfile, "a", encoding="utf-8") as f:
+                f.write(f"{time.time():.3f} {cmd}\n")
+        except Exception:
+            # Logging must not prevent normal operation
+            pass
+        return Z.send(cmd)
+
     # Determine status keys and shapes from first status message
+    # We don't log status, so use Z.send.
     status0 = Z.send("status")
     status_keys = list(status0.keys())
     status_shapes = {k: np.array(status0[k]).shape for k in status_keys}
@@ -593,7 +611,7 @@ def main():
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
-            Z.send(msg)
+            send(msg)
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
@@ -840,7 +858,7 @@ def main():
             # Get slider values as floats from -5.0 to 5.0
             values = [slider.value() / 10.0 for slider in self.sliders]
             msg = f"tweak_gd_offsets {values[0]:.2f},{values[1]:.2f},{values[2]:.2f}"
-            Z.send(msg)
+            send(msg)
             QtWidgets.QMessageBox.information(self, "Offsets Applied", f"Sent: {msg}")
             # Reset sliders to 0 after apply
             for slider, value_label in zip(self.sliders, self.value_labels):
@@ -1121,7 +1139,7 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-        settings = Z.send("settings")
+        settings = send("settings")
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
