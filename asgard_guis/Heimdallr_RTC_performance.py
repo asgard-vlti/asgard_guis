@@ -1139,7 +1139,7 @@ def main():
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
 
-        settings = send("settings")
+        settings = Z.send("settings")
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
