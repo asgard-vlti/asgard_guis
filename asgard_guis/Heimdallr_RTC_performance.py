@@ -611,9 +611,10 @@ def main():
     offset_buttons_layout.addWidget(offset_button_1)
     offset_buttons_layout.addWidget(offset_button_2)
     offset_buttons_layout.addWidget(offset_button_3)
-    offset_buttons_layout.addWidget(offset_button_4)
-    offset_buttons_layout.addWidget(offset_button_5)
-    offset_buttons_layout.addWidget(offset_button_6)
+    offset_buttons_layout2 = QtWidgets.QHBoxLayout()
+    offset_buttons_layout2.addWidget(offset_button_4)
+    offset_buttons_layout2.addWidget(offset_button_5)
+    offset_buttons_layout2.addWidget(offset_button_6)
 
     # --- Button to reset best_gd_SNR ---
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
@@ -621,6 +622,7 @@ def main():
 
     # Insert buttons above the Telescopes label
     legend_layout.addLayout(offset_buttons_layout)
+    legend_layout.addLayout(offset_buttons_layout2)
     legend_layout.addWidget(reset_button)
 
     # Telescopes legend with tracking state swatch
