@@ -15,6 +15,7 @@ import heapq
 import numpy as np
 
 import time
+import signal
 
 N_TSCOPES = 4
 N_BASELINES = 6
@@ -622,6 +623,18 @@ def main():
     # Insert buttons above the Telescopes label
     legend_layout.addLayout(offset_buttons_layout)
     legend_layout.addWidget(reset_button)
+    # Quit button to close all windows and exit the application
+    def _on_quit():
+        for w in QtWidgets.QApplication.topLevelWidgets():
+            try:
+                w.close()
+            except Exception:
+                pass
+        QtCore.QCoreApplication.quit()
+
+    quit_button = QtWidgets.QPushButton("Quit")
+    quit_button.clicked.connect(_on_quit)
+    legend_layout.addWidget(quit_button)
 
     # Telescopes legend with tracking state swatch
     tel_label = QtWidgets.QLabel("<b>Telescopes</b>")
@@ -1189,11 +1202,18 @@ def main():
     timer.timeout.connect(update)
     timer.start(update_time)
 
-    # Handle KeyboardInterrupt to close all windows
+    # Install SIGINT handler so Ctrl-C will quit the Qt event loop
+    def _handle_sigint(signum, frame):
+        print("SIGINT received, quitting.")
+        QtCore.QCoreApplication.quit()
+
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    # Run the Qt event loop; SIGINT will now trigger the handler above
     try:
         app.exec_()
     except KeyboardInterrupt:
-        # Close all top-level windows
+        # Fallback: close all top-level windows
         for widget in QtWidgets.QApplication.topLevelWidgets():
             widget.close()
         QtCore.QCoreApplication.quit()
