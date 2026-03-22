@@ -1123,11 +1123,12 @@ def main():
     def update():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
-        status = None
+        status = Z.send("status")
         while status is None:
-            status = Z.send("status")
             print("Error communicating with server.. retrying.")
             time.sleep(5)
+            status = Z.send("status")
+            
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
             heimdallr_sm.update_gd_snr(status["gd_snr"])
