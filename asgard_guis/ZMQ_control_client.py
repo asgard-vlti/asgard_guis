@@ -5,6 +5,7 @@ import json
 import base64
 
 server_port = 6660
+SOCKET_TIMEOUT_MS = 2000
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
 socket.connect(f"tcp://192.168.100.2:{server_port}")
@@ -14,11 +15,23 @@ print(f"ZMQ shell interface to talk to the heimdallr server on port {server_port
 
 def send(cmd):
     """Send a command to the server and print the reply."""
+    if not socket.poll(SOCKET_TIMEOUT_MS, zmq.POLLOUT):
+        print("Error: socket timed out waiting to send command")
+        return None
+
     socket.send_string(cmd)
+
+    if not socket.poll(SOCKET_TIMEOUT_MS, zmq.POLLIN):
+        print("Error: no reply from server (timeout)")
+        return None
+
     try:
-        resp = json.loads(socket.recv().decode("ascii"))
-    except:
+        resp = json.loads(socket.recv(flags=zmq.NOBLOCK).decode("ascii"))
+    except zmq.Again:
         print("Error: no reply from server")
+        return None
+    except Exception:
+        print("Error: invalid reply from server")
         return None
     return resp
 
