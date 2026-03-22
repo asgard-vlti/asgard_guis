@@ -22,6 +22,9 @@ from datetime import datetime
 N_TSCOPES = 4
 N_BASELINES = 6
 
+#This doesn't seem to help. Generally, there is libGL error
+#whenever starting...
+#pg.setConfigOptions(useOpenGL=True)
 
 # MT W M : check the second lowest eigenvalue and compare threshold
 
@@ -129,7 +132,7 @@ class HeimdallrStateMachine(StateMachine):
         # choose lowest telescope
         worst_tscope_idx = np.argmin(median_gd_snr_per_telescope)
         kick_values = np.array([0, 0, 0, 0], dtype=np.float64)
-        kick_values[worst_tscope_idx] = 20 * self.kick_scale
+        kick_values[worst_tscope_idx] = 30 * self.kick_scale
 
         msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
         print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
@@ -340,8 +343,8 @@ def main():
     parser.add_argument(
         "--update-time",
         type=int,
-        default=50,
-        help="Update interval in ms (default: 50)",
+        default=200,
+        help="Update interval in ms (default: 200)",
     )
     parser.add_argument(
         "--samples",
