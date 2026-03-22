@@ -383,7 +383,7 @@ def main():
                 log_dir, f"fsm_{datetime.now().strftime('%y%m%d')}.log"
             )
             with open(logfile, "a", encoding="utf-8") as f:
-                f.write(f"{time.time():.3f} {cmd}\n")
+                f.write(f"{time.time():.3f} send {cmd}\n")
         except Exception:
             # Logging must not prevent normal operation
             pass
@@ -1123,7 +1123,11 @@ def main():
     def update():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
-        status = Z.send("status")
+        status = None
+        while status is None:
+            status = Z.send("status")
+            print("Error communicating with server.. retrying.")
+            time.sleep(5)
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
             heimdallr_sm.update_gd_snr(status["gd_snr"])
