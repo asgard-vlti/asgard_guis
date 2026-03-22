@@ -7,9 +7,32 @@ import base64
 server_port = 6660
 SOCKET_TIMEOUT_MS = 2000
 context = zmq.Context()
-socket = context.socket(zmq.REQ)
-socket.setsockopt(zmq.RCVTIMEO, SOCKET_TIMEOUT_MS)
-socket.connect(f"tcp://192.168.100.2:{server_port}")
+server_ip = "192.168.100.2"
+socket = None
+
+
+def reconnect(ip=None, port=None):
+    """Reconnect the REQ socket to the configured server endpoint."""
+    global socket, server_ip, server_port
+
+    if ip is not None:
+        server_ip = ip
+    if port is not None:
+        server_port = port
+
+    endpoint = f"tcp://{server_ip}:{server_port}"
+
+    if socket is not None:
+        socket.setsockopt(zmq.LINGER, 0)
+        socket.close()
+
+    socket = context.socket(zmq.REQ)
+    socket.setsockopt(zmq.RCVTIMEO, SOCKET_TIMEOUT_MS)
+    socket.connect(endpoint)
+    return endpoint
+
+
+reconnect()
 
 print(f"ZMQ shell interface to talk to the heimdallr server on port {server_port}")
 

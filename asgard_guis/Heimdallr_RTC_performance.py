@@ -1124,6 +1124,7 @@ def main():
         while status is None:
             print("Error communicating with server.. retrying.")
             time.sleep(5)
+            Z.reconnect()
             status = Z.send("status")
             
         # Update most recent gd_snr and poll state machine if enabled
