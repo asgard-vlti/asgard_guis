@@ -643,6 +643,16 @@ def main():
     legend_layout.addLayout(offset_buttons_layout)
     legend_layout.addLayout(offset_buttons_layout2)
     legend_layout.addWidget(reset_button)
+
+    # --- Integration time progress bar ---
+    itime_bar_label = QtWidgets.QLabel("Integration Time Progress:")
+    legend_layout.addWidget(itime_bar_label)
+    itime_progress_bar = QtWidgets.QProgressBar()
+    itime_progress_bar.setRange(0, 100)
+    itime_progress_bar.setValue(0)
+    itime_progress_bar.setFormat("%p% (itime / itime_target)")
+    legend_layout.addWidget(itime_progress_bar)
+
     # Quit button to close all windows and exit the application
     def _on_quit():
         for w in QtWidgets.QApplication.topLevelWidgets():
@@ -811,15 +821,6 @@ def main():
         baseline_plot_widget.addItem(text)
 
     legend_layout.addWidget(baseline_plot_widget)
-
-    # --- Integration time progress bar ---
-    itime_bar_label = QtWidgets.QLabel("Integration Time Progress:")
-    legend_layout.addWidget(itime_bar_label)
-    itime_progress_bar = QtWidgets.QProgressBar()
-    itime_progress_bar.setRange(0, 100)
-    itime_progress_bar.setValue(0)
-    itime_progress_bar.setFormat("%p% (itime / itime_target)")
-    legend_layout.addWidget(itime_progress_bar)
 
     legend_win.show()
 
