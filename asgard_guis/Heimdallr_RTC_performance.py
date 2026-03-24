@@ -812,6 +812,15 @@ def main():
 
     legend_layout.addWidget(baseline_plot_widget)
 
+    # --- Integration time progress bar ---
+    itime_bar_label = QtWidgets.QLabel("Integration Time Progress:")
+    legend_layout.addWidget(itime_bar_label)
+    itime_progress_bar = QtWidgets.QProgressBar()
+    itime_progress_bar.setRange(0, 100)
+    itime_progress_bar.setValue(0)
+    itime_progress_bar.setFormat("%p% (itime / itime_target)")
+    legend_layout.addWidget(itime_progress_bar)
+
     legend_win.show()
 
     # --- Offset Tweaker Window ---
@@ -1149,6 +1158,11 @@ def main():
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
+
+        # Update integration time progress bar
+        itime_val = float(status.get("itime", 0))
+        itime_target = float(settings.get("itime_target", 1) or 1)
+        itime_progress_bar.setValue(min(100, max(0, int(100 * itime_val / itime_target))))
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
