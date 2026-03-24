@@ -405,16 +405,9 @@ def main():
     # Move to top right (flush with edges)
     screen = QtWidgets.QApplication.primaryScreen()
     screen_geometry = screen.availableGeometry()
-    legend_fixed_height = 450
+    legend_fixed_height = 550
     total_height = screen_geometry.height()
     win_height = total_height - legend_fixed_height - 50
-    win_width = 900
-    win.resize(win_width, win_height)
-    win_x = screen_geometry.right() - win.width()
-    win_y = screen_geometry.top()
-    win.move(win_x, win_y)
-
-    # Now create and show the state machine control window
     sm_control_win = StateMachineControlWindow(heimdallr_sm)
     sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
     sm_control_win.show()
@@ -553,7 +546,7 @@ def main():
     screen = QtWidgets.QApplication.primaryScreen()
     screen_geometry = screen.availableGeometry()
     # Calculate available height for win and scatter_win
-    legend_fixed_height = 450
+    legend_fixed_height = 550
     total_height = screen_geometry.height()
     # Assign win to take the remaining height above the legend
     win_height = total_height - legend_fixed_height - 50
@@ -648,12 +641,10 @@ def main():
     legend_layout.addWidget(reset_button)
 
     # --- Integration time progress bar ---
-    itime_bar_label = QtWidgets.QLabel("Integration Time Progress:")
-    legend_layout.addWidget(itime_bar_label)
     itime_progress_bar = QtWidgets.QProgressBar()
     itime_progress_bar.setRange(0, 100)
     itime_progress_bar.setValue(0)
-    itime_progress_bar.setFormat("%p% (itime / itime_target)")
+    itime_progress_bar.setFormat("%p% (itime Progress)")
     legend_layout.addWidget(itime_progress_bar)
 
     # Quit button to close all windows and exit the application
