@@ -1153,7 +1153,7 @@ def main():
 
         # Update integration time progress bar
         itime_val = float(status.get("itime", 0))
-        itime_target = float(settings.get("itime_target", 1) or 1)
+        itime_target = float(settings.get("target_itime", 1) or 1)
         itime_progress_bar.setValue(min(100, max(0, int(100 * itime_val / itime_target))))
 
         for i in range(N_TSCOPES):
