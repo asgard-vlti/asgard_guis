@@ -601,6 +601,12 @@ def main():
                 "Estimated OPLs from best baselines: "
                 + ", ".join(f"{opl:.3f}" for opl in est_opls)
             )
+            # Also print which baselines were used
+            print("Best baselines used: " + ", ".join(baseline_names[i] for i in best_indices))
+            # and the corresponding GD SNRs
+            print("Corresponding GD SNRs: " + ", ".join(f"{snr:.3f}" for snr in np.array(snrs)[best_indices]))
+            # and the corresponding OPDs
+            print("Corresponding median OPDs: " + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices]))
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
