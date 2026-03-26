@@ -587,9 +587,9 @@ def main():
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
             opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            baseline_snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
             median_opds.append(np.median(opds) if opds else 0.0)
-            snrs.append(np.median(snrs) if snrs else 0.0)
+            snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
 
         # find which are the n best snrs (indices)
         best_indices = np.argsort(snrs)[-n:]
