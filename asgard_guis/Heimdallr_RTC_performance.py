@@ -66,7 +66,7 @@ class HeimdallrStateMachine(StateMachine):
         self.threshold_lower = 8
         self.threshold_upper = 25
         self.servo_start_gain = 0.05
-        self.servo_final_gain = 0.4
+        self.servo_final_gain = 0.25
         self.kick_scale = 1
         self.last_kick_time = 10000
         self.kick_delay = 3  # sec
@@ -215,8 +215,8 @@ class HeimdallrStateMachine(StateMachine):
             self.kick_if_needed()
         elif self.current_state == self.offload_gd:
             if self.should_go_to_servo_on():
-                pass
-                # self.to_servo_on_from_offload_gd()
+                #pass
+                self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
                 self.to_searching_from_offload_gd()
             elif self.should_go_to_sidelobe_from_offload_gd():
