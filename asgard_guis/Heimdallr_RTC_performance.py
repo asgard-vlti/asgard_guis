@@ -604,6 +604,12 @@ def main():
                 "Estimated OPLs from best baselines: "
                 + ", ".join(f"{opl:.3f}" for opl in est_opls)
             )
+            # Also print which baselines were used
+            print("Best baselines used: " + ", ".join(baseline_names[i] for i in best_indices))
+            # and the corresponding GD SNRs
+            print("Corresponding GD SNRs: " + ", ".join(f"{snr:.3f}" for snr in np.array(snrs)[best_indices]))
+            # and the corresponding OPDs
+            print("Corresponding median OPDs: " + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices]))
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
@@ -1125,11 +1131,11 @@ def main():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
-        while status is None:
+        if status is None:
             print("Error communicating with server.. retrying.")
-            time.sleep(5)
+            time.sleep(2)
             Z.reconnect()
-            status = Z.send("status")
+            return
             
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
