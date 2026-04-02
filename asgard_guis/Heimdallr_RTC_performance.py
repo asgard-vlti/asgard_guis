@@ -15,10 +15,16 @@ import heapq
 import numpy as np
 
 import time
+import signal
+import os
+from datetime import datetime
 
 N_TSCOPES = 4
 N_BASELINES = 6
 
+# This doesn't seem to help. Generally, there is libGL error
+# whenever starting...
+# pg.setConfigOptions(useOpenGL=True)
 
 # MT W M : check the second lowest eigenvalue and compare threshold
 
@@ -60,7 +66,7 @@ class HeimdallrStateMachine(StateMachine):
         self.threshold_lower = 8
         self.threshold_upper = 25
         self.servo_start_gain = 0.05
-        self.servo_final_gain = 0.4
+        self.servo_final_gain = 0.25
         self.kick_scale = 1
         self.last_kick_time = 10000
         self.kick_delay = 3  # sec
@@ -126,7 +132,7 @@ class HeimdallrStateMachine(StateMachine):
         # choose lowest telescope
         worst_tscope_idx = np.argmin(median_gd_snr_per_telescope)
         kick_values = np.array([0, 0, 0, 0], dtype=np.float64)
-        kick_values[worst_tscope_idx] = 20 * self.kick_scale
+        kick_values[worst_tscope_idx] = 30 * self.kick_scale
 
         msg = f"dlr {','.join(f'{kv:.3f}' for kv in kick_values)}"
         print(f"Sidelobe kick: {msg} (worst telescope T{worst_tscope_idx+1})")
@@ -176,6 +182,14 @@ class HeimdallrStateMachine(StateMachine):
         self.server.send(f"set_gain {self.servo_start_gain}")
         self.server.send('servo "on"')
 
+    def get_evals(self):
+        if self.mtwm is not None:
+            evals = np.linalg.eigvals(self.mtwm)
+            evals[evals < 0] = 0
+            return np.sort(evals)
+        else:
+            return None
+
     @property
     def M(self):
         return np.array(
@@ -195,6 +209,10 @@ class HeimdallrStateMachine(StateMachine):
         This should be called after update_status_buffers.
         """
         print("Current State:", self.current_state.name)
+        evals = self.get_evals()
+        if evals is not None:
+            baseline_snrs = np.sqrt(evals)
+            print(f"Baseline SNRs: {np.sort(baseline_snrs)}")
 
         # State transitions
         if self.current_state == self.searching:
@@ -202,12 +220,14 @@ class HeimdallrStateMachine(StateMachine):
                 self.to_sidelobe_from_searching()
                 self.last_change_time = time.time()
         elif self.current_state == self.sidelobe:
+            print(f"Currently in sidelobe, checking transitions...")
             if self.should_go_to_offload_gd(from_state="sidelobe"):
                 self.to_offload_gd_from_sidelobe()
             elif self.should_go_to_searching():
                 self.to_searching_from_sidelobe()
             self.kick_if_needed()
         elif self.current_state == self.offload_gd:
+            print("Currently in offload_gd, checking transitions...")
             if self.should_go_to_servo_on():
                 pass
                 # self.to_servo_on_from_offload_gd()
@@ -222,23 +242,23 @@ class HeimdallrStateMachine(StateMachine):
                 self.to_searching_from_servo_on()
 
     def should_go_to_sidelobe_from_offload_gd(self):
-        if self.mtwm is not None:
-            # check if the second smallest eigenvalue
-            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+        evals = self.get_evals()
+        if evals is not None:
+            baseline_snrs = np.sqrt(evals)
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            second_lowest_snr = np.sort(baseline_snrs)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
             return self.threshold_lower < second_lowest_snr < self.threshold_upper
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
-        if self.mtwm is not None:
-            # check if the second smallest eigenvalue
-            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+        evals = self.get_evals()
+        if evals is not None:
+            baseline_snrs = np.sqrt(evals)
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            second_lowest_snr = np.sort(baseline_snrs)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
             return self.threshold_lower < second_lowest_snr
 
@@ -255,15 +275,19 @@ class HeimdallrStateMachine(StateMachine):
         return np.all(buf > self.threshold_upper)
 
     def should_go_to_searching(self):
-        # Use most recent gd_snr only
-        if self.last_change_time - time.time() < 2:
+
+        if time.time() - self.last_change_time < 2:
+            print("Recently changed state, skipping check for should_go_to_searching.")
             return False
-        if self.mtwm is not None:
-            # check if the second smallest eigenvalue
-            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
+        evals = self.get_evals()
+        if evals is not None:
+            baseline_snrs = np.sqrt(evals)
+            print(
+                f"checking should_go_to_searching, baseline_snrs: {np.sort(baseline_snrs)}"
+            )
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
+            second_lowest_snr = np.sort(baseline_snrs)[1]
             return second_lowest_snr < self.threshold_lower
 
 
@@ -337,8 +361,8 @@ def main():
     parser.add_argument(
         "--update-time",
         type=int,
-        default=50,
-        help="Update interval in ms (default: 50)",
+        default=200,
+        help="Update interval in ms (default: 200)",
     )
     parser.add_argument(
         "--samples",
@@ -368,7 +392,23 @@ def main():
     linewidth = args.linewidth
 
     # --- Setup HeimdallrStateMachine ---
+    # Local wrapper around Z.send that logs commands to ~/logs/fsm_YYMMDD.log
+    def send(cmd):
+        try:
+            log_dir = os.path.expanduser("~/logs")
+            os.makedirs(log_dir, exist_ok=True)
+            logfile = os.path.join(
+                log_dir, f"fsm_{datetime.now().strftime('%y%m%d')}.log"
+            )
+            with open(logfile, "a", encoding="utf-8") as f:
+                f.write(f"{time.time():.3f} send {cmd}\n")
+        except Exception:
+            # Logging must not prevent normal operation
+            pass
+        return Z.send(cmd)
+
     # Determine status keys and shapes from first status message
+    # We don't log status, so use Z.send.
     status0 = Z.send("status")
     status_keys = list(status0.keys())
     status_shapes = {k: np.array(status0[k]).shape for k in status_keys}
@@ -383,16 +423,9 @@ def main():
     # Move to top right (flush with edges)
     screen = QtWidgets.QApplication.primaryScreen()
     screen_geometry = screen.availableGeometry()
-    legend_fixed_height = 450
+    legend_fixed_height = 550
     total_height = screen_geometry.height()
     win_height = total_height - legend_fixed_height - 50
-    win_width = 900
-    win.resize(win_width, win_height)
-    win_x = screen_geometry.right() - win.width()
-    win_y = screen_geometry.top()
-    win.move(win_x, win_y)
-
-    # Now create and show the state machine control window
     sm_control_win = StateMachineControlWindow(heimdallr_sm)
     sm_control_win.move(win.x() - sm_control_win.width() - 20, win.y())
     sm_control_win.show()
@@ -531,7 +564,7 @@ def main():
     screen = QtWidgets.QApplication.primaryScreen()
     screen_geometry = screen.availableGeometry()
     # Calculate available height for win and scatter_win
-    legend_fixed_height = 450
+    legend_fixed_height = 550
     total_height = screen_geometry.height()
     # Assign win to take the remaining height above the legend
     win_height = total_height - legend_fixed_height - 50
@@ -552,8 +585,7 @@ def main():
     legend_y = win_y + win.height()
     legend_win.move(legend_x, legend_y)
     # Set dark theme for legend_win
-    legend_win.setStyleSheet(
-        """
+    legend_win.setStyleSheet("""
         QWidget {
             background-color: #222;
             color: #EEE;
@@ -561,21 +593,19 @@ def main():
         QLabel {
             color: #EEE;
         }
-    """
-    )
+    """)
 
     # --- Button to compute and print offsets from median OPD values ---
     def print_offsets_from_n_best(n):
-        assert n >= 4, "n should be at least 4 to compute median"
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
         snrs = []
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
             opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            baseline_snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
             median_opds.append(np.median(opds) if opds else 0.0)
-            snrs.append(np.median(snrs) if snrs else 0.0)
+            snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
 
         # find which are the n best snrs (indices)
         best_indices = np.argsort(snrs)[-n:]
@@ -590,22 +620,47 @@ def main():
                 "Estimated OPLs from best baselines: "
                 + ", ".join(f"{opl:.3f}" for opl in est_opls)
             )
+            # Also print which baselines were used
+            print(
+                "Best baselines used: "
+                + ", ".join(baseline_names[i] for i in best_indices)
+            )
+            # and the corresponding GD SNRs
+            print(
+                "Corresponding GD SNRs: "
+                + ", ".join(f"{snr:.3f}" for snr in np.array(snrs)[best_indices])
+            )
+            # and the corresponding OPDs
+            print(
+                "Corresponding median OPDs: "
+                + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices])
+            )
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
             msg = f"dls {','.join(f'{opl:.3f}' for opl in est_opls)}"
-            Z.send(msg)
+            send(msg)
 
     # --- Three offset buttons for n=4,5,6 ---
     offset_buttons_layout = QtWidgets.QHBoxLayout()
-    offset_button_4 = QtWidgets.QPushButton("Offsets n=4")
-    offset_button_5 = QtWidgets.QPushButton("Offsets n=5")
-    offset_button_6 = QtWidgets.QPushButton("Offsets n=6")
+    offset_button_1 = QtWidgets.QPushButton("Set (n=1)")
+    offset_button_2 = QtWidgets.QPushButton("Set (n=2)")
+    offset_button_3 = QtWidgets.QPushButton("Set (n=3)")
+    offset_button_4 = QtWidgets.QPushButton("Set (n=4)")
+    offset_button_5 = QtWidgets.QPushButton("Set (n=5)")
+    offset_button_6 = QtWidgets.QPushButton("Set (n=6)")
+    offset_button_1.clicked.connect(lambda _: print_offsets_from_n_best(1))
+    offset_button_2.clicked.connect(lambda _: print_offsets_from_n_best(2))
+    offset_button_3.clicked.connect(lambda _: print_offsets_from_n_best(3))
     offset_button_4.clicked.connect(lambda _: print_offsets_from_n_best(4))
     offset_button_5.clicked.connect(lambda _: print_offsets_from_n_best(5))
     offset_button_6.clicked.connect(lambda _: print_offsets_from_n_best(6))
-    offset_buttons_layout.addWidget(offset_button_4)
-    offset_buttons_layout.addWidget(offset_button_5)
-    offset_buttons_layout.addWidget(offset_button_6)
+    offset_buttons_layout.addWidget(offset_button_1)
+    offset_buttons_layout.addWidget(offset_button_2)
+    offset_buttons_layout.addWidget(offset_button_3)
+    offset_buttons_layout2 = QtWidgets.QHBoxLayout()
+    offset_buttons_layout2.addWidget(offset_button_4)
+    offset_buttons_layout2.addWidget(offset_button_5)
+    offset_buttons_layout2.addWidget(offset_button_6)
 
     # --- Button to reset best_gd_SNR ---
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
@@ -613,7 +668,28 @@ def main():
 
     # Insert buttons above the Telescopes label
     legend_layout.addLayout(offset_buttons_layout)
+    legend_layout.addLayout(offset_buttons_layout2)
     legend_layout.addWidget(reset_button)
+
+    # --- Integration time progress bar ---
+    itime_progress_bar = QtWidgets.QProgressBar()
+    itime_progress_bar.setRange(0, 100)
+    itime_progress_bar.setValue(0)
+    itime_progress_bar.setFormat("%p% (itime Progress)")
+    legend_layout.addWidget(itime_progress_bar)
+
+    # Quit button to close all windows and exit the application
+    def _on_quit():
+        for w in QtWidgets.QApplication.topLevelWidgets():
+            try:
+                w.close()
+            except Exception:
+                pass
+        QtCore.QCoreApplication.quit()
+
+    quit_button = QtWidgets.QPushButton("Quit")
+    quit_button.clicked.connect(_on_quit)
+    legend_layout.addWidget(quit_button)
 
     # Telescopes legend with tracking state swatch
     tel_label = QtWidgets.QLabel("<b>Telescopes</b>")
@@ -817,7 +893,7 @@ def main():
             # Get slider values as floats from -5.0 to 5.0
             values = [slider.value() / 10.0 for slider in self.sliders]
             msg = f"tweak_gd_offsets {values[0]:.2f},{values[1]:.2f},{values[2]:.2f}"
-            Z.send(msg)
+            send(msg)
             QtWidgets.QMessageBox.information(self, "Offsets Applied", f"Sent: {msg}")
             # Reset sliders to 0 after apply
             for slider, value_label in zip(self.sliders, self.value_labels):
@@ -1080,6 +1156,12 @@ def main():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
+        if status is None:
+            print("Error communicating with server.. retrying.")
+            time.sleep(2)
+            Z.reconnect()
+            return
+
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
             heimdallr_sm.update_gd_snr(status["gd_snr"])
@@ -1102,6 +1184,13 @@ def main():
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
+
+        # Update integration time progress bar
+        itime_val = float(status.get("itime", 0))
+        itime_target = float(settings.get("target_itime", 1) or 1)
+        itime_progress_bar.setValue(
+            min(100, max(0, int(100 * itime_val / itime_target)))
+        )
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
@@ -1181,11 +1270,18 @@ def main():
     timer.timeout.connect(update)
     timer.start(update_time)
 
-    # Handle KeyboardInterrupt to close all windows
+    # Install SIGINT handler so Ctrl-C will quit the Qt event loop
+    def _handle_sigint(signum, frame):
+        print("SIGINT received, quitting.")
+        QtCore.QCoreApplication.quit()
+
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    # Run the Qt event loop; SIGINT will now trigger the handler above
     try:
         app.exec_()
     except KeyboardInterrupt:
-        # Close all top-level windows
+        # Fallback: close all top-level windows
         for widget in QtWidgets.QApplication.topLevelWidgets():
             widget.close()
         QtCore.QCoreApplication.quit()
