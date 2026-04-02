@@ -229,8 +229,8 @@ class HeimdallrStateMachine(StateMachine):
         elif self.current_state == self.offload_gd:
             print("Currently in offload_gd, checking transitions...")
             if self.should_go_to_servo_on():
-                pass
-                # self.to_servo_on_from_offload_gd()
+                # pass
+                self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
                 self.to_searching_from_offload_gd()
             elif self.should_go_to_sidelobe_from_offload_gd():
@@ -1161,7 +1161,6 @@ def main():
             time.sleep(2)
             Z.reconnect()
             return
-
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
             heimdallr_sm.update_gd_snr(status["gd_snr"])
