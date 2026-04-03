@@ -27,7 +27,7 @@ def _format_payload(payload: Any) -> str:
 
 
 def _colorize_state(value: str) -> str:
-    if value.lower() in ["open", "running", "true"] or "error" in value.lower():
+    if value.lower() in ["open", "running"] or "error" in value.lower():
         return f"{GREEN}{value}{RESET}"
     if value.lower() in ["closed"]:
         return f"{RED}{value}{RESET}"
@@ -72,16 +72,22 @@ def _print_watchdog_status(wd_status: Any) -> None:
             if task_status.get("status", None) is not None:
                 s = json.loads(task_status["status"])
                 if isinstance(s, dict):
-                    if task_name in fields_of_interest:
+                    if (
+                        task_name in fields_of_interest
+                        and fields_of_interest[task_name] is not []
+                    ):
+                        lines.append(f"\tstatus:")
                         fields = fields_of_interest[task_name]
                         if fields is None:
                             # print the whole status dict for this task
                             for k, v in s.items():
-                                lines.append(f"\t{k}:{_colorize_state(str(v))}")
+                                lines.append(f"\t\t{k}:{_colorize_state(str(v))}")
                         else:
                             for field in fields:
                                 value = s.get(field, "N/A")
-                                lines.append(f"\t{field}:{_colorize_state(str(value))}")
+                                lines.append(
+                                    f"\t\t{field}:{_colorize_state(str(value))}"
+                                )
 
         else:
             status = task_status.get("status", "unknown")
