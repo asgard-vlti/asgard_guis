@@ -48,7 +48,6 @@ def _print_watchdog_status(wd_status: Any) -> None:
         lines = [task_name]
         if not isinstance(task_status, dict):
             lines.append(f"  {task_status}")
-            _clear_screen()
             print("\n".join(lines), flush=True)
             continue
 
@@ -62,7 +61,6 @@ def _print_watchdog_status(wd_status: Any) -> None:
             lines.append(f"  process={process}")
             lines.append(f"  status={status}")
 
-        _clear_screen()
         print("\n".join(lines), flush=True)
 
 
