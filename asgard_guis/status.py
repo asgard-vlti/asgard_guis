@@ -39,17 +39,20 @@ def _print_watchdog_status(wd_status: Any) -> None:
         return
 
     for task_name, task_status in wd_status.items():
+        print(task_name, flush=True)
         if not isinstance(task_status, dict):
-            print(f"{task_name}: {task_status}", flush=True)
+            print(f"  {task_status}", flush=True)
             continue
 
         process = _colorize_state(str(task_status.get("process", "unknown")))
         if "zmq" in task_status:
             zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
-            print(f"{task_name}: process={process} zmq={zmq_state}", flush=True)
+            print(f"  process={process}", flush=True)
+            print(f"  zmq={zmq_state}", flush=True)
         else:
             status = task_status.get("status", "unknown")
-            print(f"{task_name}: process={process} status={status}", flush=True)
+            print(f"  process={process}", flush=True)
+            print(f"  status={status}", flush=True)
 
 
 def run_server(bind_endpoint: str) -> None:
