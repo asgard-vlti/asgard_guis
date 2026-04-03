@@ -71,6 +71,17 @@ def _print_watchdog_status(wd_status: Any) -> None:
 
             if task_status.get("status", None) is not None:
                 s = json.loads(task_status["status"])
+                if isinstance(s, dict):
+                    if task_name in fields_of_interest:
+                        fields = fields_of_interest[task_name]
+                        if fields is None:
+                            # print the whole status dict for this task
+                            for k, v in s.items():
+                                lines.append(f"\t{k}:{_colorize_state(str(v))}")
+                        else:
+                            for field in fields:
+                                value = s.get(field, "N/A")
+                                lines.append(f"\t{field}:{_colorize_state(str(value))}")
 
         else:
             status = task_status.get("status", "unknown")
