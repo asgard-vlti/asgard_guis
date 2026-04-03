@@ -36,6 +36,7 @@ def run_server(bind_endpoint: str) -> None:
             wd_status = message
 
         print(_format_payload(wd_status), flush=True)
+        print("-" * 40, flush=True)
         socket.send_string("ACK")
 
 
