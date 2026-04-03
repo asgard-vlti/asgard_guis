@@ -11,6 +11,7 @@ def _setup_offset_logger(logger_name):
     log_dir = Path("vltuser/asg/logs/")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"{logger_name}_{timestamp}.log"
+    print(f"Logging {logger_name} offsets to: {log_file}")
 
     logger = logging.getLogger(f"{logger_name}_{timestamp}")
     logger.setLevel(logging.INFO)
