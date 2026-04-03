@@ -16,6 +16,7 @@ import zmq
 GREEN = "\033[32m"
 RED = "\033[31m"
 RESET = "\033[0m"
+CLEAR_SCREEN = "\033[2J\033[H"
 
 
 def _format_payload(payload: Any) -> str:
@@ -26,33 +27,42 @@ def _format_payload(payload: Any) -> str:
 
 
 def _colorize_state(value: str) -> str:
-    if value == "open":
+    if value == "open" or value == "running":
         return f"{GREEN}{value}{RESET}"
     if value == "closed":
         return f"{RED}{value}{RESET}"
     return value
 
 
+def _clear_screen() -> None:
+    print(CLEAR_SCREEN, end="", flush=True)
+
+
+def _print_line(text: str = "") -> None:
+    _clear_screen()
+    print(text, flush=True)
+
+
 def _print_watchdog_status(wd_status: Any) -> None:
     if not isinstance(wd_status, dict):
-        print(_format_payload(wd_status), flush=True)
+        _print_line(_format_payload(wd_status))
         return
 
     for task_name, task_status in wd_status.items():
-        print(task_name, flush=True)
+        _print_line(task_name)
         if not isinstance(task_status, dict):
-            print(f"  {task_status}", flush=True)
+            _print_line(f"  {task_status}")
             continue
 
         process = _colorize_state(str(task_status.get("process", "unknown")))
         if "zmq" in task_status:
             zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
-            print(f"  process={process}", flush=True)
-            print(f"  zmq={zmq_state}", flush=True)
+            _print_line(f"  process={process}")
+            _print_line(f"  zmq={zmq_state}")
         else:
             status = task_status.get("status", "unknown")
-            print(f"  process={process}", flush=True)
-            print(f"  status={status}", flush=True)
+            _print_line(f"  process={process}")
+            _print_line(f"  status={status}")
 
 
 def run_server(bind_endpoint: str) -> None:
