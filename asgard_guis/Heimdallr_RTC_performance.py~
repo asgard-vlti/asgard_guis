@@ -22,9 +22,9 @@ from datetime import datetime
 N_TSCOPES = 4
 N_BASELINES = 6
 
-# This doesn't seem to help. Generally, there is libGL error
-# whenever starting...
-# pg.setConfigOptions(useOpenGL=True)
+#This doesn't seem to help. Generally, there is libGL error
+#whenever starting...
+#pg.setConfigOptions(useOpenGL=True)
 
 # MT W M : check the second lowest eigenvalue and compare threshold
 
@@ -65,8 +65,8 @@ class HeimdallrStateMachine(StateMachine):
         )
         self.threshold_lower = 8
         self.threshold_upper = 25
-        self.servo_start_gain = 0.01
-        self.servo_final_gain = 0.1
+        self.servo_start_gain = 0.05
+        self.servo_final_gain = 0.4
         self.kick_scale = 1
         self.last_kick_time = 10000
         self.kick_delay = 3  # sec
@@ -182,14 +182,6 @@ class HeimdallrStateMachine(StateMachine):
         self.server.send(f"set_gain {self.servo_start_gain}")
         self.server.send('servo "on"')
 
-    def get_evals(self):
-        if self.mtwm is not None:
-            evals = np.linalg.eigvals(self.mtwm)
-            evals[evals < 0] = 0
-            return np.sort(evals)
-        else:
-            return None
-
     @property
     def M(self):
         return np.array(
@@ -209,10 +201,6 @@ class HeimdallrStateMachine(StateMachine):
         This should be called after update_status_buffers.
         """
         print("Current State:", self.current_state.name)
-        evals = self.get_evals()
-        if evals is not None:
-            baseline_snrs = np.sqrt(evals)
-            print(f"Baseline SNRs: {np.sort(baseline_snrs)}")
 
         # State transitions
         if self.current_state == self.searching:
@@ -220,17 +208,15 @@ class HeimdallrStateMachine(StateMachine):
                 self.to_sidelobe_from_searching()
                 self.last_change_time = time.time()
         elif self.current_state == self.sidelobe:
-            print(f"Currently in sidelobe, checking transitions...")
             if self.should_go_to_offload_gd(from_state="sidelobe"):
                 self.to_offload_gd_from_sidelobe()
             elif self.should_go_to_searching():
                 self.to_searching_from_sidelobe()
             self.kick_if_needed()
         elif self.current_state == self.offload_gd:
-            print("Currently in offload_gd, checking transitions...")
             if self.should_go_to_servo_on():
-                # pass
-                self.to_servo_on_from_offload_gd()
+                pass
+                # self.to_servo_on_from_offload_gd()
             elif self.should_go_to_searching():
                 self.to_searching_from_offload_gd()
             elif self.should_go_to_sidelobe_from_offload_gd():
@@ -242,23 +228,23 @@ class HeimdallrStateMachine(StateMachine):
                 self.to_searching_from_servo_on()
 
     def should_go_to_sidelobe_from_offload_gd(self):
-        evals = self.get_evals()
-        if evals is not None:
-            baseline_snrs = np.sqrt(evals)
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.sort(baseline_snrs)[1]
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
             return self.threshold_lower < second_lowest_snr < self.threshold_upper
 
     # Placeholder condition methods
     def should_go_to_sidelobe(self):
-        evals = self.get_evals()
-        if evals is not None:
-            baseline_snrs = np.sqrt(evals)
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.sort(baseline_snrs)[1]
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
             print(f"Second lowest eigenvalue: {second_lowest_snr}")
             return self.threshold_lower < second_lowest_snr
 
@@ -275,19 +261,15 @@ class HeimdallrStateMachine(StateMachine):
         return np.all(buf > self.threshold_upper)
 
     def should_go_to_searching(self):
-
-        if time.time() - self.last_change_time < 2:
-            print("Recently changed state, skipping check for should_go_to_searching.")
+        # Use most recent gd_snr only
+        if self.last_change_time - time.time() < 2:
             return False
-        evals = self.get_evals()
-        if evals is not None:
-            baseline_snrs = np.sqrt(evals)
-            print(
-                f"checking should_go_to_searching, baseline_snrs: {np.sort(baseline_snrs)}"
-            )
+        if self.mtwm is not None:
+            # check if the second smallest eigenvalue
+            baseline_snrs = np.sqrt(np.linalg.eigvals(self.mtwm))
 
             # 2nd lowest eigenvalue
-            second_lowest_snr = np.sort(baseline_snrs)[1]
+            second_lowest_snr = np.partition(baseline_snrs, 1)[1]
             return second_lowest_snr < self.threshold_lower
 
 
@@ -585,7 +567,8 @@ def main():
     legend_y = win_y + win.height()
     legend_win.move(legend_x, legend_y)
     # Set dark theme for legend_win
-    legend_win.setStyleSheet("""
+    legend_win.setStyleSheet(
+        """
         QWidget {
             background-color: #222;
             color: #EEE;
@@ -593,7 +576,8 @@ def main():
         QLabel {
             color: #EEE;
         }
-    """)
+    """
+    )
 
     # --- Button to compute and print offsets from median OPD values ---
     def print_offsets_from_n_best(n):
@@ -603,9 +587,9 @@ def main():
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
             opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            baseline_snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
             median_opds.append(np.median(opds) if opds else 0.0)
-            snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
+            snrs.append(np.median(snrs) if snrs else 0.0)
 
         # find which are the n best snrs (indices)
         best_indices = np.argsort(snrs)[-n:]
@@ -619,21 +603,6 @@ def main():
             print(
                 "Estimated OPLs from best baselines: "
                 + ", ".join(f"{opl:.3f}" for opl in est_opls)
-            )
-            # Also print which baselines were used
-            print(
-                "Best baselines used: "
-                + ", ".join(baseline_names[i] for i in best_indices)
-            )
-            # and the corresponding GD SNRs
-            print(
-                "Corresponding GD SNRs: "
-                + ", ".join(f"{snr:.3f}" for snr in np.array(snrs)[best_indices])
-            )
-            # and the corresponding OPDs
-            print(
-                "Corresponding median OPDs: "
-                + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices])
             )
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
@@ -1156,11 +1125,12 @@ def main():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
         status = Z.send("status")
-        if status is None:
+        while status is None:
             print("Error communicating with server.. retrying.")
-            time.sleep(2)
+            time.sleep(5)
             Z.reconnect()
-            return
+            status = Z.send("status")
+            
         # Update most recent gd_snr and poll state machine if enabled
         if getattr(heimdallr_sm, "active", True):
             heimdallr_sm.update_gd_snr(status["gd_snr"])
@@ -1187,9 +1157,7 @@ def main():
         # Update integration time progress bar
         itime_val = float(status.get("itime", 0))
         itime_target = float(settings.get("target_itime", 1) or 1)
-        itime_progress_bar.setValue(
-            min(100, max(0, int(100 * itime_val / itime_target)))
-        )
+        itime_progress_bar.setValue(min(100, max(0, int(100 * itime_val / itime_target))))
 
         for i in range(N_TSCOPES):
             curves[0][i].setData(time_axis, gd_tel[:, i])
