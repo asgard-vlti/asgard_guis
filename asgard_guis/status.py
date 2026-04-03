@@ -66,33 +66,36 @@ def _print_watchdog_status(wd_status: Any) -> None:
         process = _colorize_state(str(task_status.get("process", "unknown")))
         if "zmq" in task_status:
             zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
-            lines.append(f"\tprocess:{process}")
-            lines.append(f"\tzmq:{zmq_state}")
+            lines.append(f"  process:{process}")
+            lines.append(f"  zmq:{zmq_state}")
 
             if task_status.get("status", None) is not None:
-                s = json.loads(task_status["status"])
+                try:
+                    s = json.loads(task_status["status"])
+                except json.JSONDecodeError:
+                    s = task_status["status"]
                 if isinstance(s, dict):
                     if (
                         task_name in fields_of_interest
                         and fields_of_interest[task_name] is not []
                     ):
-                        lines.append(f"\tstatus:")
+                        lines.append("  status:")
                         fields = fields_of_interest[task_name]
                         if fields is None:
                             # print the whole status dict for this task
                             for k, v in s.items():
-                                lines.append(f"\t\t{k}:{_colorize_state(str(v))}")
+                                lines.append(f"    {k}:{_colorize_state(str(v))}")
                         else:
                             for field in fields:
                                 value = s.get(field, "N/A")
                                 lines.append(
-                                    f"\t\t{field}:{_colorize_state(str(value))}"
+                                    f"    {field}:{_colorize_state(str(value))}"
                                 )
 
         else:
             status = task_status.get("status", "unknown")
-            lines.append(f"\tprocess:{process}")
-            lines.append(f"\tstatus:{status}")
+            lines.append(f"  process:{process}")
+            lines.append(f"  status:{status}")
 
         print("\n".join(lines), flush=True)
 
