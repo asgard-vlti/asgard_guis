@@ -10,7 +10,7 @@ import argparse
 import json
 import logging
 from typing import Any
-import datetime.datetime
+import datetime
 
 import zmq
 
