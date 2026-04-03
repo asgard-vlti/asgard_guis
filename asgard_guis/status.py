@@ -38,31 +38,32 @@ def _clear_screen() -> None:
     print(CLEAR_SCREEN, end="", flush=True)
 
 
-def _print_line(text: str = "") -> None:
-    _clear_screen()
-    print(text, flush=True)
-
-
 def _print_watchdog_status(wd_status: Any) -> None:
     if not isinstance(wd_status, dict):
-        _print_line(_format_payload(wd_status))
+        _clear_screen()
+        print(_format_payload(wd_status), flush=True)
         return
 
     for task_name, task_status in wd_status.items():
-        _print_line(task_name)
+        lines = [task_name]
         if not isinstance(task_status, dict):
-            _print_line(f"  {task_status}")
+            lines.append(f"  {task_status}")
+            _clear_screen()
+            print("\n".join(lines), flush=True)
             continue
 
         process = _colorize_state(str(task_status.get("process", "unknown")))
         if "zmq" in task_status:
             zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
-            _print_line(f"  process={process}")
-            _print_line(f"  zmq={zmq_state}")
+            lines.append(f"  process={process}")
+            lines.append(f"  zmq={zmq_state}")
         else:
             status = task_status.get("status", "unknown")
-            _print_line(f"  process={process}")
-            _print_line(f"  status={status}")
+            lines.append(f"  process={process}")
+            lines.append(f"  status={status}")
+
+        _clear_screen()
+        print("\n".join(lines), flush=True)
 
 
 def run_server(bind_endpoint: str) -> None:
