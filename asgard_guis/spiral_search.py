@@ -8,7 +8,7 @@ from pathlib import Path
 
 def _setup_offset_logger(logger_name):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_dir = Path(__file__).resolve().parent / "logs"
+    log_dir = Path("vltuser/asg/logs/")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"{logger_name}_{timestamp}.log"
 
