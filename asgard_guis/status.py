@@ -13,12 +13,43 @@ from typing import Any
 
 import zmq
 
+GREEN = "\033[32m"
+RED = "\033[31m"
+RESET = "\033[0m"
+
 
 def _format_payload(payload: Any) -> str:
     try:
         return json.dumps(payload, indent=2, sort_keys=True)
     except (TypeError, ValueError):
         return str(payload)
+
+
+def _colorize_state(value: str) -> str:
+    if value == "open":
+        return f"{GREEN}{value}{RESET}"
+    if value == "closed":
+        return f"{RED}{value}{RESET}"
+    return value
+
+
+def _print_watchdog_status(wd_status: Any) -> None:
+    if not isinstance(wd_status, dict):
+        print(_format_payload(wd_status), flush=True)
+        return
+
+    for task_name, task_status in wd_status.items():
+        if not isinstance(task_status, dict):
+            print(f"{task_name}: {task_status}", flush=True)
+            continue
+
+        process = _colorize_state(str(task_status.get("process", "unknown")))
+        if "zmq" in task_status:
+            zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
+            print(f"{task_name}: process={process} zmq={zmq_state}", flush=True)
+        else:
+            status = task_status.get("status", "unknown")
+            print(f"{task_name}: process={process} status={status}", flush=True)
 
 
 def run_server(bind_endpoint: str) -> None:
@@ -35,8 +66,7 @@ def run_server(bind_endpoint: str) -> None:
         except json.JSONDecodeError:
             wd_status = message
 
-        print(_format_payload(wd_status), flush=True)
-        print("-" * 40, flush=True)
+        _print_watchdog_status(wd_status)
         socket.send_string("ACK")
 
 
