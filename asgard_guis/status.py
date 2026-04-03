@@ -57,7 +57,9 @@ def _print_watchdog_status(wd_status: Any) -> None:
         print(_format_payload(wd_status), flush=True)
         return
 
-    print(f"Watchdog Status Update @ {datetime.datetime.now().isoformat()}", flush=True)
+    print(
+        f"Update @ {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True
+    )
 
     for task_name, task_status in wd_status.items():
         lines = [task_name]
