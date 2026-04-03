@@ -27,15 +27,27 @@ def _format_payload(payload: Any) -> str:
 
 
 def _colorize_state(value: str) -> str:
-    if value == "open" or value == "running":
+    if value.lower() in ["open", "running", "true"] or "error" in value.lower():
         return f"{GREEN}{value}{RESET}"
-    if value == "closed":
+    if value.lower() in ["closed"]:
         return f"{RED}{value}{RESET}"
     return value
 
 
 def _clear_screen() -> None:
     print(CLEAR_SCREEN, end="", flush=True)
+
+
+fields_of_interest = {
+    "BTT1": ["cnt"],
+    "BTT2": ["cnt"],
+    "BTT3": ["cnt"],
+    "BTT4": ["cnt"],
+    "CRED1": ["cam_status", "shm_error", "fps"],
+    "DM": None,  # this means print the whole DM status entry
+    "HDLR": ["cnt", "locked"],
+    "back_end": [],
+}
 
 
 def _print_watchdog_status(wd_status: Any) -> None:
@@ -54,12 +66,16 @@ def _print_watchdog_status(wd_status: Any) -> None:
         process = _colorize_state(str(task_status.get("process", "unknown")))
         if "zmq" in task_status:
             zmq_state = _colorize_state(str(task_status.get("zmq", "unknown")))
-            lines.append(f"  process={process}")
-            lines.append(f"  zmq={zmq_state}")
+            lines.append(f"\tprocess:{process}")
+            lines.append(f"\tzmq:{zmq_state}")
+
+            if task_status.get("status", None) is not None:
+                s = json.loads(task_status["status"])
+
         else:
             status = task_status.get("status", "unknown")
-            lines.append(f"  process={process}")
-            lines.append(f"  status={status}")
+            lines.append(f"\tprocess:{process}")
+            lines.append(f"\tstatus:{status}")
 
         print("\n".join(lines), flush=True)
 
@@ -77,6 +93,8 @@ def run_server(bind_endpoint: str) -> None:
             wd_status = json.loads(message)
         except json.JSONDecodeError:
             wd_status = message
+
+        _clear_screen()
 
         _print_watchdog_status(wd_status)
         socket.send_string("ACK")
