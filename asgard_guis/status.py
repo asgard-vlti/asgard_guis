@@ -27,7 +27,7 @@ class StatusFormatter:
     GREEN = "\033[32m"
     RED = "\033[31m"
     RESET = "\033[0m"
-    STALE_THRESHOLD_SECONDS = 5
+    STALE_THRESHOLD_SECONDS = 10
     STATE_COLORS = {
         "default": "#202020",
         "green": "#1f7a1f",
@@ -352,6 +352,9 @@ if QtWidgets is not None:
             self._apply_border(red_border=bool(task_block.get("has_red")))
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
+        STALE_WINDOW_OPACITY = 0.4
+        FRESH_WINDOW_OPACITY = 1.0
+
         PROCESS_GRID = {
             "BTT1": (0, 0, 1, 1),
             "BTT2": (0, 1, 1, 1),
@@ -434,8 +437,15 @@ if QtWidgets is not None:
             )
 
             if not state["is_payload_dict"]:
+                self.setWindowOpacity(self.FRESH_WINDOW_OPACITY)
                 self.header_label.setText(html.escape(state["payload"]))
                 return
+
+            self.setWindowOpacity(
+                self.STALE_WINDOW_OPACITY
+                if state["is_stale"]
+                else self.FRESH_WINDOW_OPACITY
+            )
 
             header = f"last updated {state['elapsed_seconds']:.2f} seconds ago"
             header_color = "#c62828" if state["is_stale"] else "#202020"
