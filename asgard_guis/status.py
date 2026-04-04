@@ -27,7 +27,7 @@ class StatusFormatter:
     GREEN = "\033[32m"
     RED = "\033[31m"
     RESET = "\033[0m"
-    STALE_THRESHOLD_SECONDS = 10
+    STALE_THRESHOLD_SECONDS = 5
     STATE_COLORS = {
         "default": "#202020",
         "green": "#1f7a1f",
@@ -295,6 +295,7 @@ if QtWidgets is not None:
         def __init__(self, process_name: str) -> None:
             super().__init__()
             self._process_name = process_name
+            self._opacity_effect: Any = None
             self._setup_ui()
 
         def _setup_ui(self) -> None:
@@ -317,6 +318,9 @@ if QtWidgets is not None:
             layout.addWidget(self.details, 1)
 
             self._apply_border(red_border=False)
+            self._opacity_effect = QtWidgets.QGraphicsOpacityEffect(self)
+            self.setGraphicsEffect(self._opacity_effect)
+            self.set_dimmed(False)
 
         def _apply_border(self, red_border: bool) -> None:
             border = "#c62828" if red_border else "#888888"
@@ -328,6 +332,11 @@ if QtWidgets is not None:
                 "background-color: #f8f8f8;"
                 "}"
             )
+
+        def set_dimmed(self, is_dimmed: bool) -> None:
+            if self._opacity_effect is None:
+                return
+            self._opacity_effect.setOpacity(0.4 if is_dimmed else 1.0)
 
         def update_from_task(self, task_block: dict[str, Any]) -> None:
             html_lines: list[str] = []
@@ -352,9 +361,6 @@ if QtWidgets is not None:
             self._apply_border(red_border=bool(task_block.get("has_red")))
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
-        STALE_WINDOW_OPACITY = 0.4
-        FRESH_WINDOW_OPACITY = 1.0
-
         PROCESS_GRID = {
             "BTT1": (0, 0, 1, 1),
             "BTT2": (0, 1, 1, 1),
@@ -437,15 +443,8 @@ if QtWidgets is not None:
             )
 
             if not state["is_payload_dict"]:
-                self.setWindowOpacity(self.FRESH_WINDOW_OPACITY)
                 self.header_label.setText(html.escape(state["payload"]))
                 return
-
-            self.setWindowOpacity(
-                self.STALE_WINDOW_OPACITY
-                if state["is_stale"]
-                else self.FRESH_WINDOW_OPACITY
-            )
 
             header = f"last updated {state['elapsed_seconds']:.2f} seconds ago"
             header_color = "#c62828" if state["is_stale"] else "#202020"
@@ -464,6 +463,10 @@ if QtWidgets is not None:
             for task_name, box in self._boxes.items():
                 if task_name not in seen:
                     box.hide()
+
+            is_stale = bool(state["is_stale"])
+            for box in self._boxes.values():
+                box.set_dimmed(is_stale)
 
         def _poll_once(self) -> None:
             events = dict(self.poller.poll(timeout=0))
