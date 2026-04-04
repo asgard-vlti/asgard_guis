@@ -350,6 +350,10 @@ class UniversalClient(QtWidgets.QMainWindow):
         if event.type() == QtCore.QEvent.KeyPress:
             key = event.key()
             modifiers = event.modifiers()
+            # Handle Escape key to close the application
+            if key == QtCore.Qt.Key_Escape:
+                self.close()
+                return True
             # Qt.Key_1 is 0x31, Qt.Key_9 is 0x39
             if modifiers & QtCore.Qt.ControlModifier:
                 if QtCore.Qt.Key_1 <= key <= QtCore.Qt.Key_9:
