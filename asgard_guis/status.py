@@ -495,7 +495,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--bind-endpoint",
-        default="tcp://wag:7051",
+        default="tcp://192.168.100.1:7051",
         help="ZMQ endpoint to bind the REP socket to.",
     )
     parser.add_argument(
