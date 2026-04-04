@@ -503,17 +503,17 @@ def main() -> None:
         action="store_true",
         help="If the display should be a GUI instead of terminal output",
     )
-    # toggle sim option
-    parser.add_argument(
-        "--sim",
-        action="store_true",
-        help="If True, simulates receiving a watchdog message every 5 seconds instead of binding a ZMQ socket.",
-    )
+    # # toggle sim option
+    # parser.add_argument(
+    #     "--sim",
+    #     action="store_true",
+    #     help="If True, simulates receiving a watchdog message every 5 seconds instead of binding a ZMQ socket.",
+    # )
 
     args = parser.parse_args()
 
-    if args.sim:
-        args.bind_endpoint = "tcp://localhost:7051"
+    # if args.sim:
+    #     args.bind_endpoint = "tcp://localhost:7051"
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
