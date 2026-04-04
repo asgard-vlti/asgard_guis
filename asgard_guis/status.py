@@ -11,8 +11,6 @@ import json
 import logging
 from typing import Any
 import datetime
-import time
-import numpy as np
 
 import zmq
 
@@ -65,7 +63,9 @@ class TextStatusInfo:
     def _clear_screen(self) -> None:
         print(self.CLEAR_SCREEN, end="", flush=True)
 
-    def _print_watchdog_status(self, wd_status: Any) -> None:
+    def _print_watchdog_status(
+        self, wd_status: Any, update_last_time: bool = True
+    ) -> None:
         if not isinstance(wd_status, dict):
             self._clear_screen()
             print(self._format_payload(wd_status), flush=True)
@@ -84,7 +84,8 @@ class TextStatusInfo:
             else 0.0
         )
 
-        self.last_wd_time = now
+        if update_last_time:
+            self.last_wd_time = now
 
         header = f"last updated {elapsed_seconds:.2f} seconds ago"
         if is_stale:
@@ -156,81 +157,30 @@ class TextStatusInfo:
         context = zmq.Context.instance()
         socket = context.socket(zmq.REP)
         socket.bind(bind_endpoint)
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+        last_wd_status = None
 
         logging.info("Watchdog status REP endpoint bound to %s", bind_endpoint)
 
         while True:
-            message = socket.recv_string()
-            try:
-                wd_status = json.loads(message)
-            except json.JSONDecodeError:
-                wd_status = message
+            events = dict(poller.poll(timeout=800))
+            if socket in events and events[socket] == zmq.POLLIN:
+                message = socket.recv_string()
+                try:
+                    wd_status = json.loads(message)
+                except json.JSONDecodeError:
+                    wd_status = message
 
-            self._clear_screen()
+                last_wd_status = wd_status
+                self._clear_screen()
+                self._print_watchdog_status(wd_status, update_last_time=True)
+                socket.send_string("ACK")
+                continue
 
-            self._print_watchdog_status(wd_status)
-            socket.send_string("ACK")
-
-
-def run_simulator(sinfo: TextStatusInfo) -> None:
-    while True:
-        # pick a random number between 3-7 seconds for the pause time to simulate staleness
-        pause_time = np.random.uniform(3, 7)
-        sinfo._clear_screen()
-        payload = sim_msg()
-        wd_status = json.loads(payload)
-        sinfo._print_watchdog_status(wd_status)
-        time.sleep(pause_time)
-
-
-def sim_msg():
-    cnt = int(time.time()) % 10000  # just a changing number for demonstration
-    payload = {
-        "BTT1": {
-            "process": "open",
-            "status": f'{{"cnt":{cnt},"flux":119221.0,"tx":1.61,"ty":2.173}}',
-            "zmq": "open",
-        },
-        "BTT2": {
-            "process": "open",
-            "status": f'{{"cnt":{cnt},"flux":90724.9,"tx":-5.526,"ty":-10.945}}',
-            "zmq": "open",
-        },
-        "BTT3": {
-            "process": "open",
-            "status": f'{{"cnt":{cnt},"flux":27516.6,"tx":35.318,"ty":-20.465}}',
-            "zmq": "open",
-        },
-        "BTT4": {
-            "process": "open",
-            "status": f'{{"cnt":{cnt},"flux":108671.2,"tx":2.152,"ty":5.303}}',
-            "zmq": "open",
-        },
-        "CRED1": {
-            "process": "open",
-            "status": f'{{"cnt":{cnt},"cam_status":"running","fps":2000.0,"nbreads":1,"shm_error":false,"skipped_frames":0,"tsig_len":5}}',
-            "zmq": "open",
-        },
-        "DM": {"process": "open", "status": '"running"', "zmq": "open"},
-        "Eng gui": {"process": "open", "status": "running"},
-        "HDLR": {
-            "process": "closed",
-            "status": '{"closure_phase_K1":[0.383,-0.544,-0.701,0.217],"closure_phase_K2":[0.282,0.09,0.054,0.244],"cnt":9534,"dl_offload":[0.0,0.0,0.0,0.0],"dm_piston":[0.0,0.0,0.0,0.0],"gd_bl":[4.738,-5.107,2.674,2.303,-3.008,-5.228],"gd_phasor_imag":[823302887.6,-2105260658.1,8302004.9,-1941856682.1,8011147917.6,-2687869428.2],"gd_phasor_real":[726425994.3,-1590734035.8,-568120110.2,-12364084896.9,-275330639.3,-431822351.4],"gd_snr":[39.55,62.87,21.79,162.84,132.92,72.11],"gd_tel":[2.439,-0.437,1.363,-3.365],"itime":234.0499999999321,"locked":true,"pd_av":[-0.242,-0.13,0.062,0.173,0.22,0.08],"pd_av_filtered":[-0.242,-0.13,0.062,0.173,0.22,0.08],"pd_bl":[-0.234,-0.16,0.035,0.154,0.23,0.09],"pd_snr":[2.64,5.51,1.3,17.16,15.43,7.07],"pd_tel":[0.388,0.075,0.228,-0.692],"test_ix":0,"test_n":0,"v2_K1":[0.0052,0.015,0.0012,0.1242,0.0951,0.0187],"v2_K2":[0.0749,0.1095,0.0609,0.3073,0.1658,0.0991]}',
-            "zmq": "open",
-        },
-        "MDS": {
-            "process": "open",
-            "status": "NACK: Unkown custom command\n",
-            "zmq": "open",
-        },
-        "back_end": {
-            "process": "open",
-            "status": '{"reply": {"time": "2026-04-03T21:34:20", "content": "OK:"}}',
-            "zmq": "open",
-        },
-    }
-
-    return json.dumps(payload)
+            if last_wd_status is not None:
+                self._clear_screen()
+                self._print_watchdog_status(last_wd_status, update_last_time=False)
 
 
 def main() -> None:
@@ -256,15 +206,14 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if args.sim:
+        args.connect_endpoint = "tcp://localhost:7051"
+
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
-    if args.sim:
-        np.random.seed(0)  # for reproducible simulation
-        run_simulator(TextStatusInfo())
-    else:
-        sinfo = TextStatusInfo()
-        sinfo.run_server(args.bind_endpoint)
+    sinfo = TextStatusInfo()
+    sinfo.run_server(args.bind_endpoint)
 
 
 if __name__ == "__main__":
