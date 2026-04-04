@@ -27,7 +27,7 @@ class StatusFormatter:
     GREEN = "\033[32m"
     RED = "\033[31m"
     RESET = "\033[0m"
-    STALE_THRESHOLD_SECONDS = 5
+    STALE_THRESHOLD_SECONDS = 10
     STATE_COLORS = {
         "default": "#202020",
         "green": "#1f7a1f",
