@@ -6,9 +6,9 @@ from datetime import datetime
 from pathlib import Path
 
 
-def _setup_offset_logger(logger_name):
+def _setup_offset_logger(logging_folder, logger_name):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_dir = Path("vltuser/asg/logs/")
+    log_dir = Path("/vltuser/asg/logs/") / logging_folder
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"{logger_name}_{timestamp}.log"
     print(f"Logging {logger_name} offsets to: {log_file}")
@@ -29,10 +29,12 @@ def _setup_offset_logger(logger_name):
 
 
 class SpiralSearchIntegrator:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, logging_folder="."):
         self.accumulated_offsets = {1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]}
         self.debug = debug
-        self.logger, self.log_file = _setup_offset_logger("spiral_search")
+        self.logger, self.log_file = _setup_offset_logger(
+            logging_folder, "spiral_search"
+        )
         self.logger.info("SpiralSearchIntegrator started")
         self.logger.info("Initial accumulated offsets: %s", self.accumulated_offsets)
 
