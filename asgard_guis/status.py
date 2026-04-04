@@ -276,6 +276,8 @@ class TextStatusInfo(StatusFormatter):
                 except json.JSONDecodeError:
                     wd_status = message
 
+                print(f"Received watchdog status update at {datetime.datetime.now()}:")
+
                 last_wd_status = wd_status
                 self._clear_screen()
                 self._print_watchdog_status(wd_status, update_last_time=True)
