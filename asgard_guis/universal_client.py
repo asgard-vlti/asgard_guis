@@ -267,6 +267,7 @@ class ServerTab(QtWidgets.QWidget):
         try:
             self.zmq_socket.send_string("command_names")
             reply = self.zmq_socket.recv_string()
+            print(f"Received command_names reply: {reply}")
         except zmq.error.Again:
             self.text_area.append(
                 "[Error] ZMQ request timed out while fetching commands."
@@ -285,20 +286,24 @@ class ServerTab(QtWidgets.QWidget):
                     return
             else:
                 return
-        except Exception:
+        except Exception as e:
+            print(f"Unexpected error occurred: {e}")
             return
         try:
             commands = json.loads(reply)
             if isinstance(commands, list):
                 commands = sorted(commands, key=str.lower)
                 self.command_dropdown.addItems(commands)
-        except Exception:
+                print(f"Populated commands: {commands}")
+        except Exception as e:
+            print(f"Failed to parse command_names reply as JSON: {e}")
             try:
                 commands = eval(reply)
                 if isinstance(commands, list):
                     commands = sorted([str(c) for c in commands], key=str.lower)
                     self.command_dropdown.addItems(commands)
-            except Exception:
+            except Exception as e:
+                print(f"Failed to evaluate command_names reply: {e}")
                 pass
 
 
