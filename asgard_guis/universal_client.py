@@ -296,14 +296,16 @@ class ServerTab(QtWidgets.QWidget):
                 self.command_dropdown.addItems(commands)
                 print(f"Populated commands: {commands}")
         except Exception as e:
-            print(f"Failed to parse command_names reply as JSON: {e}")
+            print(
+                f"Failed to parse command_names reply {self.server_name} as JSON: {e}"
+            )
             try:
                 commands = eval(reply)
                 if isinstance(commands, list):
                     commands = sorted([str(c) for c in commands], key=str.lower)
                     self.command_dropdown.addItems(commands)
             except Exception as e:
-                print(f"Failed to evaluate command_names reply: {e}")
+                print(f"Failed to evaluate command_names reply {self.server_name}: {e}")
                 pass
 
 
