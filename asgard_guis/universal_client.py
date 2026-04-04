@@ -5,11 +5,11 @@ import json
 from PyQt5 import QtWidgets, QtGui, QtCore
 import html
 
-
 sockets = [
     ("cam_server", 6667),
     ("DM_server", 6666),
     ("heimdallr", 6660),
+    ("MDS", 5555),
     ("baldr1", 6662),
     ("baldr2", 6663),
     ("baldr3", 6664),

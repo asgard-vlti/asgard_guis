@@ -388,7 +388,7 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setWindowTitle("Watchdog Status")
-            self.resize(1160, 700)
+            self.resize(960, 560)
 
             root = QtWidgets.QVBoxLayout(self)
             root.setContentsMargins(12, 12, 12, 12)
