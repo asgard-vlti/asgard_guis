@@ -472,6 +472,16 @@ if QtWidgets is not None:
             if self.last_wd_status is not None:
                 self._render(self.last_wd_status, update_last_time=False)
 
+        def keyPressEvent(self, event: Any) -> None:
+            key = event.key() if hasattr(event, "key") else None
+            if key == QtCore.Qt.Key_Escape:
+                for widget in QtWidgets.QApplication.topLevelWidgets():
+                    widget.close()
+                QtCore.QCoreApplication.quit()
+                event.accept()
+                return
+            super().keyPressEvent(event)
+
         def closeEvent(self, event: Any) -> None:
             self.timer.stop()
             self.poller.unregister(self.socket)
