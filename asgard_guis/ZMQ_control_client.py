@@ -7,7 +7,7 @@ import base64
 server_port = 6660
 SOCKET_TIMEOUT_MS = 2000
 context = zmq.Context()
-server_ip = "192.168.100.2"
+server_ip = "mimir"
 socket = None
 
 
