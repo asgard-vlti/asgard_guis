@@ -36,7 +36,13 @@ def draw_bar(value, max_value=100000000, width=50):
         ratio = 1.0
     
     filled = int(width * ratio)
-    bar = '[' + '#' * filled + '-' * (width - filled) + ']'
+    if value < 20000000:
+        bar = '\033[92m'
+    elif value < 50000000:
+        bar = '\033[93m'
+    else:
+        bar = '\033[91m'
+    bar += '[' + '#' * filled + '-' * (width - filled) + ']\033[0m'
     return bar
 
 
@@ -62,8 +68,15 @@ def main():
                 bar = draw_bar(bytes_delta, 100000000, 50)
                 
                 # Print to terminal with carriage return for non-scrolling output
-                sys.stdout.write('\rTX: %d bytes | delta: %d bytes/s %s' % 
-                                (current_bytes, bytes_delta, bar))
+                if bytes_delta >= 100000000:
+                    sys.stdout.write('\r\033[1mTX: XXX,XXX kbytes/s %s' % 
+                                (bar))
+                elif bytes_delta >= 1000000:
+                    sys.stdout.write('\r\033[1mTX: %3d,%03d kbytes/s %s' % 
+                                (bytes_delta//1000000, (bytes_delta/1000) % 1000, bar))
+                else:
+                    sys.stdout.write('\r\033[1mTX: %7d kbytes/s %s' % 
+                                (bytes_delta//1000, bar))
                 sys.stdout.flush()
             else:
                 sys.stdout.write('\rError: Could not read from interface %s' % interface)
