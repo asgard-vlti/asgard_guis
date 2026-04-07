@@ -1,3 +1,5 @@
+# For wag, you can: pip install .
+# For mimir, do a local install, i.e.: pip install -e . --no-index --find-links ~/Downloads
 [project]
 name = "asgard_guis"
 version = "0.0.1"

@@ -81,11 +81,13 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
 
 
 class ServerTab(QtWidgets.QWidget):
-    def __init__(self, server_name, zmq_sockets, parent=None):
+    def __init__(self, server_name, zmq_sockets, parent=None, rcv_timeout=1500):
         super().__init__(parent)
         self.server_name = server_name
         self.zmq_sockets = zmq_sockets
+        self.active_socket_index = 0
         self.zmq_socket = zmq_sockets[0]  # Use the first socket for commands
+        self.rcv_timeout = rcv_timeout
         self.parent_window = parent  # Not used, but could be for future
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -94,6 +96,13 @@ class ServerTab(QtWidgets.QWidget):
         self.command_dropdown.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.input_line = HistoryLineEdit(self)
         self.send_button = QtWidgets.QPushButton("Send", self)
+        self.send_all_button = QtWidgets.QPushButton("Send All", self)
+        self.socket_dropdown = QtWidgets.QComboBox(self)
+        self.socket_dropdown.setEditable(False)
+        self.socket_dropdown.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.socket_dropdown.addItems(
+            [str(i) for i in range(1, len(self.zmq_sockets) + 1)]
+        )
         self.text_area = QtWidgets.QTextEdit(self)
         self.text_area.setReadOnly(True)
 
@@ -101,13 +110,22 @@ class ServerTab(QtWidgets.QWidget):
         hlayout.addWidget(self.command_dropdown)
         hlayout.addWidget(self.input_line)
         hlayout.addWidget(self.send_button)
+        hlayout.addWidget(self.send_all_button)
+        hlayout.addWidget(self.socket_dropdown)
 
         layout.addLayout(hlayout)
         layout.addWidget(self.text_area)
 
         self.send_button.clicked.connect(self.send_command)
+        self.send_all_button.clicked.connect(self.send_all_commands)
         self.input_line.returnPressed.connect(self.send_command)
         self.command_dropdown.activated[str].connect(self.set_input_line)
+        self.socket_dropdown.currentIndexChanged.connect(self.set_active_socket)
+
+    def set_active_socket(self, idx):
+        if 0 <= idx < len(self.zmq_sockets):
+            self.active_socket_index = idx
+            self.zmq_socket = self.zmq_sockets[idx]
 
     def set_input_line(self, cmd):
         self.input_line.setText(cmd)
@@ -174,11 +192,74 @@ class ServerTab(QtWidgets.QWidget):
             self.zmq_socket.close(linger=0)
             new_socket = context.socket(zmq.REQ)
             new_socket.setsockopt(zmq.SNDTIMEO, 1500)
-            new_socket.setsockopt(zmq.RCVTIMEO, 1500)
+            new_socket.setsockopt(zmq.RCVTIMEO, self.rcv_timeout)
             new_socket.connect(last_endpoint)
             self.zmq_socket = new_socket
+            if 0 <= self.active_socket_index < len(self.zmq_sockets):
+                self.zmq_sockets[self.active_socket_index] = new_socket
         except Exception as e:
             self.text_area.append(f"[Error] Could not reconnect socket: {e}")
+
+    def reconnect_socket_by_index(self, idx):
+        try:
+            old_socket = self.zmq_sockets[idx]
+            context = old_socket.context
+            last_endpoint = old_socket.getsockopt(zmq.LAST_ENDPOINT).decode()
+            old_socket.close(linger=0)
+            new_socket = context.socket(zmq.REQ)
+            new_socket.setsockopt(zmq.SNDTIMEO, 1500)
+            new_socket.setsockopt(zmq.RCVTIMEO, self.rcv_timeout)
+            new_socket.connect(last_endpoint)
+            self.zmq_sockets[idx] = new_socket
+            if idx == self.active_socket_index:
+                self.zmq_socket = new_socket
+            return new_socket
+        except Exception as e:
+            self.append_colored(f"[Error] Could not reconnect socket {idx + 1}: {e}")
+            return None
+
+    def send_and_receive(self, socket_obj, cmd):
+        socket_obj.send_string(cmd)
+        return socket_obj.recv_string(), False
+
+    def send_and_receive_with_reconnect(self, idx, cmd):
+        socket_obj = self.zmq_sockets[idx]
+        try:
+            reply, error_occurred = self.send_and_receive(socket_obj, cmd)
+        except zmq.error.Again:
+            reply = "[Error] ZMQ request timed out."
+            error_occurred = True
+        except zmq.error.ZMQError as e:
+            if "Operation cannot be accomplished in current state" in str(e):
+                self.append_colored(
+                    f"[Warning] Socket {idx + 1} out of state, attempting to reconnect..."
+                )
+                socket_obj = self.reconnect_socket_by_index(idx)
+                if socket_obj is None:
+                    return "[Error] Could not reconnect socket.", True
+                try:
+                    reply, error_occurred = self.send_and_receive(socket_obj, cmd)
+                except Exception as e2:
+                    reply = f"[Error] After reconnect: {e2}"
+                    error_occurred = True
+            else:
+                reply = f"[Error] {e}"
+                error_occurred = True
+        except Exception as e:
+            reply = f"[Error] {e}"
+            error_occurred = True
+        return reply, error_occurred
+
+    def append_response(self, reply):
+        try:
+            resp = json.loads(reply)
+            if isinstance(resp, dict):
+                pretty = json.dumps(resp, indent=4)
+                self.text_area.append(pretty)
+            else:
+                self.append_colored(str(resp).replace("\\n", "\n"))
+        except json.JSONDecodeError:
+            self.append_colored(reply.replace("\\n", "\n"))
 
     def send_command(self):
         cmd = self.input_line.text().strip()
@@ -195,47 +276,42 @@ class ServerTab(QtWidgets.QWidget):
             self.text_area.moveCursor(QtGui.QTextCursor.End)
             return
         self.input_line.add_history(cmd)
-        self.text_area.append(f"> {cmd}")
-        try:
-            self.zmq_socket.send_string(cmd)
-            reply = self.zmq_socket.recv_string()
-        except zmq.error.Again:
-            reply = "[Error] ZMQ request timed out."
-            error_occurred = True
-        except zmq.error.ZMQError as e:
-            if "Operation cannot be accomplished in current state" in str(e):
-                self.append_colored(
-                    "[Warning] Socket out of state, attempting to reconnect..."
-                )
-                self.reconnect_socket()
-                try:
-                    self.zmq_socket.send_string(cmd)
-                    reply = self.zmq_socket.recv_string()
-                    error_occurred = False
-                except Exception as e2:
-                    reply = f"[Error] After reconnect: {e2}"
-                    error_occurred = True
-            else:
-                reply = f"[Error] {e}"
-                error_occurred = True
-        except Exception as e:
-            reply = f"[Error] {e}"
-            error_occurred = True
-        else:
-            error_occurred = False
-        # Try to parse as JSON and pretty-print, else just show with \n expanded
-        try:
-            resp = json.loads(reply)
-            if isinstance(resp, dict):
-                pretty = json.dumps(resp, indent=4)
-                self.text_area.append(pretty)
-            else:
-                self.append_colored(str(resp).replace("\\n", "\n"))
-        except json.JSONDecodeError:
-            self.append_colored(reply.replace("\\n", "\n"))
+        self.text_area.append(f"> [{self.active_socket_index + 1}] {cmd}")
+        reply, error_occurred = self.send_and_receive_with_reconnect(
+            self.active_socket_index, cmd
+        )
+        self.append_response(reply)
         if not error_occurred:
             self.input_line.clear()
         # Scroll to the bottom after new output
+        self.text_area.moveCursor(QtGui.QTextCursor.End)
+
+    def send_all_commands(self):
+        cmd = self.input_line.text().strip()
+        if not cmd:
+            return
+        command_set = set(
+            self.command_dropdown.itemText(i)
+            for i in range(self.command_dropdown.count())
+        )
+        cmd_name = cmd.split(" ", 1)[0] if " " in cmd else cmd
+        if cmd_name not in command_set and cmd_name not in ["exit"]:
+            self.append_colored(f"[Error] Command '{cmd_name}' not recognized.")
+            self.text_area.moveCursor(QtGui.QTextCursor.End)
+            return
+
+        self.input_line.add_history(cmd)
+        self.text_area.append(f"> [All] {cmd}")
+        any_error = False
+        for idx in range(len(self.zmq_sockets)):
+            reply, error_occurred = self.send_and_receive_with_reconnect(idx, cmd)
+            self.text_area.append(f"Socket {idx + 1} reply:")
+            self.append_response(reply)
+            if error_occurred:
+                any_error = True
+
+        if not any_error:
+            self.input_line.clear()
         self.text_area.moveCursor(QtGui.QTextCursor.End)
 
     def append_colored(self, text):
@@ -311,7 +387,6 @@ class UniversalClient(QtWidgets.QMainWindow):
         self.tabs = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tabs)
         self.context = zmq.Context()
-        self.sockets = []
         self.tab_widgets = []
 
         for name, ports in servers:
@@ -320,11 +395,17 @@ class UniversalClient(QtWidgets.QMainWindow):
                 socket = self.context.socket(zmq.REQ)
                 socket.connect(f"tcp://{ip_addr}:{port}")
                 sockets.append(socket)
-            # Set ZMQ send/recv timeouts (milliseconds)
-            socket.setsockopt(zmq.SNDTIMEO, 2000)
-            socket.setsockopt(zmq.RCVTIMEO, 2000)
-            self.sockets.append(socket)
-            tab = ServerTab(name, socket)
+                # Set ZMQ send/recv timeouts (milliseconds)
+                socket.setsockopt(zmq.SNDTIMEO, 1500)
+                if name=="cam_server":
+                    socket.setsockopt(zmq.RCVTIMEO, 4000)
+                else:
+                    socket.setsockopt(zmq.RCVTIMEO, 1500)
+            if (name == "cam_server"):
+                tab = ServerTab(name, sockets, rcv_timeout=4000)
+                print("Using a longer cam_server timeout")
+            else:
+                tab = ServerTab(name, sockets)
             self.tabs.addTab(tab, name)
             self.tab_widgets.append(tab)
 
