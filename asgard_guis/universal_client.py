@@ -6,20 +6,13 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import html
 
 sockets = [
-    ("cam_server", 6667),
-    ("DM_server", 6666),
-    ("heimdallr", 6660),
-    ("MDS", 5555),
-    ("baldr1", 6662),
-    ("baldr2", 6663),
-    ("baldr3", 6664),
-    ("baldr4", 6665),
-    ("btt1", 6671),
-    ("btt2", 6672),
-    ("btt3", 6673),
-    ("btt4", 6674),
+    ("cam_server", [6667]),
+    ("DM_server", [6666]),
+    ("heimdallr", [6660]),
+    ("MDS", [5555]),
+    ("baldr", [6662, 6663, 6664, 6665]),
+    ("baldr_tt", [6671, 6672, 6673, 6674]),
 ]
-
 
 class HistoryLineEdit(QtWidgets.QLineEdit):
     def __init__(self, parent=None):
@@ -88,10 +81,11 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
 
 
 class ServerTab(QtWidgets.QWidget):
-    def __init__(self, server_name, zmq_socket, parent=None):
+    def __init__(self, server_name, zmq_sockets, parent=None):
         super().__init__(parent)
         self.server_name = server_name
-        self.zmq_socket = zmq_socket
+        self.zmq_sockets = zmq_sockets
+        self.zmq_socket = zmq_sockets[0]  # Use the first socket for commands
         self.parent_window = parent  # Not used, but could be for future
 
         layout = QtWidgets.QVBoxLayout(self)
