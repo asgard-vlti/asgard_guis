@@ -51,6 +51,14 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
         return super().event(event)
 
     def keyPressEvent(self, event):
+        if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+            parent = self.parent()
+            if hasattr(parent, "send_command") and hasattr(parent, "send_all_commands"):
+                if event.modifiers() & QtCore.Qt.ShiftModifier:
+                    parent.send_all_commands()
+                else:
+                    parent.send_command()
+                return
         if event.key() == QtCore.Qt.Key_Up:
             if self.history:
                 if self.history_index == -1:
@@ -285,7 +293,10 @@ class ServerTab(QtWidgets.QWidget):
             self.text_area.moveCursor(QtGui.QTextCursor.End)
             return
         self.input_line.add_history(cmd)
-        self.text_area.append(f"> [{self.active_socket_index + 1}] {cmd}")
+        if len(self.zmq_sockets) <= 1:
+            self.text_area.append(f"> {cmd}")
+        else:
+            self.text_area.append(f"> [{self.active_socket_index + 1}] {cmd}")
         reply, error_occurred = self.send_and_receive_with_reconnect(
             self.active_socket_index, cmd
         )
