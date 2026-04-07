@@ -97,12 +97,21 @@ class ServerTab(QtWidgets.QWidget):
         self.input_line = HistoryLineEdit(self)
         self.send_button = QtWidgets.QPushButton("Send", self)
         self.send_all_button = QtWidgets.QPushButton("Send All", self)
+        self.send_button.setFixedWidth(int(self.send_button.sizeHint().width() * 0.8))
+        self.send_all_button.setFixedWidth(
+            int(self.send_all_button.sizeHint().width() * 0.9)
+        )
         self.socket_dropdown = QtWidgets.QComboBox(self)
         self.socket_dropdown.setEditable(False)
         self.socket_dropdown.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.socket_dropdown.addItems(
-            [str(i) for i in range(1, len(self.zmq_sockets) + 1)]
-        )
+        if len(self.zmq_sockets) == 1:
+            self.send_all_button.setEnabled(False)
+            self.socket_dropdown.addItem("")
+            self.socket_dropdown.setEnabled(False)
+        else:
+            self.socket_dropdown.addItems(
+                [str(i) for i in range(1, len(self.zmq_sockets) + 1)]
+            )
         self.text_area = QtWidgets.QTextEdit(self)
         self.text_area.setReadOnly(True)
 
@@ -287,6 +296,8 @@ class ServerTab(QtWidgets.QWidget):
         self.text_area.moveCursor(QtGui.QTextCursor.End)
 
     def send_all_commands(self):
+        if len(self.zmq_sockets) <= 1:
+            return
         cmd = self.input_line.text().strip()
         if not cmd:
             return
@@ -305,7 +316,7 @@ class ServerTab(QtWidgets.QWidget):
         any_error = False
         for idx in range(len(self.zmq_sockets)):
             reply, error_occurred = self.send_and_receive_with_reconnect(idx, cmd)
-            self.text_area.append(f"Socket {idx + 1} reply:")
+            self.text_area.append(f"Beam {idx + 1} reply:")
             self.append_response(reply)
             if error_occurred:
                 any_error = True
