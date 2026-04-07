@@ -314,9 +314,12 @@ class UniversalClient(QtWidgets.QMainWindow):
         self.sockets = []
         self.tab_widgets = []
 
-        for name, port in servers:
-            socket = self.context.socket(zmq.REQ)
-            socket.connect(f"tcp://{ip_addr}:{port}")
+        for name, ports in servers:
+            sockets = []
+            for port in ports:
+                socket = self.context.socket(zmq.REQ)
+                socket.connect(f"tcp://{ip_addr}:{port}")
+                sockets.append(socket)
             # Set ZMQ send/recv timeouts (milliseconds)
             socket.setsockopt(zmq.SNDTIMEO, 2000)
             socket.setsockopt(zmq.RCVTIMEO, 2000)
