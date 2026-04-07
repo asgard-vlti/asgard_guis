@@ -173,8 +173,8 @@ class ServerTab(QtWidgets.QWidget):
             last_endpoint = self.zmq_socket.getsockopt(zmq.LAST_ENDPOINT).decode()
             self.zmq_socket.close(linger=0)
             new_socket = context.socket(zmq.REQ)
-            new_socket.setsockopt(zmq.SNDTIMEO, 2000)
-            new_socket.setsockopt(zmq.RCVTIMEO, 2000)
+            new_socket.setsockopt(zmq.SNDTIMEO, 1500)
+            new_socket.setsockopt(zmq.RCVTIMEO, 1500)
             new_socket.connect(last_endpoint)
             self.zmq_socket = new_socket
         except Exception as e:
@@ -326,9 +326,8 @@ class UniversalClient(QtWidgets.QMainWindow):
             self.tab_widgets.append(tab)
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
-        # Populate commands for all tabs once at startup
-        for tab in self.tab_widgets:
-            tab.populate_commands()
+        # Populate commands for the first tab only.
+        self.tab_widgets[0].populate_commands()
 
         # Install event filter for Ctrl+Number tab switching
         self.installEventFilter(self)
@@ -364,8 +363,8 @@ class UniversalClient(QtWidgets.QMainWindow):
         return super().eventFilter(obj, event)
 
     def on_tab_changed(self, idx):
-        # No longer repopulate commands or clear history on tab change
-        pass
+        # No longer clear history on tab change but do populate commands
+        self.tab_widgets[idx].populate_commands()
 
 
 def main():
