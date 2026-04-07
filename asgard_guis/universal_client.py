@@ -88,10 +88,11 @@ class HistoryLineEdit(QtWidgets.QLineEdit):
 
 
 class ServerTab(QtWidgets.QWidget):
-    def __init__(self, server_name, zmq_socket, parent=None):
+    def __init__(self, server_name, zmq_socket, parent=None, rcv_timeout=1500):
         super().__init__(parent)
         self.server_name = server_name
         self.zmq_socket = zmq_socket
+        self.rcv_timeout = rcv_timeout
         self.parent_window = parent  # Not used, but could be for future
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -180,7 +181,7 @@ class ServerTab(QtWidgets.QWidget):
             self.zmq_socket.close(linger=0)
             new_socket = context.socket(zmq.REQ)
             new_socket.setsockopt(zmq.SNDTIMEO, 1500)
-            new_socket.setsockopt(zmq.RCVTIMEO, 1500)
+            new_socket.setsockopt(zmq.RCVTIMEO, self.rcv_timeout)
             new_socket.connect(last_endpoint)
             self.zmq_socket = new_socket
         except Exception as e:
@@ -324,10 +325,17 @@ class UniversalClient(QtWidgets.QMainWindow):
             socket = self.context.socket(zmq.REQ)
             socket.connect(f"tcp://{ip_addr}:{port}")
             # Set ZMQ send/recv timeouts (milliseconds)
-            socket.setsockopt(zmq.SNDTIMEO, 2000)
-            socket.setsockopt(zmq.RCVTIMEO, 2000)
+            socket.setsockopt(zmq.SNDTIMEO, 1500)
+            if name=="cam_server":
+                socket.setsockopt(zmq.RCVTIMEO, 4000)
+            else:
+                socket.setsockopt(zmq.RCVTIMEO, 1500)
             self.sockets.append(socket)
-            tab = ServerTab(name, socket)
+            if (name == "cam_server"):
+            	tab = ServerTab(name, socket, rcv_timeout=4000)
+            	print("Using a longer cam_server timeout")
+            else:
+            	tab = ServerTab(name, socket)
             self.tabs.addTab(tab, name)
             self.tab_widgets.append(tab)
 
