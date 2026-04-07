@@ -15,6 +15,7 @@ im-search-gui = "asgard_guis.cmd_scripts.image_search_gui:main"
 pu-search-gui = "asgard_guis.cmd_scripts.pupil_search_gui:main"
 h-guis = "asgard_guis.cmd_scripts.Heimdallr_RTC_performance:main"
 s-labmode = "asgard_guis.cmd_scripts.s_labmode:main"
+s-skymode = "asgard_guis.cmd_scripts.s_skymode:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
