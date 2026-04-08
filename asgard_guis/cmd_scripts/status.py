@@ -267,7 +267,6 @@ class TextStatusInfo(StatusFormatter):
             req_socket = context.socket(zmq.REQ)
             req_socket.connect(connect_endpoint)
             return req_socket
-            
 
         socket = _new_socket()
         poller = zmq.Poller()
@@ -591,7 +590,7 @@ def main() -> None:
         "--endpoint",
         "--bind-endpoint",
         dest="endpoint",
-        default="tcp://192.168.100.1:7019",
+        default="tcp://mimir:7019",
         help="ZMQ endpoint to connect the REQ socket to.",
     )
     parser.add_argument(
