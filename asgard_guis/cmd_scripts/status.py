@@ -1,7 +1,7 @@
-"""Simple ZMQ REP endpoint for receiving watchdog status updates.
+"""Simple ZMQ REQ client for polling watchdog status updates.
 
-This script listens for watchdog payloads published by MCSClient.publish_wd()
-and prints each incoming wd_status dictionary before replying with ACK.
+This script connects to a watchdog status endpoint and periodically sends a
+request message, then renders the returned wd_status payload.
 """
 
 from __future__ import annotations
@@ -257,20 +257,59 @@ class TextStatusInfo(StatusFormatter):
 
             print("\n".join(lines), flush=True)
 
-    def run_server(self, bind_endpoint: str) -> None:
+    def run_server(
+        self, connect_endpoint: str, request_interval_s: float = 5.0
+    ) -> None:
+        reply_timeout_s = max(1.0, request_interval_s)
         context = zmq.Context.instance()
-        socket = context.socket(zmq.REP)
-        socket.bind(bind_endpoint)
+
+        def _new_socket() -> zmq.Socket[Any]:
+            req_socket = context.socket(zmq.REQ)
+            req_socket.connect(connect_endpoint)
+            return req_socket
+            
+
+        socket = _new_socket()
         poller = zmq.Poller()
         poller.register(socket, zmq.POLLIN)
         last_wd_status = None
+        awaiting_reply = False
+        last_request_time: datetime.datetime | None = None
 
-        logging.info("Watchdog status REP endpoint bound to %s", bind_endpoint)
+        logging.info("Watchdog status REQ endpoint connected to %s", connect_endpoint)
 
         while True:
-            events = dict(poller.poll(timeout=800))
+            now = datetime.datetime.now(datetime.timezone.utc)
+
+            if (
+                awaiting_reply
+                and last_request_time is not None
+                and (now - last_request_time).total_seconds() > reply_timeout_s
+            ):
+                logging.warning(
+                    "No watchdog reply for %.1fs; reconnecting REQ socket",
+                    reply_timeout_s,
+                )
+                poller.unregister(socket)
+                socket.close(linger=0)
+                socket = _new_socket()
+                poller.register(socket, zmq.POLLIN)
+                awaiting_reply = False
+
+            should_request = not awaiting_reply and (
+                last_request_time is None
+                or (now - last_request_time).total_seconds() >= request_interval_s
+            )
+
+            if should_request:
+                socket.send_string("status")
+                last_request_time = now
+                awaiting_reply = True
+
+            events = dict(poller.poll(timeout=300))
             if socket in events and events[socket] == zmq.POLLIN:
                 message = socket.recv_string()
+                awaiting_reply = False
                 try:
                     wd_status = json.loads(message)
                 except json.JSONDecodeError:
@@ -281,7 +320,6 @@ class TextStatusInfo(StatusFormatter):
                 last_wd_status = wd_status
                 self._clear_screen()
                 self._print_watchdog_status(wd_status, update_last_time=True)
-                socket.send_string("ACK")
                 continue
 
             if last_wd_status is not None:
@@ -374,13 +412,19 @@ if QtWidgets is not None:
             "back_end": (2, 3, 1, 1),
         }
 
-        def __init__(self, bind_endpoint: str) -> None:
+        def __init__(
+            self, connect_endpoint: str, request_interval_s: float = 5.0
+        ) -> None:
             super().__init__()
-            self.bind_endpoint = bind_endpoint
+            self.connect_endpoint = connect_endpoint
+            self.request_interval_s = request_interval_s
+            self.reply_timeout_s = max(1.0, request_interval_s)
             self.formatter = StatusFormatter()
             self.last_wd_status: Any = None
             self._boxes: dict[str, ProcessStatusBox] = {}
             self._dynamic_slot_index = 0
+            self._awaiting_reply = False
+            self._last_request_time: datetime.datetime | None = None
 
             self._setup_ui()
             self._setup_socket()
@@ -405,11 +449,19 @@ if QtWidgets is not None:
 
         def _setup_socket(self) -> None:
             self.context = zmq.Context.instance()
-            self.socket = self.context.socket(zmq.REP)
-            self.socket.bind(self.bind_endpoint)
+
+            def _new_socket() -> zmq.Socket[Any]:
+                req_socket = self.context.socket(zmq.REQ)
+                req_socket.connect(self.connect_endpoint)
+                return req_socket
+
+            self._new_socket = _new_socket
+            self.socket = self._new_socket()
             self.poller = zmq.Poller()
             self.poller.register(self.socket, zmq.POLLIN)
-            logging.info("Watchdog status REP endpoint bound to %s", self.bind_endpoint)
+            logging.info(
+                "Watchdog status REQ endpoint connected to %s", self.connect_endpoint
+            )
 
         def _setup_timer(self) -> None:
             self.timer = QtCore.QTimer(self)
@@ -469,9 +521,37 @@ if QtWidgets is not None:
                 box.set_dimmed(is_stale)
 
         def _poll_once(self) -> None:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            if (
+                self._awaiting_reply
+                and self._last_request_time is not None
+                and (now - self._last_request_time).total_seconds()
+                > self.reply_timeout_s
+            ):
+                logging.warning(
+                    "No watchdog reply for %.1fs; reconnecting REQ socket",
+                    self.reply_timeout_s,
+                )
+                self.poller.unregister(self.socket)
+                self.socket.close(linger=0)
+                self.socket = self._new_socket()
+                self.poller.register(self.socket, zmq.POLLIN)
+                self._awaiting_reply = False
+
+            should_request = not self._awaiting_reply and (
+                self._last_request_time is None
+                or (now - self._last_request_time).total_seconds()
+                >= self.request_interval_s
+            )
+            if should_request:
+                self.socket.send_string("status")
+                self._last_request_time = now
+                self._awaiting_reply = True
+
             events = dict(self.poller.poll(timeout=0))
             if self.socket in events and events[self.socket] == zmq.POLLIN:
                 message = self.socket.recv_string()
+                self._awaiting_reply = False
                 try:
                     wd_status = json.loads(message)
                 except json.JSONDecodeError:
@@ -481,7 +561,6 @@ if QtWidgets is not None:
 
                 self.last_wd_status = wd_status
                 self._render(wd_status, update_last_time=True)
-                self.socket.send_string("ACK")
                 return
 
             if self.last_wd_status is not None:
@@ -506,12 +585,20 @@ if QtWidgets is not None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Receive watchdog status updates from MCSClient.publish_wd()."
+        description="Poll watchdog status updates from a ZMQ REQ endpoint."
     )
     parser.add_argument(
+        "--endpoint",
         "--bind-endpoint",
-        default="tcp://192.168.100.1:7051",
-        help="ZMQ endpoint to bind the REP socket to.",
+        dest="endpoint",
+        default="tcp://192.168.100.1:7019",
+        help="ZMQ endpoint to connect the REQ socket to.",
+    )
+    parser.add_argument(
+        "--request-interval",
+        type=float,
+        default=5.0,
+        help="Seconds between status requests (default: 5.0).",
     )
     parser.add_argument(
         "--gui",
@@ -543,12 +630,12 @@ def main() -> None:
             raise ImportError("PyQt5 is required for --gui mode")
 
         app = QtWidgets.QApplication(sys.argv)
-        window = cast(Any, window_cls)(args.bind_endpoint)
+        window = cast(Any, window_cls)(args.endpoint, args.request_interval)
         getattr(window, "show")()
         sys.exit(app.exec_())
 
     sinfo = TextStatusInfo()
-    sinfo.run_server(args.bind_endpoint)
+    sinfo.run_server(args.endpoint, args.request_interval)
 
 
 if __name__ == "__main__":
