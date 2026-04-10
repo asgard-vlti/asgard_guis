@@ -25,21 +25,22 @@ def get_tx_bytes(interface):
         return None
 
 
-def get_remote_tx_bytes(remote_host, remote_path, tmp_file):
+def get_remote_tx_bytes(remote_host, remote_file, tmp_file):
     """Fetch tx_bytes from a remote host via rcp into a temp file, then read it."""
     devnull = open(os.devnull, 'w')
     try:
-        ret = subprocess.call(
-            ['rcp', remote_host + ':' + remote_path, tmp_file],
-            stdout=devnull, stderr=devnull
-        )
+        with open(tmp_file, "w") as f:
+            ret = subprocess.call(
+                ['rsh', remote_host, 'cat', remote_file],
+                stdout=f, stderr=devnull
+            )
     finally:
         devnull.close()
     if ret != 0:
         return None
     try:
-        with open(tmp_file, 'r') as f:
-            return long(f.read().strip())
+        with open(tmp_file, 'r') as f:  
+            return long(f.readline().strip())
     except (IOError, OSError):
         return None
 
@@ -47,13 +48,13 @@ def get_remote_tx_bytes(remote_host, remote_path, tmp_file):
 def format_line(label, delta):
     """Format a single display line with label, rate, and bar."""
     bar = draw_bar(delta, 100000000, 50)
-    if delta >= 100000000:
-        return '\033[1m%s: XXX,XXX kbytes/s %s\033[0m' % (label, bar)
+    if delta >= 1000000000:
+        return '\033[1m%s: XXXX,XXX kbytes/s %s\033[0m' % (label, bar)
     elif delta >= 1000000:
-        return '\033[1m%s: %3d,%03d kbytes/s %s\033[0m' % (
+        return '\033[1m%s: %4d,%03d kbytes/s %s\033[0m' % (
             label, delta // 1000000, (delta // 1000) % 1000, bar)
     else:
-        return '\033[1m%s: %7d kbytes/s %s\033[0m' % (label, delta // 1000, bar)
+        return '\033[1m%s: %8d kbytes/s %s\033[0m' % (label, delta // 1000, bar)
 
 
 def draw_bar(value, max_value=100000000, width=50):
@@ -68,9 +69,9 @@ def draw_bar(value, max_value=100000000, width=50):
         ratio = 1.0
     
     filled = int(width * ratio)
-    if value < 20000000:
+    if value < 33000000:
         bar = '\033[92m'
-    elif value < 50000000:
+    elif value < 67000000:
         bar = '\033[93m'
     else:
         bar = '\033[91m'
@@ -82,7 +83,7 @@ def main():
     """Main program loop."""
     local_interface = 'p3p1'
     remote_host = 'wag'
-    remote_path = '/sys/class/net/p7p2/tx_bytes'
+    remote_file = '/sys/class/net/p7p2/statistics/tx_bytes'
     tmp_file = '/tmp/wag_tx_bytes'
 
     prev_local = 0
@@ -91,7 +92,7 @@ def main():
     try:
         while True:
             current_local = get_tx_bytes(local_interface)
-            current_wag = get_remote_tx_bytes(remote_host, remote_path, tmp_file)
+            current_wag = get_remote_tx_bytes(remote_host, remote_file, tmp_file)
 
             if current_local is not None:
                 delta_local = max(0, current_local - prev_local)
