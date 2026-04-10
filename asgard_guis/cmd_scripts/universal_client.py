@@ -404,7 +404,7 @@ class ServerTab(QtWidgets.QWidget):
 class UniversalClient(QtWidgets.QMainWindow):
     def __init__(self, ip_addr, servers, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Asgard DCS text interface: {ip_addr}")
+        self.setWindowTitle(f"Asgard servers text interface: {ip_addr}")
         self.resize(700, 500)
         self.tabs = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tabs)
