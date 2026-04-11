@@ -95,10 +95,10 @@ class SpiralSearchIntegrator:
 
 
 class PupilSearchIntegrator:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, logging_folder="."):
         self.accumulated_offsets = {1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]}
         self.debug = debug
-        self.logger, self.log_file = _setup_offset_logger("pupil_search")
+        self.logger, self.log_file = _setup_offset_logger(logging_folder, "pupil_search")
         self.logger.info("PupilSearchIntegrator started")
         self.logger.info("Initial accumulated offsets: %s", self.accumulated_offsets)
 
