@@ -602,6 +602,7 @@ def main() -> None:
     parser.add_argument(
         "--gui",
         action="store_true",
+        default=True,
         help="If the display should be a GUI instead of terminal output",
     )
     # # toggle sim option
