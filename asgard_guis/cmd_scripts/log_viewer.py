@@ -1,6 +1,8 @@
 import html
 import os
 import re
+import signal
+import subprocess
 import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -227,6 +229,8 @@ class LogTab(QtWidgets.QWidget):
 
         self.filter_text = ""
         self.last_rendered_key = None
+        self.action_lines = []
+        self.initial_scroll_done = False
 
         layout = QtWidgets.QVBoxLayout(self)
         controls = QtWidgets.QHBoxLayout()
@@ -235,11 +239,15 @@ class LogTab(QtWidgets.QWidget):
         self.filter_input.setPlaceholderText("Filter log text (case-insensitive)")
         self.apply_filter_button = QtWidgets.QPushButton("Apply Filter", self)
         self.clear_filter_button = QtWidgets.QPushButton("Clear", self)
+        self.kill_button = QtWidgets.QPushButton("Kill", self)
+        self.restart_button = QtWidgets.QPushButton("Restart", self)
 
         controls.addWidget(QtWidgets.QLabel("Filter:", self))
         controls.addWidget(self.filter_input)
         controls.addWidget(self.apply_filter_button)
         controls.addWidget(self.clear_filter_button)
+        controls.addWidget(self.kill_button)
+        controls.addWidget(self.restart_button)
 
         self.instance_dropdown = None
         if self.with_baldr_selector:
@@ -260,6 +268,8 @@ class LogTab(QtWidgets.QWidget):
 
         self.apply_filter_button.clicked.connect(self.apply_filter)
         self.clear_filter_button.clicked.connect(self.clear_filter)
+        self.kill_button.clicked.connect(self.kill_server)
+        self.restart_button.clicked.connect(self.restart_server)
         self.filter_input.textChanged.connect(self.on_filter_text_changed)
 
         if self.instance_dropdown is not None:
@@ -271,6 +281,7 @@ class LogTab(QtWidgets.QWidget):
         self.timer.start()
 
         self.refresh_log()
+        QtCore.QTimer.singleShot(0, self.scroll_to_bottom)
 
     def on_filter_text_changed(self, _):
         self.refresh_log()
@@ -290,6 +301,108 @@ class LogTab(QtWidgets.QWidget):
             instance = self.instance_dropdown.currentText()
             return os.path.join(self.log_root, self.relative_log_dir, instance, "log.txt")
         return os.path.join(self.log_root, self.relative_log_dir, "log.txt")
+
+    def server_key(self):
+        if self.with_baldr_selector and self.instance_dropdown is not None:
+            return f"{self.relative_log_dir}.{self.instance_dropdown.currentText()}"
+        return self.relative_log_dir
+
+    def restart_command(self):
+        if self.with_baldr_selector and self.instance_dropdown is not None:
+            return f"run_{self.relative_log_dir} {self.instance_dropdown.currentText()}"
+        return f"run_{self.relative_log_dir}"
+
+    def append_action_line(self, message):
+        timestamp = QtCore.QDateTime.currentDateTime().toString("yyyy-MM-dd HH:mm:ss")
+        self.action_lines.append(f"[{timestamp}] [control] {message}")
+        self.action_lines = self.action_lines[-20:]
+
+    def scroll_to_bottom(self):
+        vbar = self.text_area.verticalScrollBar()
+        vbar.setValue(vbar.maximum())
+
+    def confirm_action(self, title, message):
+        result = QtWidgets.QMessageBox.question(
+            self,
+            title,
+            message,
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        return result == QtWidgets.QMessageBox.Yes
+
+    def kill_server(self):
+        if not self.confirm_action(
+            "Confirm Kill",
+            f"Kill {self.server_key()} now?",
+        ):
+            self.append_action_line(f"Kill cancelled for {self.server_key()}.")
+            self.refresh_log(force=True)
+            return
+
+        lock_path = f"/tmp/asg.{self.server_key()}.lock"
+        pid = None
+
+        try:
+            with open(lock_path, "r", encoding="utf-8") as lock_file:
+                content = lock_file.read().strip()
+        except OSError:
+            content = ""
+
+        if content:
+            try:
+                pid = int(content)
+            except ValueError:
+                pid = None
+
+        if pid is None:
+            self.append_action_line(f"No PID found for {self.server_key()}.")
+            self.refresh_log(force=True)
+            return
+
+        try:
+            os.kill(pid, signal.SIGKILL)
+            self.append_action_line(f"Killed {self.server_key()} (PID {pid}).")
+        except ProcessLookupError:
+            self.append_action_line(
+                f"No PID found for {self.server_key()} (stale lock PID {pid})."
+            )
+        except PermissionError as exc:
+            self.append_action_line(
+                f"Failed to kill {self.server_key()} (PID {pid}): {exc}"
+            )
+        except OSError as exc:
+            self.append_action_line(
+                f"Failed to kill {self.server_key()} (PID {pid}): {exc}"
+            )
+
+        self.refresh_log(force=True)
+
+    def restart_server(self):
+        cmd = self.restart_command()
+        if not self.confirm_action(
+            "Confirm Restart",
+            f"Restart {self.server_key()} using '{cmd}'?",
+        ):
+            self.append_action_line(f"Restart cancelled for {self.server_key()}.")
+            self.refresh_log(force=True)
+            return
+
+        try:
+            subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            self.append_action_line(f"Restarted {self.server_key()} with '{cmd}'.")
+        except OSError as exc:
+            self.append_action_line(
+                f"Failed to restart {self.server_key()} with '{cmd}': {exc}"
+            )
+
+        self.refresh_log(force=True)
 
     def refresh_log(self, force=False):
         # Keep the view anchored at the bottom only when user is already at the bottom.
@@ -314,6 +427,8 @@ class LogTab(QtWidgets.QWidget):
                 self.last_rendered_key = key
             return
 
+        lines.extend(self.action_lines)
+
         if filter_text:
             needle = filter_text.lower()
             lines = [line for line in lines if needle in strip_ansi(line).lower()]
@@ -335,6 +450,10 @@ class LogTab(QtWidgets.QWidget):
         if was_at_bottom:
             vbar = self.text_area.verticalScrollBar()
             vbar.setValue(vbar.maximum())
+
+        if not self.initial_scroll_done:
+            self.scroll_to_bottom()
+            self.initial_scroll_done = True
 
 
 class UniversalLogClient(QtWidgets.QMainWindow):
