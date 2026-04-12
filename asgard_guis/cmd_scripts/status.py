@@ -367,7 +367,7 @@ if QtWidgets is not None:
                 "QFrame#processBox {"
                 f"border: {width}px solid {border};"
                 "border-radius: 6px;"
-                "background-color: #1f2533;"
+                "background-color: #141925;"
                 "}"
             )
 
