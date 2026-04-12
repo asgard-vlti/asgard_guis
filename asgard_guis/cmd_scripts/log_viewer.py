@@ -356,7 +356,7 @@ class LogTab(QtWidgets.QWidget):
                 pid = None
 
         if pid is None:
-            self.append_action_line(f"No PID found for {self.server_key()}.")
+            self.append_action_line(f"No PID found in lockfile for {self.server_key()}. Lockfile: {lock_path}")
             self.refresh_log(force=True)
             return
 
