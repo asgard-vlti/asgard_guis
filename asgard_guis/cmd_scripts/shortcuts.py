@@ -41,7 +41,7 @@ class BLFPoller(QtCore.QThread):
 			try:
 				socket.send_string(f"read BLF{i}")
 				reply = socket.recv_string().strip()
-				values.append(int(reply))
+				values.append(float(int(reply)))
 			except (zmq.error.Again, ValueError, Exception):
 				values.append(None)
 				# Lazy pirate: fresh socket for next request
@@ -80,8 +80,11 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.baldr_sockets = []
 
 		self.setWindowTitle("ASGARD Shortcuts")
-		self.resize(900, 620)
+		self._apply_dark_theme()
 		self._init_ui()
+		self.adjustSize()
+		self.resize(self.minimumSizeHint())
+		self.setMinimumSize(self.minimumSizeHint())
 		self._refresh_baldr_sockets()
 
 		self._poller = BLFPoller(host=self.host)
@@ -90,6 +93,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 	def _init_ui(self):
 		root = QtWidgets.QVBoxLayout(self)
+		root.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
 
 		heim_group = QtWidgets.QGroupBox("Heimdallr")
 		heim_layout = QtWidgets.QVBoxLayout(heim_group)
@@ -135,9 +139,9 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		fringe_layout.addWidget(QtWidgets.QLabel("gd_threshold:"))
 		self.gd_spin = QtWidgets.QDoubleSpinBox()
-		self.gd_spin.setDecimals(3)
+		self.gd_spin.setDecimals(1)
 		self.gd_spin.setMinimum(0.0)
-		self.gd_spin.setMaximum(1_000_000.0)
+		self.gd_spin.setMaximum(1_000.0)
 		self.gd_spin.setValue(100.0)
 		fringe_layout.addWidget(self.gd_spin)
 
@@ -181,18 +185,70 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		baldr_layout.addWidget(self.hog_btn, 2, 2)
 
 		self.close_tt_btn = QtWidgets.QPushButton("Close TT")
-		self.close_tt_btn.clicked.connect(lambda: self._send_baldr_all("ttg close"))
+		self.close_tt_btn.clicked.connect(lambda: self._send_baldr_all('servo "tt"'))
 		baldr_layout.addWidget(self.close_tt_btn, 3, 1)
 
-		self.close_hh_btn = QtWidgets.QPushButton("Close HH")
-		self.close_hh_btn.clicked.connect(lambda: self._send_baldr_all("hog close"))
+		self.close_hh_btn = QtWidgets.QPushButton("Close HO")
+		self.close_hh_btn.clicked.connect(lambda: self._send_baldr_all('servo "ho"'))
 		baldr_layout.addWidget(self.close_hh_btn, 3, 2)
+
+		self.open_loops_btn = QtWidgets.QPushButton("Open Loops")
+		self.open_loops_btn.clicked.connect(
+			lambda: self._send_baldr_all('servo "off"')
+		)
+		baldr_layout.addWidget(self.open_loops_btn, 3, 3)
 
 		root.addWidget(baldr_group)
 
 		self.log = QtWidgets.QTextEdit()
 		self.log.setReadOnly(True)
+		self.log.setMinimumHeight(120)
 		root.addWidget(self.log)
+
+	def _apply_dark_theme(self):
+		self.setStyleSheet(
+			"""
+			QWidget {
+				background-color: #1e1f22;
+				color: #e6e6e6;
+			}
+			QGroupBox {
+				border: 1px solid #3a3d41;
+				border-radius: 6px;
+				margin-top: 10px;
+				padding-top: 8px;
+				font-weight: 600;
+			}
+			QGroupBox::title {
+				subcontrol-origin: margin;
+				left: 10px;
+				padding: 0 4px;
+			}
+			QPushButton {
+				background-color: #2d3138;
+				border: 1px solid #4a4f57;
+				border-radius: 5px;
+				padding: 5px 10px;
+			}
+			QPushButton:hover {
+				background-color: #383d45;
+			}
+			QPushButton:pressed {
+				background-color: #24282e;
+			}
+			QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit {
+				background-color: #272a30;
+				border: 1px solid #4a4f57;
+				border-radius: 4px;
+				padding: 4px;
+			}
+			QComboBox QAbstractItemView {
+				background-color: #272a30;
+				color: #e6e6e6;
+				selection-background-color: #3f6db3;
+			}
+			"""
+		)
 
 	def _build_socket(self, port):
 		socket = self.context.socket(zmq.REQ)
