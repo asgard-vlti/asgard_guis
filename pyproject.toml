@@ -20,7 +20,6 @@ s-labmode = "asgard_guis.cmd_scripts.s_labmode:main"
 s-skymode = "asgard_guis.cmd_scripts.s_skymode:main"
 mimir-status = "asgard_guis.cmd_scripts.status:main"
 logs-client = "asgard_guis.cmd_scripts.log_viewer:main"
-mimir-status = "asgard_guis.cmd_scripts.status:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
