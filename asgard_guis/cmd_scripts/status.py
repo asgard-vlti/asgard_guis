@@ -379,7 +379,8 @@ if QtWidgets is not None:
         def update_from_task(self, task_block: dict[str, Any]) -> None:
             html_lines: list[str] = []
             for entry in task_block["entries"]:
-                indent = "&nbsp;" * (int(entry["indent"]) * 4)
+                indent_level = max(int(entry["indent"]) - 1, 0)
+                indent = "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
                     entry["color"], "#202020"
                 )
@@ -420,7 +421,7 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setWindowTitle("Watchdog Status")
-            self.resize(960, 560)
+            self.resize(820, 460)
 
             root = QtWidgets.QVBoxLayout(self)
             root.setContentsMargins(12, 12, 12, 12)
@@ -490,17 +491,13 @@ if QtWidgets is not None:
                 col = idx % self.GRID_COLUMNS
                 positions[name] = (row, col, 1, 1)
 
-            btt_rows = (
-                math.ceil(len(btt_tasks) / self.GRID_COLUMNS) if btt_tasks else 0
-            )
+            btt_rows = math.ceil(len(btt_tasks) / self.GRID_COLUMNS) if btt_tasks else 0
             for idx, name in enumerate(bao_tasks):
                 row = btt_rows + (idx // self.GRID_COLUMNS)
                 col = idx % self.GRID_COLUMNS
                 positions[name] = (row, col, 1, 1)
 
-            bao_rows = (
-                math.ceil(len(bao_tasks) / self.GRID_COLUMNS) if bao_tasks else 0
-            )
+            bao_rows = math.ceil(len(bao_tasks) / self.GRID_COLUMNS) if bao_tasks else 0
             others_start_row = btt_rows + bao_rows
             for idx, name in enumerate(other_tasks):
                 row = others_start_row + (idx // self.GRID_COLUMNS)
