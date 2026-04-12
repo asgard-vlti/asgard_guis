@@ -387,13 +387,6 @@ class LogTab(QtWidgets.QWidget):
 
     def restart_server(self):
         cmd = self.restart_command()
-        if not self.confirm_action(
-            "Confirm Restart",
-            f"Restart {self.server_key()} using '{cmd}'?",
-        ):
-            self.append_action_line(f"Restart cancelled for {self.server_key()}.")
-            self.refresh_log(force=True)
-            return
 
         try:
             subprocess.Popen(
