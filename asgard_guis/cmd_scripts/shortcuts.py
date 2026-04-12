@@ -6,6 +6,70 @@ import zmq
 from PyQt5 import QtCore, QtWidgets
 
 
+class BLFPoller(QtCore.QThread):
+	"""Background thread that periodically polls MDS port 5555 for BLF1-4."""
+
+	status_updated = QtCore.pyqtSignal(str)
+
+	def __init__(self, host, port=5555, interval_ms=5000):
+		super().__init__()
+		self._host = host
+		self._port = port
+		self._interval_ms = interval_ms
+		self._stop = False
+
+	def run(self):
+		context = zmq.Context()
+		try:
+			while not self._stop:
+				self._do_poll(context)
+				elapsed = 0
+				while elapsed < self._interval_ms and not self._stop:
+					self.msleep(100)
+					elapsed += 100
+		finally:
+			context.term()
+
+	def _do_poll(self, context):
+		socket = context.socket(zmq.REQ)
+		socket.setsockopt(zmq.SNDTIMEO, 500)
+		socket.setsockopt(zmq.RCVTIMEO, 500)
+		socket.connect(f"tcp://{self._host}:{self._port}")
+
+		values = []
+		for i in range(1, 5):
+			try:
+				socket.send_string(f"read BLF{i}")
+				reply = socket.recv_string().strip()
+				values.append(int(reply))
+			except (zmq.error.Again, ValueError, Exception):
+				values.append(None)
+				# Lazy pirate: fresh socket for next request
+				socket.setsockopt(zmq.LINGER, 0)
+				socket.close()
+				socket = context.socket(zmq.REQ)
+				socket.setsockopt(zmq.SNDTIMEO, 500)
+				socket.setsockopt(zmq.RCVTIMEO, 500)
+				socket.connect(f"tcp://{self._host}:{self._port}")
+
+		socket.setsockopt(zmq.LINGER, 0)
+		socket.close()
+
+		if any(v is None for v in values):
+			status = "Mixed/Error"
+		elif all(v == 0 for v in values):
+			status = "Standard"
+		elif all(v == 1 for v in values):
+			status = "Faint"
+		else:
+			status = "Mixed/Error"
+
+		self.status_updated.emit(status)
+
+	def stop(self):
+		self._stop = True
+
+
 class ShortcutsGUI(QtWidgets.QWidget):
 	def __init__(self, host="mimir", debug=False):
 		super().__init__()
@@ -20,21 +84,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self._init_ui()
 		self._refresh_baldr_sockets()
 
+		self._poller = BLFPoller(host=self.host)
+		self._poller.status_updated.connect(self._on_blf_status)
+		self._poller.start()
+
 	def _init_ui(self):
 		root = QtWidgets.QVBoxLayout(self)
-
-		socket_group = QtWidgets.QGroupBox("Socket Configuration")
-		socket_layout = QtWidgets.QHBoxLayout(socket_group)
-		socket_layout.addWidget(QtWidgets.QLabel("Host:"))
-		self.host_edit = QtWidgets.QLineEdit(self.host)
-		self.host_edit.editingFinished.connect(self._on_host_edited)
-		socket_layout.addWidget(self.host_edit)
-		socket_layout.addWidget(QtWidgets.QLabel("Baldr mode:"))
-		self.mode_combo = QtWidgets.QComboBox()
-		self.mode_combo.addItems(["standard (6662-6665)", "faint (6671-6674)"])
-		self.mode_combo.currentIndexChanged.connect(self._refresh_baldr_sockets)
-		socket_layout.addWidget(self.mode_combo)
-		root.addWidget(socket_group)
 
 		heim_group = QtWidgets.QGroupBox("Heimdallr")
 		heim_layout = QtWidgets.QVBoxLayout(heim_group)
@@ -96,33 +151,42 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		baldr_group = QtWidgets.QGroupBox("Baldr 1-4")
 		baldr_layout = QtWidgets.QGridLayout(baldr_group)
 
-		baldr_layout.addWidget(QtWidgets.QLabel("ttg:"), 0, 0)
+		baldr_layout.addWidget(QtWidgets.QLabel("BLF state:"), 0, 0)
+		self.blf_status_label = QtWidgets.QLabel("—")
+		baldr_layout.addWidget(self.blf_status_label, 0, 1)
+		baldr_layout.addWidget(QtWidgets.QLabel("Baldr mode:"), 0, 2)
+		self.mode_combo = QtWidgets.QComboBox()
+		self.mode_combo.addItems(["standard (6662-6665)", "faint (6671-6674)"])
+		self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+		baldr_layout.addWidget(self.mode_combo, 0, 3)
+
+		baldr_layout.addWidget(QtWidgets.QLabel("ttg:"), 1, 0)
 		self.ttg_edit = QtWidgets.QLineEdit()
 		self.ttg_edit.setPlaceholderText("Enter ttg value")
-		baldr_layout.addWidget(self.ttg_edit, 0, 1)
+		baldr_layout.addWidget(self.ttg_edit, 1, 1)
 		self.ttg_btn = QtWidgets.QPushButton("Send ttg")
 		self.ttg_btn.clicked.connect(
 			lambda: self._send_baldr_all(f"ttg {self.ttg_edit.text().strip()}")
 		)
-		baldr_layout.addWidget(self.ttg_btn, 0, 2)
+		baldr_layout.addWidget(self.ttg_btn, 1, 2)
 
-		baldr_layout.addWidget(QtWidgets.QLabel("hog:"), 1, 0)
+		baldr_layout.addWidget(QtWidgets.QLabel("hog:"), 2, 0)
 		self.hog_edit = QtWidgets.QLineEdit()
 		self.hog_edit.setPlaceholderText("Enter hog value")
-		baldr_layout.addWidget(self.hog_edit, 1, 1)
+		baldr_layout.addWidget(self.hog_edit, 2, 1)
 		self.hog_btn = QtWidgets.QPushButton("Send hog")
 		self.hog_btn.clicked.connect(
 			lambda: self._send_baldr_all(f"hog {self.hog_edit.text().strip()}")
 		)
-		baldr_layout.addWidget(self.hog_btn, 1, 2)
+		baldr_layout.addWidget(self.hog_btn, 2, 2)
 
 		self.close_tt_btn = QtWidgets.QPushButton("Close TT")
 		self.close_tt_btn.clicked.connect(lambda: self._send_baldr_all("ttg close"))
-		baldr_layout.addWidget(self.close_tt_btn, 2, 1)
+		baldr_layout.addWidget(self.close_tt_btn, 3, 1)
 
 		self.close_hh_btn = QtWidgets.QPushButton("Close HH")
 		self.close_hh_btn.clicked.connect(lambda: self._send_baldr_all("hog close"))
-		baldr_layout.addWidget(self.close_hh_btn, 2, 2)
+		baldr_layout.addWidget(self.close_hh_btn, 3, 2)
 
 		root.addWidget(baldr_group)
 
@@ -137,19 +201,13 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		socket.connect(f"tcp://{self.host}:{port}")
 		return socket
 
-	def _on_host_edited(self):
-		new_host = self.host_edit.text().strip()
-		if not new_host:
-			return
-		self.host = new_host
-		self._replace_heim_socket()
+	def _on_mode_changed(self, index):
+		script_arg = "standard" if index == 0 else "faint"
+		self._run_script("b-mode", [script_arg])
 		self._refresh_baldr_sockets()
-		self._append_log(f"[INFO] Switched host to {self.host}")
 
-	def _replace_heim_socket(self):
-		self.heim_socket.setsockopt(zmq.LINGER, 0)
-		self.heim_socket.close()
-		self.heim_socket = self._build_socket(6660)
+	def _on_blf_status(self, status):
+		self.blf_status_label.setText(status)
 
 	def _refresh_baldr_sockets(self):
 		for socket in self.baldr_sockets:
@@ -266,6 +324,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.log.append(text)
 
 	def closeEvent(self, event):
+		self._poller.stop()
+		self._poller.wait(2000)
 		self.heim_socket.setsockopt(zmq.LINGER, 0)
 		self.heim_socket.close()
 		for socket in self.baldr_sockets:
