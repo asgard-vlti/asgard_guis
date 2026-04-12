@@ -30,9 +30,9 @@ class StatusFormatter:
     RESET = "\033[0m"
     STALE_THRESHOLD_SECONDS = 10
     STATE_COLORS = {
-        "default": "#202020",
-        "green": "#1f7a1f",
-        "red": "#b71c1c",
+        "default": "#d4d8e2",
+        "green": "#74d99f",
+        "red": "#ff7b7b",
     }
     fields_of_interest = {
         "BTT1": ["cnt"],
@@ -345,9 +345,9 @@ if QtWidgets is not None:
             layout.setSpacing(6)
 
             self.title = QtWidgets.QLabel(self._process_name)
-            self.title.setStyleSheet("font-weight: 700; color: #111111;")
+            self.title.setStyleSheet("font-weight: 700; color: #f2f4f8;")
             self.details = QtWidgets.QLabel()
-            self.details.setStyleSheet("color: #202020;")
+            self.details.setStyleSheet("color: #d4d8e2;")
             self.details.setTextFormat(QtCore.Qt.RichText)
             self.details.setWordWrap(True)
             self.details.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
@@ -361,13 +361,13 @@ if QtWidgets is not None:
             self.set_dimmed(False)
 
         def _apply_border(self, red_border: bool) -> None:
-            border = "#c62828" if red_border else "#888888"
+            border = "#ff7b7b" if red_border else "#4f5b73"
             width = 2 if red_border else 1
             self.setStyleSheet(
                 "QFrame#processBox {"
                 f"border: {width}px solid {border};"
                 "border-radius: 6px;"
-                "background-color: #f8f8f8;"
+                "background-color: #1f2533;"
                 "}"
             )
 
@@ -382,13 +382,13 @@ if QtWidgets is not None:
                 indent_level = max(int(entry["indent"]) - 1, 0)
                 indent = "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
-                    entry["color"], "#202020"
+                    entry["color"], "#d4d8e2"
                 )
                 escaped_value = html.escape(str(entry["value"]))
                 escaped_label = html.escape(str(entry["label"]))
                 if escaped_label:
                     html_lines.append(
-                        f"{indent}<span style='color:#505050'>{escaped_label}:</span> "
+                        f"{indent}<span style='color:#97a2ba'>{escaped_label}:</span> "
                         f"<span style='color:{value_color}'>{escaped_value}</span>"
                     )
                 else:
@@ -422,13 +422,14 @@ if QtWidgets is not None:
         def _setup_ui(self) -> None:
             self.setWindowTitle("Watchdog Status")
             self.resize(620, 460)
+            self.setStyleSheet("QWidget { background-color: #141925; color: #dbe1ee; }")
 
             root = QtWidgets.QVBoxLayout(self)
             root.setContentsMargins(12, 12, 12, 12)
             root.setSpacing(10)
 
             self.header_label = QtWidgets.QLabel("Waiting for watchdog updates...")
-            self.header_label.setStyleSheet("font-weight: 700; color: #202020;")
+            self.header_label.setStyleSheet("font-weight: 700; color: #dbe1ee;")
             root.addWidget(self.header_label)
 
             self.grid = QtWidgets.QGridLayout()
@@ -525,7 +526,7 @@ if QtWidgets is not None:
                 return
 
             header = f"last updated {state['elapsed_seconds']:.2f} seconds ago"
-            header_color = "#c62828" if state["is_stale"] else "#202020"
+            header_color = "#ff7b7b" if state["is_stale"] else "#dbe1ee"
             self.header_label.setText(
                 f"<span style='color:{header_color}'>{html.escape(header)}</span>"
             )
