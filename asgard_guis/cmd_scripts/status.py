@@ -593,7 +593,7 @@ if QtWidgets is not None:
                 except json.JSONDecodeError:
                     wd_status = message
 
-                print(f"Received watchdog status update at {datetime.datetime.now()}:")
+                # print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
                 self.last_wd_status = wd_status
                 self._render(wd_status, update_last_time=True)
