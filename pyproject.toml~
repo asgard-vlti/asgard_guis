@@ -1,0 +1,27 @@
+# For wag, you can: pip install .
+# For mimir, do a local install, i.e.: pip install -e . --no-index --find-links ~/Downloads
+[project]
+name = "asgard_guis"
+version = "0.0.1"
+readme = "README.md"
+requires-python =">=3.8"
+license = {file = "LICENSE"}
+
+[project.scripts] 
+temperature-watchdog = "asgard_guis.cmd_scripts.temperature_watchdog:main"
+temperature-plotting = "asgard_guis.cmd_scripts.plot_temps:main"
+mimir-startup = "asgard_guis.cmd_scripts.startup_mimir:main"
+mimir-shutdown = "asgard_guis.cmd_scripts.shutdown_mimir:main"
+text-clients = "asgard_guis.cmd_scripts.universal_client:main"
+im-search-gui = "asgard_guis.cmd_scripts.image_search_gui:main"
+pu-search-gui = "asgard_guis.cmd_scripts.pupil_search_gui:main"
+h-guis = "asgard_guis.cmd_scripts.Heimdallr_RTC_performance:main"
+s-labmode = "asgard_guis.cmd_scripts.s_labmode:main"
+s-skymode = "asgard_guis.cmd_scripts.s_skymode:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["asgard_guis"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
