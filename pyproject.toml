@@ -18,7 +18,7 @@ pu-search-gui = "asgard_guis.cmd_scripts.pupil_search_gui:main"
 h-guis = "asgard_guis.cmd_scripts.Heimdallr_RTC_performance:main"
 s-labmode = "asgard_guis.cmd_scripts.s_labmode:main"
 s-skymode = "asgard_guis.cmd_scripts.s_skymode:main"
-mimir-status = "asgard_guis.cmd_scripts.status:main"
+status-mimir = "asgard_guis.cmd_scripts.status:main"
 logs-client = "asgard_guis.cmd_scripts.log_viewer:main"
 
 [tool.hatch.build.targets.wheel]
