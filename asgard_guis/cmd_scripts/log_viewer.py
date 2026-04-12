@@ -229,7 +229,6 @@ class LogTab(QtWidgets.QWidget):
 
         self.filter_text = ""
         self.last_rendered_key = None
-        self.action_lines = []
         self.initial_scroll_done = False
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -313,9 +312,17 @@ class LogTab(QtWidgets.QWidget):
         return f"run_{self.relative_log_dir}"
 
     def append_action_line(self, message):
-        timestamp = QtCore.QDateTime.currentDateTime().toString("yyyy-MM-dd HH:mm:ss")
-        self.action_lines.append(f"[{timestamp}] [control] {message}")
-        self.action_lines = self.action_lines[-20:]
+        timestamp = QtCore.QDateTime.currentDateTimeUtc().toString("yyyy-MM-ddTHH:mm:ss'Z'")
+        control_line = f"{timestamp} [CONTROL] {message}"
+        path = self.log_path()
+
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "a", encoding="utf-8") as log_file:
+                log_file.write(control_line + "\n")
+        except OSError:
+            # Keep UI behavior resilient even if appending to the log file fails.
+            pass
 
     def scroll_to_bottom(self):
         vbar = self.text_area.verticalScrollBar()
@@ -426,8 +433,6 @@ class LogTab(QtWidgets.QWidget):
                 self.text_area.setPlainText(f"Failed reading log file:\n{path}\n\n{exc}")
                 self.last_rendered_key = key
             return
-
-        lines.extend(self.action_lines)
 
         if filter_text:
             needle = filter_text.lower()
