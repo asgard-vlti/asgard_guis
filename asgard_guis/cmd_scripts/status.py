@@ -11,6 +11,7 @@ import datetime
 import html
 import json
 import logging
+import math
 import sys
 from typing import Any, cast
 
@@ -29,9 +30,9 @@ class StatusFormatter:
     RESET = "\033[0m"
     STALE_THRESHOLD_SECONDS = 10
     STATE_COLORS = {
-        "default": "#202020",
-        "green": "#1f7a1f",
-        "red": "#b71c1c",
+        "default": "#d4d8e2",
+        "green": "#74d99f",
+        "red": "#ff7b7b",
     }
     fields_of_interest = {
         "BTT1": ["cnt"],
@@ -337,16 +338,16 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setObjectName("processBox")
-            self.setMinimumHeight(125)
+            self.setMinimumHeight(75)
 
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
             layout.setSpacing(6)
 
             self.title = QtWidgets.QLabel(self._process_name)
-            self.title.setStyleSheet("font-weight: 700; color: #111111;")
+            self.title.setStyleSheet("font-weight: 700; color: #f2f4f8;")
             self.details = QtWidgets.QLabel()
-            self.details.setStyleSheet("color: #202020;")
+            self.details.setStyleSheet("color: #d4d8e2;")
             self.details.setTextFormat(QtCore.Qt.RichText)
             self.details.setWordWrap(True)
             self.details.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
@@ -360,13 +361,13 @@ if QtWidgets is not None:
             self.set_dimmed(False)
 
         def _apply_border(self, red_border: bool) -> None:
-            border = "#c62828" if red_border else "#888888"
+            border = "#ff7b7b" if red_border else "#4f5b73"
             width = 2 if red_border else 1
             self.setStyleSheet(
                 "QFrame#processBox {"
                 f"border: {width}px solid {border};"
                 "border-radius: 6px;"
-                "background-color: #f8f8f8;"
+                "background-color: #141925;"
                 "}"
             )
 
@@ -378,15 +379,16 @@ if QtWidgets is not None:
         def update_from_task(self, task_block: dict[str, Any]) -> None:
             html_lines: list[str] = []
             for entry in task_block["entries"]:
-                indent = "&nbsp;" * (int(entry["indent"]) * 4)
+                indent_level = max(int(entry["indent"]) - 1, 0)
+                indent = "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
-                    entry["color"], "#202020"
+                    entry["color"], "#d4d8e2"
                 )
                 escaped_value = html.escape(str(entry["value"]))
                 escaped_label = html.escape(str(entry["label"]))
                 if escaped_label:
                     html_lines.append(
-                        f"{indent}<span style='color:#505050'>{escaped_label}:</span> "
+                        f"{indent}<span style='color:#97a2ba'>{escaped_label}:</span> "
                         f"<span style='color:{value_color}'>{escaped_value}</span>"
                     )
                 else:
@@ -398,18 +400,7 @@ if QtWidgets is not None:
             self._apply_border(red_border=bool(task_block.get("has_red")))
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
-        PROCESS_GRID = {
-            "BTT1": (0, 0, 1, 1),
-            "BTT2": (0, 1, 1, 1),
-            "BTT3": (0, 2, 1, 1),
-            "BTT4": (0, 3, 1, 1),
-            "CRED1": (1, 0, 1, 2),
-            "DM": (1, 2, 1, 1),
-            "HDLR": (1, 3, 1, 1),
-            "MDS": (2, 0, 1, 2),
-            "Eng gui": (2, 2, 1, 1),
-            "back_end": (2, 3, 1, 1),
-        }
+        GRID_COLUMNS = 4
 
         def __init__(
             self, connect_endpoint: str, request_interval_s: float = 5.0
@@ -421,7 +412,6 @@ if QtWidgets is not None:
             self.formatter = StatusFormatter()
             self.last_wd_status: Any = None
             self._boxes: dict[str, ProcessStatusBox] = {}
-            self._dynamic_slot_index = 0
             self._awaiting_reply = False
             self._last_request_time: datetime.datetime | None = None
 
@@ -431,14 +421,15 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setWindowTitle("Watchdog Status")
-            self.resize(960, 560)
+            self.resize(620, 460)
+            self.setStyleSheet("QWidget { background-color: #141925; color: #dbe1ee; }")
 
             root = QtWidgets.QVBoxLayout(self)
             root.setContentsMargins(12, 12, 12, 12)
             root.setSpacing(10)
 
             self.header_label = QtWidgets.QLabel("Waiting for watchdog updates...")
-            self.header_label.setStyleSheet("font-weight: 700; color: #202020;")
+            self.header_label.setStyleSheet("font-weight: 700; color: #dbe1ee;")
             root.addWidget(self.header_label)
 
             self.grid = QtWidgets.QGridLayout()
@@ -468,22 +459,59 @@ if QtWidgets is not None:
             self.timer.timeout.connect(self._poll_once)
             self.timer.start()
 
-        def _next_dynamic_slot(self) -> tuple[int, int, int, int]:
-            row = 3 + (self._dynamic_slot_index // 4)
-            col = self._dynamic_slot_index % 4
-            self._dynamic_slot_index += 1
-            return row, col, 1, 1
+        @staticmethod
+        def _numeric_suffix(name: str) -> tuple[int, str]:
+            suffix = ""
+            for ch in reversed(name):
+                if ch.isdigit():
+                    suffix = ch + suffix
+                else:
+                    break
+            if suffix:
+                return int(suffix), name
+            return sys.maxsize, name
+
+        def _layout_positions(
+            self, task_names: list[str]
+        ) -> dict[str, tuple[int, int, int, int]]:
+            btt_tasks = [name for name in task_names if name.upper().startswith("BTT")]
+            bao_tasks = [name for name in task_names if name.upper().startswith("BAO")]
+            other_tasks = [
+                name
+                for name in task_names
+                if name not in btt_tasks and name not in bao_tasks
+            ]
+
+            btt_tasks.sort(key=self._numeric_suffix)
+            bao_tasks.sort(key=self._numeric_suffix)
+
+            positions: dict[str, tuple[int, int, int, int]] = {}
+
+            for idx, name in enumerate(btt_tasks):
+                row = idx // self.GRID_COLUMNS
+                col = idx % self.GRID_COLUMNS
+                positions[name] = (row, col, 1, 1)
+
+            btt_rows = math.ceil(len(btt_tasks) / self.GRID_COLUMNS) if btt_tasks else 0
+            for idx, name in enumerate(bao_tasks):
+                row = btt_rows + (idx // self.GRID_COLUMNS)
+                col = idx % self.GRID_COLUMNS
+                positions[name] = (row, col, 1, 1)
+
+            bao_rows = math.ceil(len(bao_tasks) / self.GRID_COLUMNS) if bao_tasks else 0
+            others_start_row = btt_rows + bao_rows
+            for idx, name in enumerate(other_tasks):
+                row = others_start_row + (idx // self.GRID_COLUMNS)
+                col = idx % self.GRID_COLUMNS
+                positions[name] = (row, col, 1, 1)
+
+            return positions
 
         def _get_or_create_box(self, task_name: str) -> ProcessStatusBox:
             if task_name in self._boxes:
                 return self._boxes[task_name]
 
             box = ProcessStatusBox(task_name)
-            row, col, row_span, col_span = self.PROCESS_GRID.get(
-                task_name,
-                self._next_dynamic_slot(),
-            )
-            self.grid.addWidget(box, row, col, row_span, col_span)
             self._boxes[task_name] = box
             return box
 
@@ -498,17 +526,24 @@ if QtWidgets is not None:
                 return
 
             header = f"last updated {state['elapsed_seconds']:.2f} seconds ago"
-            header_color = "#c62828" if state["is_stale"] else "#202020"
+            header_color = "#ff7b7b" if state["is_stale"] else "#dbe1ee"
             self.header_label.setText(
                 f"<span style='color:{header_color}'>{html.escape(header)}</span>"
             )
 
+            tasks = list(state["tasks"])
+            task_names = [str(task["task_name"]) for task in tasks]
+            positions = self._layout_positions(task_names)
+
             seen = set()
-            for task in state["tasks"]:
+            for task in tasks:
                 task_name = task["task_name"]
                 seen.add(task_name)
                 box = self._get_or_create_box(task_name)
                 box.update_from_task(task)
+                self.grid.removeWidget(box)
+                row, col, row_span, col_span = positions[task_name]
+                self.grid.addWidget(box, row, col, row_span, col_span)
                 box.show()
 
             for task_name, box in self._boxes.items():
@@ -556,7 +591,7 @@ if QtWidgets is not None:
                 except json.JSONDecodeError:
                     wd_status = message
 
-                print(f"Received watchdog status update at {datetime.datetime.now()}:")
+                # print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
                 self.last_wd_status = wd_status
                 self._render(wd_status, update_last_time=True)
@@ -605,12 +640,6 @@ def main() -> None:
         default=True,
         help="If the display should be a GUI instead of terminal output",
     )
-    # # toggle sim option
-    # parser.add_argument(
-    #     "--sim",
-    #     action="store_true",
-    #     help="If True, simulates receiving a watchdog message every 5 seconds instead of binding a ZMQ socket.",
-    # )
 
     args = parser.parse_args()
 
