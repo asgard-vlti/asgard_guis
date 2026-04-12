@@ -338,7 +338,7 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setObjectName("processBox")
-            self.setMinimumHeight(125)
+            self.setMinimumHeight(75)
 
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
