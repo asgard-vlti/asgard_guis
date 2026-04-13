@@ -624,6 +624,8 @@ def main():
             np.linalg.pinv(M[best_indices, :]) @ np.array(median_opds)[best_indices]
         )
 
+        new_opds = M @ est_opls
+
         if args.output == "print":
             # print with format x1, x2, x3, x4 to 3 decimal places
             print(
@@ -644,6 +646,10 @@ def main():
             print(
                 "Corresponding median OPDs: "
                 + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices])
+            )
+            print(
+                "New OPDs for all baselines: "
+                + ", ".join(f"{opd:.3f}" for opd in new_opds)
             )
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
