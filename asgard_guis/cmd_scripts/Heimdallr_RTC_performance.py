@@ -78,7 +78,8 @@ class HeimdallrStateMachine(StateMachine):
         self.mtwm = None
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
-            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+            [(0, 0, 0.0) for __ in range(self.n_max_samples)]
+            for _ in range(N_BASELINES)
         ]
         # New: just a vector for most recent gd_snr
         self.most_recent_gd_snr = np.full((N_BASELINES,), np.nan, dtype=np.float64)
@@ -86,7 +87,8 @@ class HeimdallrStateMachine(StateMachine):
 
     def reset_best_gd_SNR(self):
         self.best_gd_SNR = [
-            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+            [(0, 0, 0.0) for __ in range(self.n_max_samples)]
+            for _ in range(N_BASELINES)
         ]
         print("best_gd_SNR has been reset.")
 
@@ -507,7 +509,9 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
+
     FADE_DURATION_SECONDS = 2.0
+    SCATTER_EDGE_WIDTH = 1.2
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
@@ -606,9 +610,9 @@ def main():
         median_opds = []
         snrs = []
         for baseline_idx in range(N_BASELINES):
-            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
-            opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            baseline_snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd, timestamp) tuples
+            opds = [opd for _, opd, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            baseline_snrs = [snr for snr, _, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
             median_opds.append(np.median(opds) if opds else 0.0)
             snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
 
@@ -1218,7 +1222,7 @@ def main():
             cur_gdSNR = gd_snr[-1, baseline_idx]
             heapq.heappushpop(
                 heimdallr_sm.best_gd_SNR[baseline_idx],
-                (cur_gdSNR, opds[baseline_idx]),
+                (cur_gdSNR, opds[baseline_idx], time.time()),
             )
 
         # Update scatter plots for best_v2_K1 and best_v2_K2
@@ -1230,9 +1234,28 @@ def main():
             # y1, x1 = zip(*k1_points)
             # y2, x2 = zip(*k2_points)
 
-            y1, x1 = zip(*heimdallr_sm.best_gd_SNR[i])
+            point_data = heimdallr_sm.best_gd_SNR[i]
+            y1 = np.array([snr for snr, _, _ in point_data], dtype=float)
+            x1 = np.array([opd for _, opd, _ in point_data], dtype=float)
+            t1 = np.array([ts for _, _, ts in point_data], dtype=float)
 
-            scatter_items_gd[i].setData(x=x1, y=y1)
+            ages = np.maximum(0.0, time.time() - t1)
+            fill_alphas = np.clip(1.0 - (ages / FADE_DURATION_SECONDS), 0.0, 1.0)
+            base_color = BASELINE_COLORS[i].color()
+            edge_pen = pg.mkPen(base_color, width=SCATTER_EDGE_WIDTH)
+            spots = []
+            for j in range(len(x1)):
+                fill_color = QtGui.QColor(base_color)
+                fill_color.setAlphaF(float(fill_alphas[j]))
+                spots.append(
+                    {
+                        "pos": (x1[j], y1[j]),
+                        "pen": edge_pen,
+                        "brush": pg.mkBrush(fill_color),
+                    }
+                )
+
+            scatter_items_gd[i].setData(spots=spots)
 
             # scatter_items_k1[i].setData(x=x1, y=y1)
             # scatter_items_k2[i].setData(x=x2, y=y2)
