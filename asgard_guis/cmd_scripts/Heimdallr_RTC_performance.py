@@ -507,6 +507,7 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
+    FADE_DURATION_SECONDS = 120.0
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
@@ -517,19 +518,22 @@ def main():
             self.M2 = []
             self.gd_snr_std = []
             self.n_measurements = []
+            self.timestamps = []
 
         def add_measurement(self, offset, snr):
+            now = time.time()
             # floating point check on if offset is already in the list
             is_offset_in_list = any(
                 np.isclose(offset, o, atol=0.2) for o in self.offsets
             )
             if not is_offset_in_list:
                 self.offsets.append(offset)
-                idx = self.offsets.index(offset)
+                idx = len(self.offsets) - 1
                 self.n_measurements.append(1)
                 self.gd_snr_mean.append(snr)
                 self.gd_snr_std.append(0.0)
                 self.M2.append(0.0)
+                self.timestamps.append(now)
             else:
                 idx = -1
                 for i, o in enumerate(self.offsets):
@@ -550,6 +554,7 @@ def main():
                     ) ** 0.5
                 else:
                     self.gd_snr_std[idx] = 0.0
+                self.timestamps[idx] = now
 
     gd_snr_vs_offsets = [
         GD_SNR_vs_Offset(i) for i in [1, 2, 4]
@@ -946,6 +951,7 @@ def main():
             obj.gd_snr_std.clear()
             obj.M2.clear()
             obj.n_measurements.clear()
+            obj.timestamps.clear()
         # Clear the plot
         for i in range(3):
             gd_snr_vs_offset_scatter[i].setData([])
@@ -1250,9 +1256,23 @@ def main():
             offsets = np.array(gd_obj.offsets, dtype=float)
             means = np.array(gd_obj.gd_snr_mean, dtype=float)
             stds = np.array(gd_obj.gd_snr_std, dtype=float)
+            timestamps = np.array(gd_obj.timestamps, dtype=float)
             if offsets.size > 0 and means.size > 0 and stds.size > 0:
-                spots = [{"pos": (offsets[j], means[j])} for j in range(len(offsets))]
-                gd_snr_vs_offset_scatter[i].setData(spots)
+                ages = np.maximum(0.0, time.time() - timestamps)
+                fill_alphas = np.clip(1.0 - (ages / FADE_DURATION_SECONDS), 0.0, 1.0)
+                base_color = offset_colors[i].color()
+                spots = []
+                for j in range(len(offsets)):
+                    fill_color = QtGui.QColor(base_color)
+                    fill_color.setAlphaF(float(fill_alphas[j]))
+                    spots.append(
+                        {
+                            "pos": (offsets[j], means[j]),
+                            "pen": offset_colors[i],
+                            "brush": pg.mkBrush(fill_color),
+                        }
+                    )
+                gd_snr_vs_offset_scatter[i].setData(spots=spots)
                 # Error bars: x=offsets, y=means, top=stds, bottom=stds
                 err_data = dict(x=offsets, y=means, top=stds, bottom=stds)
                 gd_snr_vs_offset_errorbars[i].setData(**err_data)
