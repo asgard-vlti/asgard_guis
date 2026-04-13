@@ -507,7 +507,7 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
-    FADE_DURATION_SECONDS = 120.0
+    FADE_DURATION_SECONDS = 2.0
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
