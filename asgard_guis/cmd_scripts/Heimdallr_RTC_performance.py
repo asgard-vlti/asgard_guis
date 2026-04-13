@@ -509,7 +509,7 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
-    FADE_DURATION_SECONDS = 120.0
+    FADE_DURATION_SECONDS = 60.0
     SCATTER_EDGE_WIDTH = 1.2
 
     class GD_SNR_vs_Offset:
@@ -611,7 +611,9 @@ def main():
         for baseline_idx in range(N_BASELINES):
             # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd, timestamp) tuples
             opds = [opd for _, opd, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            baseline_snrs = [snr for snr, _, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            baseline_snrs = [
+                snr for snr, _, _ in heimdallr_sm.best_gd_SNR[baseline_idx]
+            ]
             median_opds.append(np.median(opds) if opds else 0.0)
             snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
 
