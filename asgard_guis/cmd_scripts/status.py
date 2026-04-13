@@ -177,12 +177,12 @@ class StatusFormatter:
                             if isinstance(decoded_status, dict)
                             else "N/A"
                         )
+                        value_str = str(value)
                         if field not in ["locked"]:
                             c = self._state_color(value_str, inverse=inverse)
                         else:
                             c = "default"
 
-                        value_str = str(value)
                         add_entry(
                             field,
                             value_str,
