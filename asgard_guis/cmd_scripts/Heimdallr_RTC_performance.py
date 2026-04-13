@@ -509,6 +509,7 @@ def main():
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
+
     FADE_DURATION_SECONDS = 60.0
     SCATTER_EDGE_WIDTH = 1.2
 
