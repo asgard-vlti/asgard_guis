@@ -605,7 +605,7 @@ def main():
     """)
 
     # --- Button to compute and print offsets from median OPD values ---
-    def print_offsets_from_n_best(n):
+    def compute_new_opds_from_n_best(n):
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
         snrs = []
@@ -626,24 +626,10 @@ def main():
         )
 
         new_opds = M @ est_opls
-        for line in prediction_lines:
-            scatter_plot.removeItem(line)
-        prediction_lines.clear()
+        return est_opls, best_indices, snrs, median_opds, new_opds
 
-        if n == 4:
-            for i, opd in enumerate(new_opds):
-                line = pg.InfiniteLine(
-                    pos=float(opd),
-                    angle=90,
-                    movable=False,
-                    pen=pg.mkPen(
-                        BASELINE_COLORS[i % N_BASELINES],
-                        width=1.5,
-                        style=QtCore.Qt.DashLine,
-                    ),
-                )
-                scatter_plot.addItem(line)
-                prediction_lines.append(line)
+    def print_offsets_from_n_best(n):
+        est_opls, best_indices, snrs, median_opds, new_opds = compute_new_opds_from_n_best(n)
 
         if args.output == "print":
             # print with format x1, x2, x3, x4 to 3 decimal places
@@ -806,6 +792,30 @@ def main():
     # scatter_items_k2 = []
     scatter_items_gd = []
     prediction_lines = []
+
+    def update_prediction_lines(opd_values):
+        nonlocal prediction_lines
+        for line in prediction_lines:
+            scatter_plot.removeItem(line)
+        prediction_lines = []
+
+        if opd_values is None:
+            return
+
+        for i, opd in enumerate(np.asarray(opd_values, dtype=float)):
+            line = pg.InfiniteLine(
+                pos=float(opd),
+                angle=90,
+                movable=False,
+                pen=pg.mkPen(
+                    BASELINE_COLORS[i % N_BASELINES],
+                    width=1.5,
+                    style=QtCore.Qt.DashLine,
+                ),
+            )
+            scatter_plot.addItem(line)
+            prediction_lines.append(line)
+
     for i in range(N_BASELINES):
         color = (
             BASELINE_COLORS[i].color()
@@ -1286,6 +1296,8 @@ def main():
 
             # scatter_items_k1[i].setData(x=x1, y=y1)
             # scatter_items_k2[i].setData(x=x2, y=y2)
+
+        update_prediction_lines(compute_new_opds_from_n_best(4)[-1])
 
         # update gd_snr_vs_offsets
         baselines_of_interest = [1, 3, 5]  # baselines involving telescope 1,2,4 with 3
