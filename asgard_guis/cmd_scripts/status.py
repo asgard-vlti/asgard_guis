@@ -157,11 +157,7 @@ class StatusFormatter:
                             add_entry(
                                 key,
                                 value_str,
-                                (
-                                    self._state_color(value_str)
-                                    if key not in ["locked"]
-                                    else value_str
-                                ),
+                                self._state_color(value_str),
                                 indent=2,
                             )
                 elif len(fields) == 1:
@@ -181,11 +177,16 @@ class StatusFormatter:
                             if isinstance(decoded_status, dict)
                             else "N/A"
                         )
+                        if field not in ["locked"]:
+                            c = self._state_color(value_str, inverse=inverse)
+                        else:
+                            c = "default"
+
                         value_str = str(value)
                         add_entry(
                             field,
                             value_str,
-                            self._state_color(value_str, inverse=inverse),
+                            c,
                             indent=2,
                         )
         else:
