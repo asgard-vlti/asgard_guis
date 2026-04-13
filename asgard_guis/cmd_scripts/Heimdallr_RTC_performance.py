@@ -626,6 +626,24 @@ def main():
         )
 
         new_opds = M @ est_opls
+        for line in prediction_lines:
+            scatter_plot.removeItem(line)
+        prediction_lines.clear()
+
+        if n == 4:
+            for i, opd in enumerate(new_opds):
+                line = pg.InfiniteLine(
+                    pos=float(opd),
+                    angle=90,
+                    movable=False,
+                    pen=pg.mkPen(
+                        BASELINE_COLORS[i % N_BASELINES],
+                        width=1.5,
+                        style=QtCore.Qt.DashLine,
+                    ),
+                )
+                scatter_plot.addItem(line)
+                prediction_lines.append(line)
 
         if args.output == "print":
             # print with format x1, x2, x3, x4 to 3 decimal places
@@ -787,6 +805,7 @@ def main():
     # scatter_items_k1 = []
     # scatter_items_k2 = []
     scatter_items_gd = []
+    prediction_lines = []
     for i in range(N_BASELINES):
         color = (
             BASELINE_COLORS[i].color()
