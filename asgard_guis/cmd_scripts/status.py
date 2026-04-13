@@ -157,7 +157,11 @@ class StatusFormatter:
                             add_entry(
                                 key,
                                 value_str,
-                                self._state_color(value_str),
+                                (
+                                    self._state_color(value_str)
+                                    if key not in ["locked"]
+                                    else value_str
+                                ),
                                 indent=2,
                             )
                 elif len(fields) == 1:
