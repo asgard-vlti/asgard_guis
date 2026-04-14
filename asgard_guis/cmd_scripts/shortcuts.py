@@ -80,6 +80,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.mds_socket = self._build_socket(5555)
 		self.cam_server_socket = self._build_socket(6667, host="mimir")
 		self.baldr_sockets = []
+		self.current_baldr_mode = "Standard"
 
 		self.setWindowTitle("ASGARD Shortcuts")
 		self._apply_dark_theme()
@@ -100,7 +101,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		heim_group = QtWidgets.QGroupBox("Heimdallr")
 		heim_layout = QtWidgets.QVBoxLayout(heim_group)
 
-		scripts_layout = QtWidgets.QHBoxLayout()
+		scripts_layout = QtWidgets.QGridLayout()
 		self.align_btn = QtWidgets.QPushButton("Heim. Internal Align")
 		self.align_btn.clicked.connect(
 			lambda: self._run_script("h-autoalign", ["-a", "ia"])
@@ -113,11 +114,11 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.lab_mode_btn.clicked.connect(lambda: self._run_script("s-labmode", []))
 		self.make_dark_btn = QtWidgets.QPushButton("Make Dark")
 		self.make_dark_btn.clicked.connect(self._make_dark)
-		scripts_layout.addWidget(self.align_btn)
-		scripts_layout.addWidget(self.tilts_btn)
-		scripts_layout.addWidget(self.sky_mode_btn)
-		scripts_layout.addWidget(self.lab_mode_btn)
-		scripts_layout.addWidget(self.make_dark_btn)
+		scripts_layout.addWidget(self.align_btn, 0, 0)
+		scripts_layout.addWidget(self.tilts_btn, 0, 1)
+		scripts_layout.addWidget(self.sky_mode_btn, 0, 2)
+		scripts_layout.addWidget(self.lab_mode_btn, 1, 0)
+		scripts_layout.addWidget(self.make_dark_btn, 1, 1)
 		heim_layout.addLayout(scripts_layout)
 
 		jump_layout = QtWidgets.QGridLayout()
@@ -165,12 +166,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		baldr_group = QtWidgets.QGroupBox("Baldr 1-4")
 		baldr_layout = QtWidgets.QGridLayout(baldr_group)
 
-		baldr_layout.addWidget(QtWidgets.QLabel("BLF state:"), 0, 0)
-		self.blf_status_label = QtWidgets.QLabel("—")
-		baldr_layout.addWidget(self.blf_status_label, 0, 1)
-		baldr_layout.addWidget(QtWidgets.QLabel("Baldr mode:"), 0, 2)
+		baldr_layout.addWidget(QtWidgets.QLabel("Current Baldr mode:"), 0, 0)
+		self.baldr_status_label = QtWidgets.QLabel("—")
+		baldr_layout.addWidget(self.baldr_status_label, 0, 1)
+		baldr_layout.addWidget(QtWidgets.QLabel("Set Baldr mode:"), 0, 2)
 		self.mode_combo = QtWidgets.QComboBox()
-		self.mode_combo.addItems(["standard (6662-6665)", "faint (6671-6674)"])
+		self.mode_combo.addItems(["Set mode...", "Standard", "Faint"])
 		self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
 		baldr_layout.addWidget(self.mode_combo, 0, 3)
 
@@ -269,12 +270,20 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		return socket
 
 	def _on_mode_changed(self, index):
-		script_arg = "standard" if index == 0 else "faint"
+		if index == 0:
+			return
+
+		script_arg = "standard" if index == 1 else "faint"
 		self._run_script("b-mode", [script_arg])
-		self._refresh_baldr_sockets()
+		self.mode_combo.blockSignals(True)
+		self.mode_combo.setCurrentIndex(0)
+		self.mode_combo.blockSignals(False)
 
 	def _on_blf_status(self, status):
-		self.blf_status_label.setText(status)
+		self.baldr_status_label.setText(status)
+		if status in {"Standard", "Faint"} and status != self.current_baldr_mode:
+			self.current_baldr_mode = status
+			self._refresh_baldr_sockets()
 
 	def _refresh_baldr_sockets(self):
 		for socket in self.baldr_sockets:
@@ -282,13 +291,13 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			socket.close()
 
 		self.baldr_sockets = []
-		base = 6662 if self.mode_combo.currentIndex() == 0 else 6671
+		base = 6662 if self.current_baldr_mode == "Standard" else 6671
 		ports = [base + i for i in range(4)]
 		for port in ports:
 			self.baldr_sockets.append(self._build_socket(port))
 
 		self._append_log(
-			f"[INFO] Connected Baldr sockets on {self.host}: {', '.join(str(p) for p in ports)}"
+			f"[INFO] Connected Baldr sockets for {self.current_baldr_mode} mode on {self.host}: {', '.join(str(p) for p in ports)}"
 		)
 
 	def _replace_socket(self, old_socket):
