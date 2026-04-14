@@ -78,7 +78,8 @@ class HeimdallrStateMachine(StateMachine):
         self.mtwm = None
         self.n_max_samples = 5  # number of samples to keep track of as the best so far
         self.best_gd_SNR = [
-            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+            [(0, 0, 0.0) for __ in range(self.n_max_samples)]
+            for _ in range(N_BASELINES)
         ]
         # New: just a vector for most recent gd_snr
         self.most_recent_gd_snr = np.full((N_BASELINES,), np.nan, dtype=np.float64)
@@ -86,7 +87,8 @@ class HeimdallrStateMachine(StateMachine):
 
     def reset_best_gd_SNR(self):
         self.best_gd_SNR = [
-            [(0, 0) for __ in range(self.n_max_samples)] for _ in range(N_BASELINES)
+            [(0, 0, 0.0) for __ in range(self.n_max_samples)]
+            for _ in range(N_BASELINES)
         ]
         print("best_gd_SNR has been reset.")
 
@@ -508,6 +510,9 @@ def main():
 
     gd_threshold = 5.0
 
+    FADE_DURATION_SECONDS = 60.0
+    SCATTER_EDGE_WIDTH = 1.2
+
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
             self.beam_no = beam_no
@@ -517,19 +522,22 @@ def main():
             self.M2 = []
             self.gd_snr_std = []
             self.n_measurements = []
+            self.timestamps = []
 
         def add_measurement(self, offset, snr):
+            now = time.time()
             # floating point check on if offset is already in the list
             is_offset_in_list = any(
                 np.isclose(offset, o, atol=0.2) for o in self.offsets
             )
             if not is_offset_in_list:
                 self.offsets.append(offset)
-                idx = self.offsets.index(offset)
+                idx = len(self.offsets) - 1
                 self.n_measurements.append(1)
                 self.gd_snr_mean.append(snr)
                 self.gd_snr_std.append(0.0)
                 self.M2.append(0.0)
+                self.timestamps.append(now)
             else:
                 idx = -1
                 for i, o in enumerate(self.offsets):
@@ -550,6 +558,7 @@ def main():
                     ) ** 0.5
                 else:
                     self.gd_snr_std[idx] = 0.0
+                self.timestamps[idx] = now
 
     gd_snr_vs_offsets = [
         GD_SNR_vs_Offset(i) for i in [1, 2, 4]
@@ -596,14 +605,16 @@ def main():
     """)
 
     # --- Button to compute and print offsets from median OPD values ---
-    def print_offsets_from_n_best(n):
+    def compute_new_opds_from_n_best(n):
         # For each baseline, take the median OPD from best_gd_SNR
         median_opds = []
         snrs = []
         for baseline_idx in range(N_BASELINES):
-            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd) tuples
-            opds = [opd for _, opd in heimdallr_sm.best_gd_SNR[baseline_idx]]
-            baseline_snrs = [snr for snr, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            # best_gd_SNR[baseline_idx] is a list of (gd_snr, opd, timestamp) tuples
+            opds = [opd for _, opd, _ in heimdallr_sm.best_gd_SNR[baseline_idx]]
+            baseline_snrs = [
+                snr for snr, _, _ in heimdallr_sm.best_gd_SNR[baseline_idx]
+            ]
             median_opds.append(np.median(opds) if opds else 0.0)
             snrs.append(np.median(baseline_snrs) if baseline_snrs else 0.0)
 
@@ -613,6 +624,12 @@ def main():
         est_opls = (
             np.linalg.pinv(M[best_indices, :]) @ np.array(median_opds)[best_indices]
         )
+
+        new_opds = M @ est_opls
+        return est_opls, best_indices, snrs, median_opds, new_opds
+
+    def print_offsets_from_n_best(n):
+        est_opls, best_indices, snrs, median_opds, new_opds = compute_new_opds_from_n_best(n)
 
         if args.output == "print":
             # print with format x1, x2, x3, x4 to 3 decimal places
@@ -634,6 +651,10 @@ def main():
             print(
                 "Corresponding median OPDs: "
                 + ", ".join(f"{opd:.3f}" for opd in np.array(median_opds)[best_indices])
+            )
+            print(
+                "New OPDs for all baselines: "
+                + ", ".join(f"{opd:.3f}" for opd in new_opds)
             )
         elif args.output == "heim":
             # Send the estimated OPLs to the Heimdallr server
@@ -770,6 +791,31 @@ def main():
     # scatter_items_k1 = []
     # scatter_items_k2 = []
     scatter_items_gd = []
+    prediction_lines = []
+
+    def update_prediction_lines(opd_values):
+        nonlocal prediction_lines
+        for line in prediction_lines:
+            scatter_plot.removeItem(line)
+        prediction_lines = []
+
+        if opd_values is None:
+            return
+
+        for i, opd in enumerate(np.asarray(opd_values, dtype=float)):
+            line = pg.InfiniteLine(
+                pos=float(opd),
+                angle=90,
+                movable=False,
+                pen=pg.mkPen(
+                    BASELINE_COLORS[i % N_BASELINES],
+                    width=1.5,
+                    style=QtCore.Qt.DashLine,
+                ),
+            )
+            scatter_plot.addItem(line)
+            prediction_lines.append(line)
+
     for i in range(N_BASELINES):
         color = (
             BASELINE_COLORS[i].color()
@@ -946,6 +992,7 @@ def main():
             obj.gd_snr_std.clear()
             obj.M2.clear()
             obj.n_measurements.clear()
+            obj.timestamps.clear()
         # Clear the plot
         for i in range(3):
             gd_snr_vs_offset_scatter[i].setData([])
@@ -1212,7 +1259,7 @@ def main():
             cur_gdSNR = gd_snr[-1, baseline_idx]
             heapq.heappushpop(
                 heimdallr_sm.best_gd_SNR[baseline_idx],
-                (cur_gdSNR, opds[baseline_idx]),
+                (cur_gdSNR, opds[baseline_idx], time.time()),
             )
 
         # Update scatter plots for best_v2_K1 and best_v2_K2
@@ -1224,12 +1271,33 @@ def main():
             # y1, x1 = zip(*k1_points)
             # y2, x2 = zip(*k2_points)
 
-            y1, x1 = zip(*heimdallr_sm.best_gd_SNR[i])
+            point_data = heimdallr_sm.best_gd_SNR[i]
+            y1 = np.array([snr for snr, _, _ in point_data], dtype=float)
+            x1 = np.array([opd for _, opd, _ in point_data], dtype=float)
+            t1 = np.array([ts for _, _, ts in point_data], dtype=float)
 
-            scatter_items_gd[i].setData(x=x1, y=y1)
+            ages = np.maximum(0.0, time.time() - t1)
+            fill_alphas = np.clip(1.0 - (ages / FADE_DURATION_SECONDS), 0.0, 1.0)
+            base_color = BASELINE_COLORS[i].color()
+            edge_pen = pg.mkPen(base_color, width=SCATTER_EDGE_WIDTH)
+            spots = []
+            for j in range(len(x1)):
+                fill_color = QtGui.QColor(base_color)
+                fill_color.setAlphaF(float(fill_alphas[j]))
+                spots.append(
+                    {
+                        "pos": (x1[j], y1[j]),
+                        "pen": edge_pen,
+                        "brush": pg.mkBrush(fill_color),
+                    }
+                )
+
+            scatter_items_gd[i].setData(spots=spots)
 
             # scatter_items_k1[i].setData(x=x1, y=y1)
             # scatter_items_k2[i].setData(x=x2, y=y2)
+
+        update_prediction_lines(compute_new_opds_from_n_best(4)[-1])
 
         # update gd_snr_vs_offsets
         baselines_of_interest = [1, 3, 5]  # baselines involving telescope 1,2,4 with 3
@@ -1250,9 +1318,23 @@ def main():
             offsets = np.array(gd_obj.offsets, dtype=float)
             means = np.array(gd_obj.gd_snr_mean, dtype=float)
             stds = np.array(gd_obj.gd_snr_std, dtype=float)
+            timestamps = np.array(gd_obj.timestamps, dtype=float)
             if offsets.size > 0 and means.size > 0 and stds.size > 0:
-                spots = [{"pos": (offsets[j], means[j])} for j in range(len(offsets))]
-                gd_snr_vs_offset_scatter[i].setData(spots)
+                ages = np.maximum(0.0, time.time() - timestamps)
+                fill_alphas = np.clip(1.0 - (ages / FADE_DURATION_SECONDS), 0.0, 1.0)
+                base_color = offset_colors[i].color()
+                spots = []
+                for j in range(len(offsets)):
+                    fill_color = QtGui.QColor(base_color)
+                    fill_color.setAlphaF(float(fill_alphas[j]))
+                    spots.append(
+                        {
+                            "pos": (offsets[j], means[j]),
+                            "pen": offset_colors[i],
+                            "brush": pg.mkBrush(fill_color),
+                        }
+                    )
+                gd_snr_vs_offset_scatter[i].setData(spots=spots)
                 # Error bars: x=offsets, y=means, top=stds, bottom=stds
                 err_data = dict(x=offsets, y=means, top=stds, bottom=stds)
                 gd_snr_vs_offset_errorbars[i].setData(**err_data)
