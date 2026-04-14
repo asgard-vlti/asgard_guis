@@ -41,7 +41,7 @@ class BLFPoller(QtCore.QThread):
 			try:
 				socket.send_string(f"read BLF{i}")
 				reply = socket.recv_string().strip()
-				values.append(float(int(reply)))
+				values.append(int(float(reply)))
 			except (zmq.error.Again, ValueError, Exception):
 				values.append(None)
 				# Lazy pirate: fresh socket for next request

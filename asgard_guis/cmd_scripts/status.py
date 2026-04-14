@@ -178,10 +178,15 @@ class StatusFormatter:
                             else "N/A"
                         )
                         value_str = str(value)
+                        if field not in ["locked"]:
+                            c = self._state_color(value_str, inverse=inverse)
+                        else:
+                            c = "default"
+
                         add_entry(
                             field,
                             value_str,
-                            self._state_color(value_str, inverse=inverse),
+                            c,
                             indent=2,
                         )
         else:
