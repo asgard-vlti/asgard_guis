@@ -77,6 +77,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.debug = debug
 		self.context = zmq.Context()
 		self.heim_socket = self._build_socket(6660)
+		self.mds_socket = self._build_socket(5555)
+		self.cam_server_socket = self._build_socket(6667, host="mimir")
 		self.baldr_sockets = []
 
 		self.setWindowTitle("ASGARD Shortcuts")
@@ -105,8 +107,17 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		)
 		self.tilts_btn = QtWidgets.QPushButton("Heim. Tilts")
 		self.tilts_btn.clicked.connect(lambda: self._run_script("h-tilts", []))
+		self.sky_mode_btn = QtWidgets.QPushButton("Sky Mode")
+		self.sky_mode_btn.clicked.connect(lambda: self._run_script("s-skymode", []))
+		self.lab_mode_btn = QtWidgets.QPushButton("Lab Mode")
+		self.lab_mode_btn.clicked.connect(lambda: self._run_script("s-labmode", []))
+		self.make_dark_btn = QtWidgets.QPushButton("Make Dark")
+		self.make_dark_btn.clicked.connect(self._make_dark)
 		scripts_layout.addWidget(self.align_btn)
 		scripts_layout.addWidget(self.tilts_btn)
+		scripts_layout.addWidget(self.sky_mode_btn)
+		scripts_layout.addWidget(self.lab_mode_btn)
+		scripts_layout.addWidget(self.make_dark_btn)
 		heim_layout.addLayout(scripts_layout)
 
 		jump_layout = QtWidgets.QGridLayout()
@@ -144,10 +155,9 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.gd_spin.setMaximum(1_000.0)
 		self.gd_spin.setValue(100.0)
 		fringe_layout.addWidget(self.gd_spin)
-
-		self.gd_btn = QtWidgets.QPushButton("Set gd_threshold")
-		self.gd_btn.clicked.connect(self._set_gd_threshold)
-		fringe_layout.addWidget(self.gd_btn)
+		gd_line_edit = self.gd_spin.lineEdit()
+		if gd_line_edit is not None:
+			gd_line_edit.returnPressed.connect(self._set_gd_threshold)
 		heim_layout.addLayout(fringe_layout)
 
 		root.addWidget(heim_group)
@@ -250,11 +260,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			"""
 		)
 
-	def _build_socket(self, port):
+	def _build_socket(self, port, host=None):
 		socket = self.context.socket(zmq.REQ)
 		socket.setsockopt(zmq.SNDTIMEO, 1500)
 		socket.setsockopt(zmq.RCVTIMEO, 2000)
-		socket.connect(f"tcp://{self.host}:{port}")
+		target_host = host if host is not None else self.host
+		socket.connect(f"tcp://{target_host}:{port}")
 		return socket
 
 	def _on_mode_changed(self, index):
@@ -300,6 +311,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		if self.heim_socket is old_socket:
 			self.heim_socket = new_socket
+		if self.mds_socket is old_socket:
+			self.mds_socket = new_socket
+		if self.cam_server_socket is old_socket:
+			self.cam_server_socket = new_socket
 		for i, s in enumerate(self.baldr_sockets):
 			if s is old_socket:
 				self.baldr_sockets[i] = new_socket
@@ -345,6 +360,28 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		value = self.gd_spin.value()
 		self._send_cmd(self.heim_socket, f"set_gd_threshold {value}")
 
+	def _make_dark(self):
+		prev_SBB_state = self._send_cmd(self.mds_socket, "read SBB")
+		self._send_cmd(self.mds_socket, "off SBB")
+		prev_SFF_states = []
+		for i in range(1, 5):
+			prev_SFF_states[i - 1] = self._send_cmd(self.mds_socket, f"read SSF{i}")
+			if (prev_SFF_states[i - 1] != "IN"):
+				mds_cmd = f"moveabs SSF{i} 1.0"
+				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+		#In case of a slow camera mode, a small delay
+		self.msleep(500)
+  		#Now make the dark.
+		self._send_cmd(self.cam_server_socket, "make_dark")
+		# Restore SBB state
+		if int(prev_SBB_state) == 1:
+			self._send_cmd(self.mds_socket, "on SBB")
+		# Restore SFF states
+		for i in range(1, 5):
+			if prev_SFF_states[i - 1] == "OUT":
+				mds_cmd = f"moveabs SSF{i} 0.0"
+				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+
 	def _send_baldr_all(self, cmd):
 		if not cmd or cmd.endswith(" "):
 			self._append_log("[WARN] Command is empty.")
@@ -384,6 +421,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self._poller.wait(2000)
 		self.heim_socket.setsockopt(zmq.LINGER, 0)
 		self.heim_socket.close()
+		self.mds_socket.setsockopt(zmq.LINGER, 0)
+		self.mds_socket.close()
+		self.cam_server_socket.setsockopt(zmq.LINGER, 0)
+		self.cam_server_socket.close()
 		for socket in self.baldr_sockets:
 			socket.setsockopt(zmq.LINGER, 0)
 			socket.close()
