@@ -411,7 +411,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 				self._append_log(f"[ERROR] Baldr{i} {cmd} -> {exc}")
 
 	def _run_script(self, script, args):
-		cmd = [script, *args]
+		cmd = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
 		if self.debug:
 			self._append_log(f"[DEBUG] run: {' '.join(cmd)}")
 			return
