@@ -20,3 +20,5 @@ def main():
     msg = "off SBB"
     response = agu.send_and_get_response(mds_socket, msg)
     print("SBB off")
+
+    print("On sky. Camera gain may or may not need changing (and a new dark)")
