@@ -15,6 +15,13 @@ def main():
     response = agu.send_and_get_response(cam_server_socket, msg)
     print("Camera gain set to 1")
 
+    msg = "off SBB"
+    response = agu.send_and_get_response(mds_socket, msg)
+    time.sleep(2.5)
+
+    msg = "make_dark"
+    response = agu.send_and_get_response(cam_server_socket, msg)
+
     msg = f"asg_setup SSS NAME SBB"  # uses the same information as an eso setup command
     response = agu.send_and_get_response(mds_socket, msg)
 
