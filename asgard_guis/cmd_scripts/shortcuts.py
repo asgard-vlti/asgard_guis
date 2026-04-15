@@ -77,7 +77,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.debug = debug
 		self.context = zmq.Context()
 		self.heim_socket = self._build_socket(6660)
+		self.mds_socket = self._build_socket(5555)
+		self.cam_server_socket = self._build_socket(6667, host="mimir")
 		self.baldr_sockets = []
+		self.current_baldr_mode = "Standard"
 
 		self.setWindowTitle("ASGARD Shortcuts")
 		self._apply_dark_theme()
@@ -98,15 +101,24 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		heim_group = QtWidgets.QGroupBox("Heimdallr")
 		heim_layout = QtWidgets.QVBoxLayout(heim_group)
 
-		scripts_layout = QtWidgets.QHBoxLayout()
+		scripts_layout = QtWidgets.QGridLayout()
 		self.align_btn = QtWidgets.QPushButton("Heim. Internal Align")
 		self.align_btn.clicked.connect(
 			lambda: self._run_script("h-autoalign", ["-a", "ia"])
 		)
 		self.tilts_btn = QtWidgets.QPushButton("Heim. Tilts")
 		self.tilts_btn.clicked.connect(lambda: self._run_script("h-tilts", []))
-		scripts_layout.addWidget(self.align_btn)
-		scripts_layout.addWidget(self.tilts_btn)
+		self.sky_mode_btn = QtWidgets.QPushButton("Sky Mode")
+		self.sky_mode_btn.clicked.connect(lambda: self._run_script("s-skymode", []))
+		self.lab_mode_btn = QtWidgets.QPushButton("Lab Mode")
+		self.lab_mode_btn.clicked.connect(lambda: self._run_script("s-labmode", []))
+		self.make_dark_btn = QtWidgets.QPushButton("Make Dark")
+		self.make_dark_btn.clicked.connect(self._make_dark)
+		scripts_layout.addWidget(self.align_btn, 0, 0)
+		scripts_layout.addWidget(self.tilts_btn, 0, 1)
+		scripts_layout.addWidget(self.sky_mode_btn, 0, 2)
+		scripts_layout.addWidget(self.lab_mode_btn, 1, 0)
+		scripts_layout.addWidget(self.make_dark_btn, 1, 1)
 		heim_layout.addLayout(scripts_layout)
 
 		jump_layout = QtWidgets.QGridLayout()
@@ -144,10 +156,9 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.gd_spin.setMaximum(1_000.0)
 		self.gd_spin.setValue(100.0)
 		fringe_layout.addWidget(self.gd_spin)
-
-		self.gd_btn = QtWidgets.QPushButton("Set gd_threshold")
-		self.gd_btn.clicked.connect(self._set_gd_threshold)
-		fringe_layout.addWidget(self.gd_btn)
+		gd_line_edit = self.gd_spin.lineEdit()
+		if gd_line_edit is not None:
+			gd_line_edit.returnPressed.connect(self._set_gd_threshold)
 		heim_layout.addLayout(fringe_layout)
 
 		root.addWidget(heim_group)
@@ -155,12 +166,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		baldr_group = QtWidgets.QGroupBox("Baldr 1-4")
 		baldr_layout = QtWidgets.QGridLayout(baldr_group)
 
-		baldr_layout.addWidget(QtWidgets.QLabel("BLF state:"), 0, 0)
-		self.blf_status_label = QtWidgets.QLabel("—")
-		baldr_layout.addWidget(self.blf_status_label, 0, 1)
-		baldr_layout.addWidget(QtWidgets.QLabel("Baldr mode:"), 0, 2)
+		baldr_layout.addWidget(QtWidgets.QLabel("Current Baldr mode:"), 0, 0)
+		self.baldr_status_label = QtWidgets.QLabel("—")
+		baldr_layout.addWidget(self.baldr_status_label, 0, 1)
+		baldr_layout.addWidget(QtWidgets.QLabel("Set Baldr mode:"), 0, 2)
 		self.mode_combo = QtWidgets.QComboBox()
-		self.mode_combo.addItems(["standard (6662-6665)", "faint (6671-6674)"])
+		self.mode_combo.addItems(["Set mode...", "Standard", "Faint"])
 		self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
 		baldr_layout.addWidget(self.mode_combo, 0, 3)
 
@@ -250,20 +261,29 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			"""
 		)
 
-	def _build_socket(self, port):
+	def _build_socket(self, port, host=None):
 		socket = self.context.socket(zmq.REQ)
 		socket.setsockopt(zmq.SNDTIMEO, 1500)
 		socket.setsockopt(zmq.RCVTIMEO, 2000)
-		socket.connect(f"tcp://{self.host}:{port}")
+		target_host = host if host is not None else self.host
+		socket.connect(f"tcp://{target_host}:{port}")
 		return socket
 
 	def _on_mode_changed(self, index):
-		script_arg = "standard" if index == 0 else "faint"
+		if index == 0:
+			return
+
+		script_arg = "standard" if index == 1 else "faint"
 		self._run_script("b-mode", [script_arg])
-		self._refresh_baldr_sockets()
+		self.mode_combo.blockSignals(True)
+		self.mode_combo.setCurrentIndex(0)
+		self.mode_combo.blockSignals(False)
 
 	def _on_blf_status(self, status):
-		self.blf_status_label.setText(status)
+		self.baldr_status_label.setText(status)
+		if status in {"Standard", "Faint"} and status != self.current_baldr_mode:
+			self.current_baldr_mode = status
+			self._refresh_baldr_sockets()
 
 	def _refresh_baldr_sockets(self):
 		for socket in self.baldr_sockets:
@@ -271,13 +291,13 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			socket.close()
 
 		self.baldr_sockets = []
-		base = 6662 if self.mode_combo.currentIndex() == 0 else 6671
+		base = 6662 if self.current_baldr_mode == "Standard" else 6671
 		ports = [base + i for i in range(4)]
 		for port in ports:
 			self.baldr_sockets.append(self._build_socket(port))
 
 		self._append_log(
-			f"[INFO] Connected Baldr sockets on {self.host}: {', '.join(str(p) for p in ports)}"
+			f"[INFO] Connected Baldr sockets for {self.current_baldr_mode} mode on {self.host}: {', '.join(str(p) for p in ports)}"
 		)
 
 	def _replace_socket(self, old_socket):
@@ -300,6 +320,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		if self.heim_socket is old_socket:
 			self.heim_socket = new_socket
+		if self.mds_socket is old_socket:
+			self.mds_socket = new_socket
+		if self.cam_server_socket is old_socket:
+			self.cam_server_socket = new_socket
 		for i, s in enumerate(self.baldr_sockets):
 			if s is old_socket:
 				self.baldr_sockets[i] = new_socket
@@ -345,6 +369,28 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		value = self.gd_spin.value()
 		self._send_cmd(self.heim_socket, f"set_gd_threshold {value}")
 
+	def _make_dark(self):
+		prev_SBB_state = self._send_cmd(self.mds_socket, "read SBB")
+		self._send_cmd(self.mds_socket, "off SBB")
+		prev_SFF_states = []
+		for i in range(1, 5):
+			prev_SFF_states[i - 1] = self._send_cmd(self.mds_socket, f"read SSF{i}")
+			if (prev_SFF_states[i - 1] != "IN"):
+				mds_cmd = f"moveabs SSF{i} 1.0"
+				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+		#In case of a slow camera mode, a small delay
+		self.msleep(500)
+  		#Now make the dark.
+		self._send_cmd(self.cam_server_socket, "make_dark")
+		# Restore SBB state
+		if int(prev_SBB_state) == 1:
+			self._send_cmd(self.mds_socket, "on SBB")
+		# Restore SFF states
+		for i in range(1, 5):
+			if prev_SFF_states[i - 1] == "OUT":
+				mds_cmd = f"moveabs SSF{i} 0.0"
+				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+
 	def _send_baldr_all(self, cmd):
 		if not cmd or cmd.endswith(" "):
 			self._append_log("[WARN] Command is empty.")
@@ -365,7 +411,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 				self._append_log(f"[ERROR] Baldr{i} {cmd} -> {exc}")
 
 	def _run_script(self, script, args):
-		cmd = [script, *args]
+		cmd = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
 		if self.debug:
 			self._append_log(f"[DEBUG] run: {' '.join(cmd)}")
 			return
@@ -384,6 +430,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self._poller.wait(2000)
 		self.heim_socket.setsockopt(zmq.LINGER, 0)
 		self.heim_socket.close()
+		self.mds_socket.setsockopt(zmq.LINGER, 0)
+		self.mds_socket.close()
+		self.cam_server_socket.setsockopt(zmq.LINGER, 0)
+		self.cam_server_socket.close()
 		for socket in self.baldr_sockets:
 			socket.setsockopt(zmq.LINGER, 0)
 			socket.close()
