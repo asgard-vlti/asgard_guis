@@ -339,6 +339,7 @@ if QtWidgets is not None:
             super().__init__()
             self._process_name = process_name
             self._opacity_effect: Any = None
+            self._previous_cnt: int | None = None
             self._setup_ui()
 
         def _setup_ui(self) -> None:
@@ -365,9 +366,18 @@ if QtWidgets is not None:
             self.setGraphicsEffect(self._opacity_effect)
             self.set_dimmed(False)
 
-        def _apply_border(self, red_border: bool) -> None:
-            border = "#ff7b7b" if red_border else "#4f5b73"
-            width = 2 if red_border else 1
+        def _apply_border(
+            self, red_border: bool = False, yellow_border: bool = False
+        ) -> None:
+            if red_border:
+                border = "#ff7b7b"
+                width = 2
+            elif yellow_border:
+                border = "#ffd700"
+                width = 2
+            else:
+                border = "#4f5b73"
+                width = 1
             self.setStyleSheet(
                 "QFrame#processBox {"
                 f"border: {width}px solid {border};"
@@ -383,6 +393,8 @@ if QtWidgets is not None:
 
         def update_from_task(self, task_block: dict[str, Any]) -> None:
             html_lines: list[str] = []
+            current_cnt: int | None = None
+
             for entry in task_block["entries"]:
                 indent_level = max(int(entry["indent"]) - 1, 0)
                 indent = "&nbsp;" * (indent_level * 2)
@@ -391,6 +403,14 @@ if QtWidgets is not None:
                 )
                 escaped_value = html.escape(str(entry["value"]))
                 escaped_label = html.escape(str(entry["label"]))
+
+                # Track cnt value if present
+                if escaped_label == "cnt":
+                    try:
+                        current_cnt = int(escaped_value)
+                    except (ValueError, TypeError):
+                        current_cnt = None
+
                 if escaped_label:
                     html_lines.append(
                         f"{indent}<span style='color:#97a2ba'>{escaped_label}:</span> "
@@ -402,7 +422,22 @@ if QtWidgets is not None:
                     )
 
             self.details.setText("<br/>".join(html_lines))
-            self._apply_border(red_border=bool(task_block.get("has_red")))
+
+            # Determine border color: red takes precedence, then yellow if cnt unchanged
+            has_red = bool(task_block.get("has_red"))
+            cnt_unchanged = (
+                current_cnt is not None
+                and self._previous_cnt is not None
+                and current_cnt == self._previous_cnt
+            )
+
+            self._apply_border(
+                red_border=has_red, yellow_border=cnt_unchanged and not has_red
+            )
+
+            # Update previous cnt for next comparison
+            if current_cnt is not None:
+                self._previous_cnt = current_cnt
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
         GRID_COLUMNS = 4
