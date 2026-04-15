@@ -9,6 +9,11 @@ import time
 def main():
     # Open socket connection to DM server
     mds_socket = agu.open_socket_connection("MDS")
+    cam_server_socket = agu.open_socket_connection("cam_server")
+
+    msg = "set_gain 1"
+    response = agu.send_and_get_response(cam_server_socket, msg)
+    print("Camera gain set to 1")
 
     msg = f"asg_setup SSS NAME SBB"  # uses the same information as an eso setup command
     response = agu.send_and_get_response(mds_socket, msg)
