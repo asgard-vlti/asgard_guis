@@ -1,11 +1,13 @@
 import asgard_guis.PDU
 import time
 
+# FIXME have these imported from somewhere common
+MIMIR_OUTLETS = [1, 8]
+PDU_IP_ADDRESS = "192.168.100.11"
 
 def main():
-    MIMIR_OUTLETS = [1, 8]
 
-    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
     pdu.connect()
 
     for outlet in MIMIR_OUTLETS:
