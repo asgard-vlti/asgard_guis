@@ -7,6 +7,7 @@ import os
 MIMIR_OUTLETS = [1, 8]
 PDU_IP_ADDRESS = "192.168.100.11"
 
+
 def _confirm_or_abort(message):
     conf = input(message)
     if conf == "y" or conf == "Y":
@@ -16,6 +17,7 @@ def _confirm_or_abort(message):
     else:
         print(f"Unable to interpret response '{conf}', please try again.")
         return _confirm_or_abort(message)
+
 
 def main():
 
@@ -35,31 +37,32 @@ def main():
     # Execute the shutdown command
     shutdown_result = None
     if not any(_ is None for _ in [rhost, ruser, display]):
-        shutdown_result = subprocess.call([
-            "remsh",
-            f"{rhost}",
-            "-l", f"{ruser}",
-            "-n",
-            f"DISPLAY={display} xterm -e ssh -XC mimir sudo /usr/sbin/shutdown -h now 1>&- 2>&- &"
-        ])
+        shutdown_result = subprocess.call(
+            [
+                "remsh",
+                f"{rhost}",
+                "-l",
+                f"{ruser}",
+                "-n",
+                f"DISPLAY={display} xterm -e ssh -XC mimir sudo /usr/sbin/shutdown -h now 1>&- 2>&- &",
+            ]
+        )
     else:
         proceed_to_poweroff = _confirm_or_abort(
-            "WARNING: At least one env var required for the shutdown " \
-            "command to be sent is missing. This means this script " \
-            "cannot execute the shutdown command on mimir, and " \
-            "you will need to trigger that manually first. " \
-            "Do you will want to " \
+            "WARNING: At least one env var required for the shutdown "
+            "command to be sent is missing. This means this script "
+            "cannot execute the shutdown command on mimir, and "
+            "you will need to trigger that manually first. "
+            "Do you still want to "
             "attempt the power off? (y/n):"
         )
 
-    if proceed_to_poweroff and (
-        shutdown_result is None or shutdown_result != 0
-    ):
+    if proceed_to_poweroff and (shutdown_result is None or shutdown_result != 0):
         proceed_to_poweroff = _confirm_or_abort(
             f"WARNING: Mimir shutdown may not have occurred "
-            f"(return code: {'n/a' if shutdown_result is None else shutdown_result.result}). " \
-            f"Either verify shutdown is proceeding and/or trigger manually and " \
-            f"then type Y, or type N to abort. (y/n):"
+            f"(return code: {'n/a' if shutdown_result is None else shutdown_result.result}). "
+            f"Either verify shutdown is proceeding and/or trigger manually and "
+            f"then type Y to proceed, or type N to abort. (y/n):"
         )
 
     if not proceed_to_poweroff:
