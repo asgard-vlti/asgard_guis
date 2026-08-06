@@ -29,7 +29,8 @@ def main():
     # Execute the shutdown command on mimir
     # This requires passwordless sudo shutdown command to be active on mimir
     # To do this, something like the following should be added to visudo:
-    # %group_name ALL=(ALL) NOPASSWD: /sbin/shutdown
+    # %group_name ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
+    # (Can replace %group_name with user_name , noting lack of %)
     # Gather the required env vars for the remsh command
     rhost = os.getenv("RHOST", None)
     ruser = os.getenv("RUSER", None)
