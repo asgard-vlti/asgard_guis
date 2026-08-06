@@ -1,11 +1,14 @@
 import asgard_guis.PDU
 import time
 
+# FIXME have these imported from somewhere common
+MIMIR_OUTLETS = [1, 8]
+PDU_IP_ADDRESS = "192.168.100.11"
+
 
 def main():
-    MIMIR_OUTLETS = [1, 8]
 
-    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
     pdu.connect()
 
     for outlet in MIMIR_OUTLETS:
@@ -31,6 +34,9 @@ def main():
         print("Mimir is on, expecting 10 mins to boot")
     else:
         print("ERROR: Mimir is not on, check PDU status manually")
+        for outlet, status in zip(MIMIR_OUTLETS, is_on):
+            if not status:
+                print(f"Outlet {outlet} is not reporting on")
 
 
 if __name__ == "__main__":
