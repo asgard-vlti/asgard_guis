@@ -23,6 +23,7 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     QtCore = cast(Any, None)
     QtWidgets = cast(Any, None)
 
+# TODO: add BDS and SSF check and make into a nicer GUI that shows the layout of the instr
 
 class StatusFormatter:
     GREEN = "\033[32m"
