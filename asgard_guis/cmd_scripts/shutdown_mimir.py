@@ -73,6 +73,11 @@ def main():
     for outlet in MIMIR_OUTLETS:
         pdu.switch_outlet_status(outlet, "off")
 
+
+    # Add a 30 second wait to allow shutdown to progress
+    print("Waiting 30s to ensure shutdown has completed...")
+    time.sleep(30.0)
+
     print("Powering off Mimir outlets...")
 
     is_off = [False for _ in MIMIR_OUTLETS]
