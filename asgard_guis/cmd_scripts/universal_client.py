@@ -420,11 +420,11 @@ class UniversalClient(QtWidgets.QMainWindow):
                 # Set ZMQ send/recv timeouts (milliseconds)
                 socket.setsockopt(zmq.SNDTIMEO, 1500)
                 if name=="cam_server":
-                    socket.setsockopt(zmq.RCVTIMEO, 4000)
+                    socket.setsockopt(zmq.RCVTIMEO, 5000)
                 else:
                     socket.setsockopt(zmq.RCVTIMEO, 1500)
             if (name == "cam_server"):
-                tab = ServerTab(name, sockets, rcv_timeout=4000)
+                tab = ServerTab(name, sockets, rcv_timeout=5000)
                 print("Using a longer cam_server timeout")
             else:
                 tab = ServerTab(name, sockets)
