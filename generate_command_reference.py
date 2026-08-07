@@ -23,6 +23,7 @@ class Argument:
     name: str
     type_name: str = "unknown"
     default: str | None = None
+    description: str = ""
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class Command:
     return_type: str
     source_line: int
     usage: str | None = None
+    output_description: str = ""
 
 
 @dataclass(frozen=True)
@@ -469,20 +471,91 @@ def _literal_keyword(call: ast.Call, keyword_name: str) -> str:
     )
 
 
-def _mds_arguments(info: str, format_string: str) -> tuple[Argument, ...]:
+def _optional_literal_keyword(
+    call: ast.Call, keyword_name: str, default: str
+) -> str:
+    for keyword in call.keywords:
+        if keyword.arg == keyword_name:
+            try:
+                value = ast.literal_eval(keyword.value)
+            except (ValueError, SyntaxError) as error:
+                raise ExtractionError(
+                    f"MDS Command.{keyword_name} must be a string literal at line {call.lineno}"
+                ) from error
+            if not isinstance(value, str):
+                raise ExtractionError(
+                    f"MDS Command.{keyword_name} must be a string at line {call.lineno}"
+                )
+            return value
+    return default
+
+
+def _keyword_value(call: ast.Call, keyword_name: str) -> ast.expr:
+    for keyword in call.keywords:
+        if keyword.arg == keyword_name:
+            return keyword.value
+    raise ExtractionError(
+        f"MDS Command is missing {keyword_name!r} at line {call.lineno}"
+    )
+
+
+def _mds_arguments(
+    call: ast.Call, info: str, format_string: str
+) -> tuple[Argument, ...]:
     usage = info.partition(" - ")[0]
-    names = re.findall(r"\{([^}:]+)(?::[^}]*)?\}", usage)
+    usage_names = re.findall(r"\{([^}:]+)(?::[^}]*)?\}", usage)
     format_specs = [
         format_spec
         for _, field_name, format_spec, _ in string.Formatter().parse(format_string)
         if field_name is not None
     ]
-    if len(names) != len(format_specs):
-        return tuple(Argument(name) for name in names)
-    return tuple(
-        Argument(name, "float" if format_spec.endswith("f") else "string")
-        for name, format_spec in zip(names, format_specs)
-    )
+    if len(usage_names) != len(format_specs):
+        raise ExtractionError(
+            f"MDS usage and format string disagree at line {call.lineno}: "
+            f"{len(usage_names)} named arguments versus {len(format_specs)} fields"
+        )
+
+    arguments_node = _keyword_value(call, "arguments")
+    if not isinstance(arguments_node, (ast.Tuple, ast.List)):
+        raise ExtractionError(
+            f"MDS Command.arguments must be a tuple or list at line {call.lineno}"
+        )
+
+    arguments: list[Argument] = []
+    for argument_node in arguments_node.elts:
+        if (
+            not isinstance(argument_node, ast.Call)
+            or not isinstance(argument_node.func, ast.Name)
+            or argument_node.func.id != "CommandArgument"
+            or argument_node.keywords
+            or len(argument_node.args) != 3
+        ):
+            raise ExtractionError(
+                f"Invalid MDS CommandArgument at line {argument_node.lineno}"
+            )
+        try:
+            name, type_name, description = (
+                ast.literal_eval(value) for value in argument_node.args
+            )
+        except (ValueError, SyntaxError) as error:
+            raise ExtractionError(
+                f"MDS CommandArgument values must be string literals at line {argument_node.lineno}"
+            ) from error
+        if not all(isinstance(value, str) for value in (name, type_name, description)):
+            raise ExtractionError(
+                f"MDS CommandArgument values must be strings at line {argument_node.lineno}"
+            )
+        arguments.append(
+            Argument(name=name, type_name=type_name, description=description)
+        )
+
+    metadata_names = [argument.name for argument in arguments]
+    if metadata_names != usage_names:
+        raise ExtractionError(
+            f"MDS argument metadata disagrees with usage at line {call.lineno}: "
+            f"{metadata_names} versus {usage_names}"
+        )
+    return tuple(arguments)
 
 
 def _extract_mds_commands(source_path: Path) -> tuple[Command, ...]:
@@ -514,15 +587,18 @@ def _extract_mds_commands(source_path: Path) -> tuple[Command, ...]:
 
         info = _literal_keyword(value_node, "info")
         format_string = _literal_keyword(value_node, "format_str")
+        output = _literal_keyword(value_node, "output")
+        output_type = _optional_literal_keyword(value_node, "output_type", "str")
         usage, separator, description = info.partition(" - ")
         commands.append(
             Command(
                 name=name,
                 description=description.strip() if separator else info.strip(),
-                arguments=_mds_arguments(info, format_string),
-                return_type="server reply",
+                arguments=_mds_arguments(value_node, info, format_string),
+                return_type=output_type,
                 source_line=key_node.lineno,
                 usage=usage.strip(),
+                output_description=output,
             )
         )
 
@@ -571,6 +647,55 @@ def _source_link(output_path: Path, source_path: Path) -> str:
     return relative.as_posix()
 
 
+def _render_command_details(command: Command, protocol: str) -> list[str]:
+    description = re.sub(r"\s+", " ", command.description).strip()
+    lines = [
+        f"#### `{command.name}`",
+        "",
+        description or "No description provided.",
+        "",
+        f"**Invocation:** `{_command_usage(command, protocol)}`",
+        "",
+        "**Arguments**",
+        "",
+    ]
+
+    if command.arguments:
+        lines.extend(
+            [
+                "| Name | Type | Default | Description |",
+                "| --- | --- | --- | --- |",
+            ]
+        )
+        for argument in command.arguments:
+            default = (
+                "Required"
+                if argument.default is None
+                else f"`{_markdown_cell(argument.default)}`"
+            )
+            argument_description = _markdown_cell(argument.description) or "—"
+            lines.append(
+                f"| `{argument.name}` | `{_markdown_cell(argument.type_name)}` "
+                f"| {default} | {argument_description} |"
+            )
+    else:
+        lines.append("_No arguments._")
+
+    output_description = _markdown_cell(command.output_description) or "—"
+    lines.extend(
+        [
+            "",
+            "**Output**",
+            "",
+            "| Type | Description |",
+            "| --- | --- |",
+            f"| `{_markdown_cell(command.return_type)}` | {output_description} |",
+            "",
+        ]
+    )
+    return lines
+
+
 def _render_server(server: Server, output_path: Path) -> list[str]:
     lines = [f"## {server.name}", ""]
     if server.source is None:
@@ -604,18 +729,22 @@ def _render_server(server: Server, output_path: Path) -> list[str]:
 
     lines.extend(
         [
-            "| Command | Invocation | Returns | Description |",
-            "| --- | --- | --- | --- |",
+            "### Quick reference",
+            "",
+            "| Command | Invocation | Description |",
+            "| --- | --- | --- |",
         ]
     )
     for command in server.commands:
         usage = _markdown_cell(_command_usage(command, server.protocol))
-        description = _markdown_cell(command.description or "No description provided.")
-        return_type = _markdown_cell(command.return_type)
-        lines.append(
-            f"| `{command.name}` | `{usage}` | `{return_type}` | {description} |"
+        description = _markdown_cell(
+            command.description or "No description provided."
         )
-    lines.append("")
+        lines.append(f"| `{command.name}` | `{usage}` | {description} |")
+
+    lines.extend(["", "### Command details", ""])
+    for command in server.commands:
+        lines.extend(_render_command_details(command, server.protocol))
     return lines
 
 

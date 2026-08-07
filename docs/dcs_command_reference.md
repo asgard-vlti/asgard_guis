@@ -18,33 +18,463 @@ Protocol: Commander. Commands documented: 25.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
-| Command | Invocation | Returns | Description |
+### Quick reference
+
+| Command | Invocation | Description |
+| --- | --- | --- |
+| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `cam_conf` | `cam_conf` | Summary of the current camera configuration |
+| `cli` | `cli [arg_0: std::string]` | Direct interface to the camera Command Line Interface. |
+| `command_names` | `command_names` | List all available command names. |
+| `crop_mode` | `crop_mode [arg_0: int]` | Set/unset the cropped readout mode. |
+| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `fetch` | `fetch` | Trigger fetching data from the camera. |
+| `get_det_temp` | `get_det_temp` | Prints the detector temperature. |
+| `get_fps` | `get_fps` | Temporarily stops and restarts readout to ask the camera for it's set frame rate.<br> Use 'status' for the internal saved rate. |
+| `get_gain` | `get_gain` | Prints the current camera gain. |
+| `get_water_temp` | `get_water_temp` | Prints the water temperature. |
+| `help` | `help` | List every command and its description. |
+| `make_dark` | `make_dark` | Records dark for current config. |
+| `ndmr_mode` | `ndmr_mode [arg_0: unsigned int]` | Set/unset the multiple readout mode. |
+| `quit` | `quit` | Stops and closes the server. |
+| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
+| `save_mode` | `save_mode [arg_0: int]` | Set/unset the FITS cube save mode. |
+| `set_fps` | `set_fps [arg_0: float]` | Updates the camera FPS and syncs SHM. |
+| `set_gain` | `set_gain [arg_0: int]` | Updates the camera gain. |
+| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
+| `skip_save_baldr` | `skip_save_baldr [arg_0: int]` | Skip saving BALDR data |
+| `split_mode` | `split_mode [arg_0: int]` | Set/unset the multi ROI use mode. |
+| `status` | `status` | Get the current status of the camera. |
+| `stop` | `stop` | Stop fetching data from the. camera. |
+| `subtract_dark` | `subtract_dark [arg_0: int]` | Set/unset the dark subtraction. |
+
+### Command details
+
+#### `arguments`
+
+Return argument metadata for one command.
+
+**Invocation:** `arguments [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | `JSON` | Return argument metadata for one command. |
-| `cam_conf` | `cam_conf` | `void` | Summary of the current camera configuration |
-| `cli` | `cli [arg_0: std::string]` | `std::string` | Direct interface to the camera Command Line Interface. |
-| `command_names` | `command_names` | `std::vector<std::string>` | List all available command names. |
-| `crop_mode` | `crop_mode [arg_0: int]` | `void` | Set/unset the cropped readout mode. |
-| `description` | `description [arg_0: std::string]` | `std::string` | Describe one command, including its signature. |
-| `fetch` | `fetch` | `void` | Trigger fetching data from the camera. |
-| `get_det_temp` | `get_det_temp` | `float` | Prints the detector temperature. |
-| `get_fps` | `get_fps` | `float` | Temporarily stops and restarts readout to ask the camera for it's set frame rate.<br> Use 'status' for the internal saved rate. |
-| `get_gain` | `get_gain` | `int` | Prints the current camera gain. |
-| `get_water_temp` | `get_water_temp` | `float` | Prints the water temperature. |
-| `help` | `help` | `std::string` | List every command and its description. |
-| `make_dark` | `make_dark` | `void` | Records dark for current config. |
-| `ndmr_mode` | `ndmr_mode [arg_0: unsigned int]` | `void` | Set/unset the multiple readout mode. |
-| `quit` | `quit` | `void` | Stops and closes the server. |
-| `return_type` | `return_type [arg_0: std::string]` | `JSON` | Return the result type for one command. |
-| `save_mode` | `save_mode [arg_0: int]` | `void` | Set/unset the FITS cube save mode. |
-| `set_fps` | `set_fps [arg_0: float]` | `void` | Updates the camera FPS and syncs SHM. |
-| `set_gain` | `set_gain [arg_0: int]` | `void` | Updates the camera gain. |
-| `signature` | `signature [arg_0: std::string]` | `JSON` | Return the arguments and return type for one command. |
-| `skip_save_baldr` | `skip_save_baldr [arg_0: int]` | `void` | Skip saving BALDR data |
-| `split_mode` | `split_mode [arg_0: int]` | `void` | Set/unset the multi ROI use mode. |
-| `status` | `status` | `Status` | Get the current status of the camera. |
-| `stop` | `stop` | `void` | Stop fetching data from the. camera. |
-| `subtract_dark` | `subtract_dark [arg_0: int]` | `void` | Set/unset the dark subtraction. |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `cam_conf`
+
+Summary of the current camera configuration
+
+**Invocation:** `cam_conf`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `cli`
+
+Direct interface to the camera Command Line Interface.
+
+**Invocation:** `cli [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `command_names`
+
+List all available command names.
+
+**Invocation:** `command_names`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::vector<std::string>` | — |
+
+#### `crop_mode`
+
+Set/unset the cropped readout mode.
+
+**Invocation:** `crop_mode [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `description`
+
+Describe one command, including its signature.
+
+**Invocation:** `description [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `fetch`
+
+Trigger fetching data from the camera.
+
+**Invocation:** `fetch`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `get_det_temp`
+
+Prints the detector temperature.
+
+**Invocation:** `get_det_temp`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `float` | — |
+
+#### `get_fps`
+
+Temporarily stops and restarts readout to ask the camera for it's set frame rate. Use 'status' for the internal saved rate.
+
+**Invocation:** `get_fps`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `float` | — |
+
+#### `get_gain`
+
+Prints the current camera gain.
+
+**Invocation:** `get_gain`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `int` | — |
+
+#### `get_water_temp`
+
+Prints the water temperature.
+
+**Invocation:** `get_water_temp`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `float` | — |
+
+#### `help`
+
+List every command and its description.
+
+**Invocation:** `help`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `make_dark`
+
+Records dark for current config.
+
+**Invocation:** `make_dark`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `ndmr_mode`
+
+Set/unset the multiple readout mode.
+
+**Invocation:** `ndmr_mode [arg_0: unsigned int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `unsigned int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `quit`
+
+Stops and closes the server.
+
+**Invocation:** `quit`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `return_type`
+
+Return the result type for one command.
+
+**Invocation:** `return_type [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `save_mode`
+
+Set/unset the FITS cube save mode.
+
+**Invocation:** `save_mode [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_fps`
+
+Updates the camera FPS and syncs SHM.
+
+**Invocation:** `set_fps [arg_0: float]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `float` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_gain`
+
+Updates the camera gain.
+
+**Invocation:** `set_gain [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `signature`
+
+Return the arguments and return type for one command.
+
+**Invocation:** `signature [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `skip_save_baldr`
+
+Skip saving BALDR data
+
+**Invocation:** `skip_save_baldr [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `split_mode`
+
+Set/unset the multi ROI use mode.
+
+**Invocation:** `split_mode [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `status`
+
+Get the current status of the camera.
+
+**Invocation:** `status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `Status` | — |
+
+#### `stop`
+
+Stop fetching data from the. camera.
+
+**Invocation:** `stop`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `subtract_dark`
+
+Set/unset the dark subtraction.
+
+**Invocation:** `subtract_dark [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
 
 ## Deformable mirror server
 
@@ -54,21 +484,246 @@ Protocol: Commander. Commands documented: 13.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
-| Command | Invocation | Returns | Description |
+### Quick reference
+
+| Command | Invocation | Description |
+| --- | --- | --- |
+| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `command_names` | `command_names` | List all available command names. |
+| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `get_nch` | `get_nch` | Returns the number of virtual channels per DM. |
+| `help` | `help` | List every command and its description. |
+| `quit` | `quit` | Stops and closes the server. |
+| `reset` | `reset [arg_0: int, arg_1: int]` | Resets DM #arg_0 channel #arg_1 (or if arg_1=-1). |
+| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
+| `set_nch` | `set_nch [arg_0: int]` | Updates the number of virtual channels per DM. |
+| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
+| `start` | `start` | Starts monitoring shared memory data structures. |
+| `status` | `status` | Returns status of the DM server. |
+| `stop` | `stop` | Stops monitoring shared memory data structures. |
+
+### Command details
+
+#### `arguments`
+
+Return argument metadata for one command.
+
+**Invocation:** `arguments [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | `JSON` | Return argument metadata for one command. |
-| `command_names` | `command_names` | `std::vector<std::string>` | List all available command names. |
-| `description` | `description [arg_0: std::string]` | `std::string` | Describe one command, including its signature. |
-| `get_nch` | `get_nch` | `int` | Returns the number of virtual channels per DM. |
-| `help` | `help` | `std::string` | List every command and its description. |
-| `quit` | `quit` | `void` | Stops and closes the server. |
-| `reset` | `reset [arg_0: int, arg_1: int]` | `void` | Resets DM #arg_0 channel #arg_1 (or if arg_1=-1). |
-| `return_type` | `return_type [arg_0: std::string]` | `JSON` | Return the result type for one command. |
-| `set_nch` | `set_nch [arg_0: int]` | `void` | Updates the number of virtual channels per DM. |
-| `signature` | `signature [arg_0: std::string]` | `JSON` | Return the arguments and return type for one command. |
-| `start` | `start` | `void` | Starts monitoring shared memory data structures. |
-| `status` | `status` | `std::string` | Returns status of the DM server. |
-| `stop` | `stop` | `void` | Stops monitoring shared memory data structures. |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `command_names`
+
+List all available command names.
+
+**Invocation:** `command_names`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::vector<std::string>` | — |
+
+#### `description`
+
+Describe one command, including its signature.
+
+**Invocation:** `description [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `get_nch`
+
+Returns the number of virtual channels per DM.
+
+**Invocation:** `get_nch`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `int` | — |
+
+#### `help`
+
+List every command and its description.
+
+**Invocation:** `help`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `quit`
+
+Stops and closes the server.
+
+**Invocation:** `quit`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `reset`
+
+Resets DM #arg_0 channel #arg_1 (or if arg_1=-1).
+
+**Invocation:** `reset [arg_0: int, arg_1: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+| `arg_1` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `return_type`
+
+Return the result type for one command.
+
+**Invocation:** `return_type [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `set_nch`
+
+Updates the number of virtual channels per DM.
+
+**Invocation:** `set_nch [arg_0: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `signature`
+
+Return the arguments and return type for one command.
+
+**Invocation:** `signature [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `start`
+
+Starts monitoring shared memory data structures.
+
+**Invocation:** `start`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `status`
+
+Returns status of the DM server.
+
+**Invocation:** `status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `stop`
+
+Stops monitoring shared memory data structures.
+
+**Invocation:** `stop`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
 
 ## Heimdallr
 
@@ -78,103 +733,1703 @@ Protocol: Commander. Commands documented: 41.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
-| Command | Invocation | Returns | Description |
+### Quick reference
+
+| Command | Invocation | Description |
+| --- | --- | --- |
+| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `beams_active` | `beams_active [b1: int = 1, b2: int = 1, b3: int = 1, b4: int = 1]` | Set which beams are active |
+| `command_names` | `command_names` | List all available command names. |
+| `default_gains` | `default_gains` | Set the gains to default values |
+| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `dl` | `dl [beam: int, value: double = 0.0]` | Set a delay line value in microns |
+| `dl_type` | `dl_type [type: std::string = "piezo"]` | Set the delay line type and initialize. |
+| `dlr` | `dlr [dl_move1: double = 0.0, dl_move2: double = 0.0, dl_move3: double = 0.0, dl_move4: double = 0.0]` | Move the delay lines by a relative amount |
+| `dls` | `dls [dl1: double, dl2: double, dl3: double, dl4: double]` | Set a delay line value in microns |
+| `expstatus` | `expstatus` | Get the exposure time status (success if complete) |
+| `fixed_dl` | `fixed_dl [value: int = 0]` | Set the fixed delay line value |
+| `foreground` | `foreground [state: int = 1]` | Set (1) or unset (0) foreground delay line offsets |
+| `gain` | `gain [gain: double = 0.0]` | Set the gain for the servo loop |
+| `get_baseline_im` | `get_baseline_im [arg_0: std::string, arg_1: int]` | Get a baseline image for K1 or K2 as an encoded string |
+| `get_gd_toml_offsets` | `get_gd_toml_offsets` | Get the GD phasor offsets for all baselines in microns, to 3 decimal places |
+| `get_ps` | `get_ps [filter: std::string = "K1"]` | Get the power spectrum in 2D |
+| `get_search_offset` | `get_search_offset` | Get the search offset in microns |
+| `ggain` | `ggain [gain: double = 0.0]` | Set the gain for the GD servo loop |
+| `help` | `help` | List every command and its description. |
+| `linear_search` | `linear_search [beam: uint, start: double, stop: double, rate: double = 1.0, search_dt_ms: uint = 200, search_snr_threshold: double = 10.0]` | Execute a linear fringe search on a single beam (1,2,3 or 4) |
+| `offload` | `offload [mode: std::string = "off"]` | Set the offload (slow servo) mode |
+| `offload_gd_gain` | `offload_gd_gain [gain: double = 0.0]` | Set the gain when operating GD only in steps |
+| `offload_time` | `offload_time [time: uint = 1000]` | Set the offload time in ms |
+| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
+| `search` | `search [delta: double = 0.5, turnaround: uint = 10]` | Set the fringe tracker search parameter |
+| `servo` | `servo [mode: std::string = "off"]` | Set the servo mode |
+| `set_bad_pixels` | `set_bad_pixels [k1x: std::vector<unsigned int> = std::vector<int>(), k1y: std::vector<unsigned int> = std::vector<int>(), k2x: std::vector<unsigned int> = std::vector<int>(), k2y: std::vector<unsigned int> = std::vector<int>()]` | Set the bad pixel map from 4 vectors |
+| `set_dit` | `set_dit [dit: double = 0.001]` | Set the DIT in seconds |
+| `set_gd_boxcar` | `set_gd_boxcar [n: int = 32]` | Set the number of frames for the GD boxcar average |
+| `set_gd_offsets` | `set_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]` | Set the GD offsets directly from a list of offsets for beams 1,2,4 |
+| `set_gd_search_reset` | `set_gd_search_reset [value: double = 5.0]` | Set GD search reset threshold |
+| `set_gd_threshold` | `set_gd_threshold [value: double = 5.0]` | Set GD SNR threshold |
+| `set_itime` | `set_itime [itime: double = 100]` | Set the target integration time |
+| `set_pd_threshold` | `set_pd_threshold [value: double = 4.5]` | Set PD SNR threshold |
+| `set_search_offset` | `set_search_offset [offset: std::vector<double> = std::vector<double>(N_TEL, 0.0)]` | Set the search offset in microns. <br> This is added to the search position when starting a search. |
+| `settings` | `settings` | Get current system settings |
+| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
+| `status` | `status` | Get the status of the system |
+| `test` | `test [beam: uint, value: double = 0.0, n: int = 10]` | Make a test pattern - fractional DM motion every n samples. |
+| `tweak_gd_offsets` | `tweak_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]` | Add offsets to beams 1,2,4 and project to baseline space |
+| `zero_gd_offsets` | `zero_gd_offsets` | Zero the group delay offsets i.e. track on this position |
+
+### Command details
+
+#### `arguments`
+
+Return argument metadata for one command.
+
+**Invocation:** `arguments [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | `JSON` | Return argument metadata for one command. |
-| `beams_active` | `beams_active [b1: int = 1, b2: int = 1, b3: int = 1, b4: int = 1]` | `void` | Set which beams are active |
-| `command_names` | `command_names` | `std::vector<std::string>` | List all available command names. |
-| `default_gains` | `default_gains` | `std::string` | Set the gains to default values |
-| `description` | `description [arg_0: std::string]` | `std::string` | Describe one command, including its signature. |
-| `dl` | `dl [beam: int, value: double = 0.0]` | `void` | Set a delay line value in microns |
-| `dl_type` | `dl_type [type: std::string = "piezo"]` | `void` | Set the delay line type and initialize. |
-| `dlr` | `dlr [dl_move1: double = 0.0, dl_move2: double = 0.0, dl_move3: double = 0.0, dl_move4: double = 0.0]` | `void` | Move the delay lines by a relative amount |
-| `dls` | `dls [dl1: double, dl2: double, dl3: double, dl4: double]` | `std::string` | Set a delay line value in microns |
-| `expstatus` | `expstatus` | `std::string` | Get the exposure time status (success if complete) |
-| `fixed_dl` | `fixed_dl [value: int = 0]` | `std::string` | Set the fixed delay line value |
-| `foreground` | `foreground [state: int = 1]` | `void` | Set (1) or unset (0) foreground delay line offsets |
-| `gain` | `gain [gain: double = 0.0]` | `void` | Set the gain for the servo loop |
-| `get_baseline_im` | `get_baseline_im [arg_0: std::string, arg_1: int]` | `EncodedImage` | Get a baseline image for K1 or K2 as an encoded string |
-| `get_gd_toml_offsets` | `get_gd_toml_offsets` | `std::vector<double>` | Get the GD phasor offsets for all baselines in microns, to 3 decimal places |
-| `get_ps` | `get_ps [filter: std::string = "K1"]` | `EncodedImage` | Get the power spectrum in 2D |
-| `get_search_offset` | `get_search_offset` | `std::vector<double>` | Get the search offset in microns |
-| `ggain` | `ggain [gain: double = 0.0]` | `void` | Set the gain for the GD servo loop |
-| `help` | `help` | `std::string` | List every command and its description. |
-| `linear_search` | `linear_search [beam: uint, start: double, stop: double, rate: double = 1.0, search_dt_ms: uint = 200, search_snr_threshold: double = 10.0]` | `void` | Execute a linear fringe search on a single beam (1,2,3 or 4) |
-| `offload` | `offload [mode: std::string = "off"]` | `std::string` | Set the offload (slow servo) mode |
-| `offload_gd_gain` | `offload_gd_gain [gain: double = 0.0]` | `void` | Set the gain when operating GD only in steps |
-| `offload_time` | `offload_time [time: uint = 1000]` | `void` | Set the offload time in ms |
-| `return_type` | `return_type [arg_0: std::string]` | `JSON` | Return the result type for one command. |
-| `search` | `search [delta: double = 0.5, turnaround: uint = 10]` | `void` | Set the fringe tracker search parameter |
-| `servo` | `servo [mode: std::string = "off"]` | `void` | Set the servo mode |
-| `set_bad_pixels` | `set_bad_pixels [k1x: std::vector<unsigned int> = std::vector<int>(), k1y: std::vector<unsigned int> = std::vector<int>(), k2x: std::vector<unsigned int> = std::vector<int>(), k2y: std::vector<unsigned int> = std::vector<int>()]` | `std::string` | Set the bad pixel map from 4 vectors |
-| `set_dit` | `set_dit [dit: double = 0.001]` | `std::string` | Set the DIT in seconds |
-| `set_gd_boxcar` | `set_gd_boxcar [n: int = 32]` | `std::string` | Set the number of frames for the GD boxcar average |
-| `set_gd_offsets` | `set_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]` | `void` | Set the GD offsets directly from a list of offsets for beams 1,2,4 |
-| `set_gd_search_reset` | `set_gd_search_reset [value: double = 5.0]` | `void` | Set GD search reset threshold |
-| `set_gd_threshold` | `set_gd_threshold [value: double = 5.0]` | `void` | Set GD SNR threshold |
-| `set_itime` | `set_itime [itime: double = 100]` | `void` | Set the target integration time |
-| `set_pd_threshold` | `set_pd_threshold [value: double = 4.5]` | `void` | Set PD SNR threshold |
-| `set_search_offset` | `set_search_offset [offset: std::vector<double> = std::vector<double>(N_TEL, 0.0)]` | `void` | Set the search offset in microns. <br> This is added to the search position when starting a search. |
-| `settings` | `settings` | `Settings` | Get current system settings |
-| `signature` | `signature [arg_0: std::string]` | `JSON` | Return the arguments and return type for one command. |
-| `status` | `status` | `Status` | Get the status of the system |
-| `test` | `test [beam: uint, value: double = 0.0, n: int = 10]` | `void` | Make a test pattern - fractional DM motion every n samples. |
-| `tweak_gd_offsets` | `tweak_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]` | `void` | Add offsets to beams 1,2,4 and project to baseline space |
-| `zero_gd_offsets` | `zero_gd_offsets` | `void` | Zero the group delay offsets i.e. track on this position |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `beams_active`
+
+Set which beams are active
+
+**Invocation:** `beams_active [b1: int = 1, b2: int = 1, b3: int = 1, b4: int = 1]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `b1` | `int` | `1` | — |
+| `b2` | `int` | `1` | — |
+| `b3` | `int` | `1` | — |
+| `b4` | `int` | `1` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `command_names`
+
+List all available command names.
+
+**Invocation:** `command_names`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::vector<std::string>` | — |
+
+#### `default_gains`
+
+Set the gains to default values
+
+**Invocation:** `default_gains`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `description`
+
+Describe one command, including its signature.
+
+**Invocation:** `description [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `dl`
+
+Set a delay line value in microns
+
+**Invocation:** `dl [beam: int, value: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `beam` | `int` | Required | — |
+| `value` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `dl_type`
+
+Set the delay line type and initialize.
+
+**Invocation:** `dl_type [type: std::string = "piezo"]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `type` | `std::string` | `"piezo"` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `dlr`
+
+Move the delay lines by a relative amount
+
+**Invocation:** `dlr [dl_move1: double = 0.0, dl_move2: double = 0.0, dl_move3: double = 0.0, dl_move4: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dl_move1` | `double` | `0.0` | — |
+| `dl_move2` | `double` | `0.0` | — |
+| `dl_move3` | `double` | `0.0` | — |
+| `dl_move4` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `dls`
+
+Set a delay line value in microns
+
+**Invocation:** `dls [dl1: double, dl2: double, dl3: double, dl4: double]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dl1` | `double` | Required | — |
+| `dl2` | `double` | Required | — |
+| `dl3` | `double` | Required | — |
+| `dl4` | `double` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `expstatus`
+
+Get the exposure time status (success if complete)
+
+**Invocation:** `expstatus`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `fixed_dl`
+
+Set the fixed delay line value
+
+**Invocation:** `fixed_dl [value: int = 0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `int` | `0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `foreground`
+
+Set (1) or unset (0) foreground delay line offsets
+
+**Invocation:** `foreground [state: int = 1]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `int` | `1` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `gain`
+
+Set the gain for the servo loop
+
+**Invocation:** `gain [gain: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `gain` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `get_baseline_im`
+
+Get a baseline image for K1 or K2 as an encoded string
+
+**Invocation:** `get_baseline_im [arg_0: std::string, arg_1: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+| `arg_1` | `int` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `EncodedImage` | — |
+
+#### `get_gd_toml_offsets`
+
+Get the GD phasor offsets for all baselines in microns, to 3 decimal places
+
+**Invocation:** `get_gd_toml_offsets`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::vector<double>` | — |
+
+#### `get_ps`
+
+Get the power spectrum in 2D
+
+**Invocation:** `get_ps [filter: std::string = "K1"]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `filter` | `std::string` | `"K1"` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `EncodedImage` | — |
+
+#### `get_search_offset`
+
+Get the search offset in microns
+
+**Invocation:** `get_search_offset`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::vector<double>` | — |
+
+#### `ggain`
+
+Set the gain for the GD servo loop
+
+**Invocation:** `ggain [gain: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `gain` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `help`
+
+List every command and its description.
+
+**Invocation:** `help`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `linear_search`
+
+Execute a linear fringe search on a single beam (1,2,3 or 4)
+
+**Invocation:** `linear_search [beam: uint, start: double, stop: double, rate: double = 1.0, search_dt_ms: uint = 200, search_snr_threshold: double = 10.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `beam` | `uint` | Required | — |
+| `start` | `double` | Required | — |
+| `stop` | `double` | Required | — |
+| `rate` | `double` | `1.0` | — |
+| `search_dt_ms` | `uint` | `200` | — |
+| `search_snr_threshold` | `double` | `10.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `offload`
+
+Set the offload (slow servo) mode
+
+**Invocation:** `offload [mode: std::string = "off"]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `std::string` | `"off"` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `offload_gd_gain`
+
+Set the gain when operating GD only in steps
+
+**Invocation:** `offload_gd_gain [gain: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `gain` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `offload_time`
+
+Set the offload time in ms
+
+**Invocation:** `offload_time [time: uint = 1000]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `time` | `uint` | `1000` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `return_type`
+
+Return the result type for one command.
+
+**Invocation:** `return_type [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `search`
+
+Set the fringe tracker search parameter
+
+**Invocation:** `search [delta: double = 0.5, turnaround: uint = 10]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `delta` | `double` | `0.5` | — |
+| `turnaround` | `uint` | `10` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `servo`
+
+Set the servo mode
+
+**Invocation:** `servo [mode: std::string = "off"]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `std::string` | `"off"` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_bad_pixels`
+
+Set the bad pixel map from 4 vectors
+
+**Invocation:** `set_bad_pixels [k1x: std::vector<unsigned int> = std::vector<int>(), k1y: std::vector<unsigned int> = std::vector<int>(), k2x: std::vector<unsigned int> = std::vector<int>(), k2y: std::vector<unsigned int> = std::vector<int>()]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `k1x` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
+| `k1y` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
+| `k2x` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
+| `k2y` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `set_dit`
+
+Set the DIT in seconds
+
+**Invocation:** `set_dit [dit: double = 0.001]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dit` | `double` | `0.001` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `set_gd_boxcar`
+
+Set the number of frames for the GD boxcar average
+
+**Invocation:** `set_gd_boxcar [n: int = 32]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `n` | `int` | `32` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `std::string` | — |
+
+#### `set_gd_offsets`
+
+Set the GD offsets directly from a list of offsets for beams 1,2,4
+
+**Invocation:** `set_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `offset1` | `double` | `0.0` | — |
+| `offset2` | `double` | `0.0` | — |
+| `offset4` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_gd_search_reset`
+
+Set GD search reset threshold
+
+**Invocation:** `set_gd_search_reset [value: double = 5.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `double` | `5.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_gd_threshold`
+
+Set GD SNR threshold
+
+**Invocation:** `set_gd_threshold [value: double = 5.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `double` | `5.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_itime`
+
+Set the target integration time
+
+**Invocation:** `set_itime [itime: double = 100]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `itime` | `double` | `100` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_pd_threshold`
+
+Set PD SNR threshold
+
+**Invocation:** `set_pd_threshold [value: double = 4.5]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `double` | `4.5` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `set_search_offset`
+
+Set the search offset in microns. This is added to the search position when starting a search.
+
+**Invocation:** `set_search_offset [offset: std::vector<double> = std::vector<double>(N_TEL, 0.0)]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `offset` | `std::vector<double>` | `std::vector<double>(N_TEL, 0.0)` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `settings`
+
+Get current system settings
+
+**Invocation:** `settings`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `Settings` | — |
+
+#### `signature`
+
+Return the arguments and return type for one command.
+
+**Invocation:** `signature [arg_0: std::string]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `arg_0` | `std::string` | Required | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | — |
+
+#### `status`
+
+Get the status of the system
+
+**Invocation:** `status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `Status` | — |
+
+#### `test`
+
+Make a test pattern - fractional DM motion every n samples.
+
+**Invocation:** `test [beam: uint, value: double = 0.0, n: int = 10]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `beam` | `uint` | Required | — |
+| `value` | `double` | `0.0` | — |
+| `n` | `int` | `10` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `tweak_gd_offsets`
+
+Add offsets to beams 1,2,4 and project to baseline space
+
+**Invocation:** `tweak_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `offset1` | `double` | `0.0` | — |
+| `offset2` | `double` | `0.0` | — |
+| `offset4` | `double` | `0.0` | — |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
+#### `zero_gd_offsets`
+
+Zero the group delay offsets i.e. track on this position
+
+**Invocation:** `zero_gd_offsets`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
 
 ## Multi-device server
 
 Source: [`asgard-alignment/asgard_alignment/MultiDeviceServer.py`](../../asgard-alignment/asgard_alignment/MultiDeviceServer.py)
 
-Protocol: MDS custom text protocol. Commands documented: 45.
+Protocol: MDS custom text protocol. Commands documented: 46.
 
-| Command | Invocation | Returns | Description |
+### Quick reference
+
+| Command | Invocation | Description |
+| --- | --- | --- |
+| `arguments` | `arguments "{command_name}"` | list the expected arguments for a command |
+| `asg_setup` | `asg_setup {axis} {mtype} {value}` | setup axis with motion type and value |
+| `b_shut` | `b_shut {state} {beam_numbers}` | control baldr shutter (state: open/close, beam_numbers: comma-separated or 'all') |
+| `command_names` | `command_names` | list all available commands |
+| `connect` | `connect {axis}` | attempt to open connection to axis |
+| `connected?` | `connected? {axis}` | check if axis is connected, returns 'connected' or 'not connected' |
+| `dmapplycross` | `dmapplycross {dm_name}` | apply cross map to deformable mirror |
+| `dmapplyflat` | `dmapplyflat {dm_name}` | apply flat map to deformable mirror |
+| `fpm_getsavepath` | `fpm_getsavepath {axis}` | get save path for focal plane mask |
+| `fpm_maskpositions` | `fpm_maskpositions {axis}` | get focal plane mask positions |
+| `fpm_moveabs` | `fpm_moveabs {axis} {new_pos}` | move focal plane mask to absolute position |
+| `fpm_moverel` | `fpm_moverel {axis} {new_pos}` | move focal plane mask by relative position |
+| `fpm_movetomask` | `fpm_movetomask {axis} {maskname}` | move focal plane mask to named position |
+| `fpm_offsetallmaskpositions` | `fpm_offsetallmaskpositions {axis} {rel_offset_x} {rel_offset_y}` | offset all focal plane mask positions |
+| `fpm_readpos` | `fpm_readpos {axis}` | read focal plane mask position |
+| `fpm_update_position_file` | `fpm_update_position_file {axis} {filename}` | update focal plane mask position file |
+| `fpm_updateallmaskpos` | `fpm_updateallmaskpos {axis} {current_mask_name} {reference_mask_position_file}` | update all focal plane mask positions relative to current |
+| `fpm_updatemaskpos` | `fpm_updatemaskpos {axis} {mask_name}` | update focal plane mask position |
+| `fpm_writemaskpos` | `fpm_writemaskpos {axis}` | write focal plane mask positions to file |
+| `h_shut` | `h_shut {state} {beam_numbers}` | control heimdallr shutter (state: open/close, beam_numbers: comma-separated or 'all') |
+| `h_splay` | `h_splay {state}` | control heimdallr splay |
+| `health` | `health` | check health of the whole instrument |
+| `home_steppers` | `home_steppers {motor}` | home stepper motors (motor name or 'all') |
+| `init` | `init {axis}` | initialize the given axis |
+| `is_on` | `is_on {lamp_name}` | check if lamp is on |
+| `moveabs` | `moveabs {axis} {position}` | move axis to absolute position |
+| `moverel` | `moverel {axis} {position}` | move axis by relative position |
+| `mv_img` | `mv_img {config} {beam_number} {x} {y}` | move image for given config and beam |
+| `mv_pup` | `mv_pup {config} {beam_number} {x} {y}` | move pupil for given config and beam |
+| `off` | `off {lamp_name}` | turn off lamp |
+| `on` | `on {lamp_name}` | turn on lamp |
+| `online` | `online {axes}` | bring axes online (comma-separated list) |
+| `ping` | `ping {axis}` | ping connection to axis |
+| `read` | `read {axis}` | read the position of the given axis |
+| `reset` | `reset {axis}` | reset the given axis |
+| `rotm_disable` | `rotm_disable` | disable all rotation stage motors |
+| `rotm_slew` | `rotm_slew {adc_set} {reltarget}` | enable and move rotation motor set (adc_set: U or L) |
+| `save` | `save {subset} {filename}` | save instrument state to file (subset: heimdallr, baldr, solarstein, or all) |
+| `set_kaya` | `set_kaya {state}` | set kaya state (state: on/off) |
+| `standby` | `standby {axis}` | put axis into standby mode |
+| `state` | `state {axis}` | read the state of the given axis |
+| `status` | `status` | get system status |
+| `stop` | `stop {axis}` | stop movement of the given axis |
+| `temp_status` | `temp_status {mode}` | get temperature status (mode: 'now' or 'keys') |
+| `tt_config_step` | `tt_config_step {axis} {step_size}` | configure tip-tilt step sizeThe step amplitude is a relative measure. The step amplitude corresponds to the amplitude of the electrical signal sent to the Agilis motor. There is no linear correlation between the step amplitude and the effective motion size. |
+| `tt_step` | `tt_step {axis} {n_steps}` | move tip-tilt stage by n_steps. The step amplitude is a relative measure. The step amplitude corresponds to the amplitude of the electrical signal sent to the Agilis motor. There is no linear correlation between the step amplitude and the effective motion size. |
+
+### Command details
+
+#### `arguments`
+
+list the expected arguments for a command
+
+**Invocation:** `arguments "{command_name}"`
+
+**Arguments**
+
+| Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `asg_setup` | `asg_setup {axis} {mtype} {value}` | `server reply` | setup axis with motion type and value |
-| `b_shut` | `b_shut {state} {beam_numbers}` | `server reply` | control baldr shutter (state: open/close, beam_numbers: comma-separated or 'all') |
-| `command_names` | `command_names` | `server reply` | list all available commands |
-| `connect` | `connect {axis}` | `server reply` | attempt to open connection to axis |
-| `connected?` | `connected? {axis}` | `server reply` | check if axis is connected |
-| `dmapplycross` | `dmapplycross {dm_name}` | `server reply` | apply cross map to deformable mirror |
-| `dmapplyflat` | `dmapplyflat {dm_name}` | `server reply` | apply flat map to deformable mirror |
-| `fpm_getsavepath` | `fpm_getsavepath {axis}` | `server reply` | get save path for focal plane mask |
-| `fpm_maskpositions` | `fpm_maskpositions {axis}` | `server reply` | get focal plane mask positions |
-| `fpm_moveabs` | `fpm_moveabs {axis} {new_pos}` | `server reply` | move focal plane mask to absolute position |
-| `fpm_moverel` | `fpm_moverel {axis} {new_pos}` | `server reply` | move focal plane mask by relative position |
-| `fpm_movetomask` | `fpm_movetomask {axis} {maskname}` | `server reply` | move focal plane mask to named position |
-| `fpm_offsetallmaskpositions` | `fpm_offsetallmaskpositions {axis} {rel_offset_x} {rel_offset_y}` | `server reply` | offset all focal plane mask positions |
-| `fpm_readpos` | `fpm_readpos {axis}` | `server reply` | read focal plane mask position |
-| `fpm_update_position_file` | `fpm_update_position_file {axis} {filename}` | `server reply` | update focal plane mask position file |
-| `fpm_updateallmaskpos` | `fpm_updateallmaskpos {axis} {current_mask_name} {reference_mask_position_file}` | `server reply` | update all focal plane mask positions relative to current |
-| `fpm_updatemaskpos` | `fpm_updatemaskpos {axis} {mask_name}` | `server reply` | update focal plane mask position |
-| `fpm_writemaskpos` | `fpm_writemaskpos {axis}` | `server reply` | write focal plane mask positions to file |
-| `h_shut` | `h_shut {state} {beam_numbers}` | `server reply` | control heimdallr shutter (state: open/close, beam_numbers: comma-separated or 'all') |
-| `h_splay` | `h_splay {state}` | `server reply` | control heimdallr splay |
-| `health` | `health` | `server reply` | check health of the whole instrument |
-| `home_steppers` | `home_steppers {motor}` | `server reply` | home stepper motors (motor name or 'all') |
-| `init` | `init {axis}` | `server reply` | initialize the given axis |
-| `is_on` | `is_on {lamp_name}` | `server reply` | check if lamp is on |
-| `moveabs` | `moveabs {axis} {position}` | `server reply` | move axis to absolute position |
-| `moverel` | `moverel {axis} {position}` | `server reply` | move axis by relative position |
-| `mv_img` | `mv_img {config} {beam_number} {x} {y}` | `server reply` | move image for given config and beam |
-| `mv_pup` | `mv_pup {config} {beam_number} {x} {y}` | `server reply` | move pupil for given config and beam |
-| `off` | `off {lamp_name}` | `server reply` | turn off lamp |
-| `on` | `on {lamp_name}` | `server reply` | turn on lamp |
-| `online` | `online {axes}` | `server reply` | bring axes online (comma-separated list) |
-| `ping` | `ping {axis}` | `server reply` | ping connection to axis |
-| `read` | `read {axis}` | `server reply` | read the position of the given axis |
-| `reset` | `reset {axis}` | `server reply` | reset the given axis |
-| `rotm_disable` | `rotm_disable` | `server reply` | disable all rotation stage motors |
-| `rotm_slew` | `rotm_slew {adc_set} {reltarget}` | `server reply` | enable and move rotation motor set (adc_set: U or L) |
-| `save` | `save {subset} {filename}` | `server reply` | save instrument state to file (subset: heimdallr, baldr, solarstein, or all) |
-| `set_kaya` | `set_kaya {state}` | `server reply` | set kaya state (state: on/off) |
-| `standby` | `standby {axis}` | `server reply` | put axis into standby mode |
-| `state` | `state {axis}` | `server reply` | read the state of the given axis |
-| `status` | `status` | `server reply` | get system status |
-| `stop` | `stop {axis}` | `server reply` | stop movement of the given axis |
-| `temp_status` | `temp_status {mode}` | `server reply` | get temperature status (mode: 'now' or 'keys') |
-| `tt_config_step` | `tt_config_step {axis} {step_size}` | `server reply` | configure tip-tilt step size |
-| `tt_step` | `tt_step {axis} {n_steps}` | `server reply` | move tip-tilt stage by n_steps |
+| `command_name` | `str` | Required | Name of the command to inspect. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | JSON array of name/type objects, JSON null for a command without arguments, or an error object for an unknown command. |
+
+#### `asg_setup`
+
+setup axis with motion type and value
+
+**Invocation:** `asg_setup {axis} {mtype} {value}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+| `mtype` | `str` | Required | Motion/setup type understood by the device. |
+| `value` | `str or float` | Required | Setup value; numeric text is converted to float automatically. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK on success, or NACK with the exception message. |
+
+#### `b_shut`
+
+control baldr shutter (state: open/close, beam_numbers: comma-separated or 'all')
+
+**Invocation:** `b_shut {state} {beam_numbers}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `str` | Required | Either 'open' or 'close'. |
+| `beam_numbers` | `str` | Required | Comma-separated beam numbers from 1 to 4, or 'all'. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response on success, or NACK for an invalid state. |
+
+#### `command_names`
+
+list all available commands
+
+**Invocation:** `command_names`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | JSON array containing every command name. |
+
+#### `connect`
+
+attempt to open connection to axis
+
+**Invocation:** `connect {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | 'connected' or 'not connected' after the connection attempt. |
+
+#### `connected?`
+
+check if axis is connected, returns 'connected' or 'not connected'
+
+**Invocation:** `connected? {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | 'connected' or 'not connected'. |
+
+#### `dmapplycross`
+
+apply cross map to deformable mirror
+
+**Invocation:** `dmapplycross {dm_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dm_name` | `str` | Required | Deformable mirror device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK naming the DM, or NACK if the DM is not found. |
+
+#### `dmapplyflat`
+
+apply flat map to deformable mirror
+
+**Invocation:** `dmapplyflat {dm_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dm_name` | `str` | Required | Deformable mirror device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK naming the DM, or NACK if the DM is not found. |
+
+#### `fpm_getsavepath`
+
+get save path for focal plane mask
+
+**Invocation:** `fpm_getsavepath {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Configured save-directory path, or NACK if the axis is not found. |
+
+#### `fpm_maskpositions`
+
+get focal plane mask positions
+
+**Invocation:** `fpm_maskpositions {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Mapping of mask names to [x, y] positions, or NACK if the axis is not found. |
+
+#### `fpm_moveabs`
+
+move focal plane mask to absolute position
+
+**Invocation:** `fpm_moveabs {axis} {new_pos}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `new_pos` | `sequence[float]` | Required | Two-element [x, y] absolute position in micrometres. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after the move completes, or NACK if the axis is not found. |
+
+#### `fpm_moverel`
+
+move focal plane mask by relative position
+
+**Invocation:** `fpm_moverel {axis} {new_pos}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `new_pos` | `sequence[float]` | Required | Two-element [x, y] relative offset in micrometres. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after the move completes, or NACK if the axis is not found. |
+
+#### `fpm_movetomask`
+
+move focal plane mask to named position
+
+**Invocation:** `fpm_movetomask {axis} {maskname}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `maskname` | `str` | Required | Mask name present in the position mapping. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after the move completes, or NACK if the axis is not found. |
+
+#### `fpm_offsetallmaskpositions`
+
+offset all focal plane mask positions
+
+**Invocation:** `fpm_offsetallmaskpositions {axis} {rel_offset_x} {rel_offset_y}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `rel_offset_x` | `float` | Required | X offset in micrometres. |
+| `rel_offset_y` | `float` | Required | Y offset in micrometres. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after updating all in-memory positions, or NACK if the axis is not found. |
+
+#### `fpm_readpos`
+
+read focal plane mask position
+
+**Invocation:** `fpm_readpos {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Two-element [x, y] position in micrometres, or NACK if the axis is not found. |
+
+#### `fpm_update_position_file`
+
+update focal plane mask position file
+
+**Invocation:** `fpm_update_position_file {axis} {filename}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `filename` | `str` | Required | Path to a phase-position JSON file. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after loading the file, or NACK if the axis is not found. |
+
+#### `fpm_updateallmaskpos`
+
+update all focal plane mask positions relative to current
+
+**Invocation:** `fpm_updateallmaskpos {axis} {current_mask_name} {reference_mask_position_file}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `current_mask_name` | `str` | Required | Mask currently aligned at the measured position. |
+| `reference_mask_position_file` | `str` | Required | JSON file defining the calibrated relative mask positions. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after updating all in-memory positions, or NACK if the axis is not found. |
+
+#### `fpm_updatemaskpos`
+
+update focal plane mask position
+
+**Invocation:** `fpm_updatemaskpos {axis} {mask_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `mask_name` | `str` | Required | Mask whose saved position will be replaced. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after updating the in-memory position, or NACK if the axis is not found. |
+
+#### `fpm_writemaskpos`
+
+write focal plane mask positions to file
+
+**Invocation:** `fpm_writemaskpos {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after writing a timestamped JSON file, or NACK if the axis is not found. |
+
+#### `h_shut`
+
+control heimdallr shutter (state: open/close, beam_numbers: comma-separated or 'all')
+
+**Invocation:** `h_shut {state} {beam_numbers}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `str` | Required | Either 'open' or 'close'. |
+| `beam_numbers` | `str` | Required | Comma-separated beam numbers from 1 to 4, or 'all'. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response on success, or NACK for an invalid state. |
+
+#### `h_splay`
+
+control heimdallr splay
+
+**Invocation:** `h_splay {state}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `str` | Required | Either 'on' or 'off'. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response on success; NACK with usage information on error. |
+
+#### `health`
+
+check health of the whole instrument
+
+**Invocation:** `health`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | JSON list of objects containing axis, motor_type, is_connected, and state. |
+
+#### `home_steppers`
+
+home stepper motors (motor name or 'all')
+
+**Invocation:** `home_steppers {motor}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `motor` | `str` | Required | Stepper motor name, or 'all' for every stepper. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response after homing completes. |
+
+#### `init`
+
+initialize the given axis
+
+**Invocation:** `init {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after initialization completes. |
+
+#### `is_on`
+
+check if lamp is on
+
+**Invocation:** `is_on {lamp_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lamp_name` | `str` | Required | Lamp device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Boolean lamp state converted to text. |
+
+#### `moveabs`
+
+move axis to absolute position
+
+**Invocation:** `moveabs {axis} {position}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Motor device name. |
+| `position` | `float` | Required | Target in the device's configured position units. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after the move command and database update are issued. |
+
+#### `moverel`
+
+move axis by relative position
+
+**Invocation:** `moverel {axis} {position}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Motor device name. |
+| `position` | `float` | Required | Signed offset in the device's configured position units. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after the relative move is issued. |
+
+#### `mv_img`
+
+move image for given config and beam
+
+**Invocation:** `mv_img {config} {beam_number} {x} {y}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `config` | `str` | Required | One of 'c_red_one_focus', 'intermediate_focus', or 'baldr'. |
+| `beam_number` | `int` | Required | Beam number from 1 to 4. |
+| `x` | `float` | Required | Requested horizontal shift in pixels. |
+| `y` | `float` | Required | Requested vertical shift in pixels. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | 'ACK: moved' on success, otherwise a NACK explaining the failure. |
+
+#### `mv_pup`
+
+move pupil for given config and beam
+
+**Invocation:** `mv_pup {config} {beam_number} {x} {y}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `config` | `str` | Required | One of 'c_red_one_focus', 'intermediate_focus', or 'baldr'. |
+| `beam_number` | `int` | Required | Beam number from 1 to 4. |
+| `x` | `float` | Required | Requested horizontal shift in pixels. |
+| `y` | `float` | Required | Requested vertical shift in pixels. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | 'ACK: moved' on success, otherwise a NACK explaining the failure. |
+
+#### `off`
+
+turn off lamp
+
+**Invocation:** `off {lamp_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lamp_name` | `str` | Required | Lamp device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after switching the lamp off and updating the database. |
+
+#### `on`
+
+turn on lamp
+
+**Invocation:** `on {lamp_name}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lamp_name` | `str` | Required | Lamp device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after switching the lamp on and updating the database. |
+
+#### `online`
+
+bring axes online (comma-separated list)
+
+**Invocation:** `online {axes}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axes` | `str` | Required | Comma-separated device names without spaces. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response after attempting to connect all requested devices. |
+
+#### `ping`
+
+ping connection to axis
+
+**Invocation:** `ping {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | 'ACK: connected' or 'NACK: not connected'. |
+
+#### `read`
+
+read the position of the given axis
+
+**Invocation:** `read {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Motor or lamp device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Motor position or lamp on/off state as text; NACK if the device type is unsupported. |
+
+#### `reset`
+
+reset the given axis
+
+**Invocation:** `reset {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK on success, or NACK with the exception message. |
+
+#### `rotm_disable`
+
+disable all rotation stage motors
+
+**Invocation:** `rotm_disable`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK after all rotation motors are disabled. |
+
+#### `rotm_slew`
+
+enable and move rotation motor set (adc_set: U or L)
+
+**Invocation:** `rotm_slew {adc_set} {reltarget}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `adc_set` | `str` | Required | Rotation-stage group key, normally 'U' or 'L'. |
+| `reltarget` | `int` | Required | Signed relative target in motor steps. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK on success, or NACK listing valid motor groups. |
+
+#### `save`
+
+save instrument state to file (subset: heimdallr, baldr, solarstein, or all)
+
+**Invocation:** `save {subset} {filename}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `subset` | `str` | Required | One of 'heimdallr', 'baldr', 'solarstein', or 'all'. |
+| `filename` | `str` | Required | Output basename; the server adds its state-directory path and .json suffix. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK when saved; NACK for an invalid subset or an existing file. |
+
+#### `set_kaya`
+
+set kaya state (state: on/off)
+
+**Invocation:** `set_kaya {state}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `str` | Required | Either 'on' or 'off'. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK on success, or NACK for an invalid state. |
+
+#### `standby`
+
+put axis into standby mode
+
+**Invocation:** `standby {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK on success, or NACK if the device is unavailable. |
+
+#### `state`
+
+read the state of the given axis
+
+**Invocation:** `state {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Device state returned by read_state(). |
+
+#### `status`
+
+get system status
+
+**Invocation:** `status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | ACK. |
+
+#### `stop`
+
+stop movement of the given axis
+
+**Invocation:** `stop {axis}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Motor device name. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | String representation of the device stop response. |
+
+#### `temp_status`
+
+get temperature status (mode: 'now' or 'keys')
+
+**Invocation:** `temp_status {mode}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `str` | Required | 'now' for current values or 'keys' for probe names. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Text list of temperatures or probe names; NACK for an invalid mode. |
+
+#### `tt_config_step`
+
+configure tip-tilt step sizeThe step amplitude is a relative measure. The step amplitude corresponds to the amplitude of the electrical signal sent to the Agilis motor. There is no linear correlation between the step amplitude and the effective motion size.
+
+**Invocation:** `tt_config_step {axis} {step_size}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Tip-tilt stage name containing 'HT'. |
+| `step_size` | `int` | Required | Step size accepted by the stage. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response on success; NACK with usage information on error. |
+
+#### `tt_step`
+
+move tip-tilt stage by n_steps. The step amplitude is a relative measure. The step amplitude corresponds to the amplitude of the electrical signal sent to the Agilis motor. There is no linear correlation between the step amplitude and the effective motion size.
+
+**Invocation:** `tt_step {axis} {n_steps}`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `str` | Required | Tip-tilt stage name containing 'HT'. |
+| `n_steps` | `int` | Required | Signed number of steps to move. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | Empty response on success; NACK with usage information on error. |
 
 ## Baldr
 
