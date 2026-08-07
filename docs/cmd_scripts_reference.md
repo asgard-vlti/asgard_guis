@@ -501,8 +501,8 @@ Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/bl
 | `h-shutter` | `h-shutter [--dark-time DARK_TIME] [--beam-time BEAM_TIME] [--use-splay] [--test-mcs]` | Conduct a heimdallr shutter sequence |
 | `h-tilts` | `h-tilts` | Run Heimdallr's internal tip/tilt offload method. |
 | `mcs-client` | `mcs-client [--log-location LOG_LOCATION] [--script-only]` | Run the MDS server. |
-| `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE]` | FT performance data logging script |
-| `save-tt-performance` | `save-tt-performance` | Connect to the socket and save a fixed number of tip/tilt metrology points to a fits file (number as an optional argv input) |
+| `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE]` | Start logging the fringe tracker performance and settings. |
+| `save-tt-performance` | `save-tt-performance` | Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file. |
 | `text-clients` | `text-clients IP_ADDRESS` | Launch the Qt command client for the configured DCS servers. |
 
 ### Script details
@@ -719,7 +719,7 @@ Run the MDS server.
 
 #### `save-ft-performance`
 
-FT performance data logging script
+Start logging the fringe tracker performance and settings.
 
 **Source:** [`dcs/heimdallr/save_ft_performance.py:175`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/save_ft_performance.py#L175)
 
@@ -736,9 +736,9 @@ FT performance data logging script
 
 #### `save-tt-performance`
 
-Connect to the socket and save a fixed number of tip/tilt metrology points to a fits file (number as an optional argv input)
+Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file.
 
-**Source:** [`dcs/baldr_tt/save_tt_performance.py:190`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_tt_performance.py#L190)
+**Source:** [`dcs/baldr_tt/save_tt_performance.py:184`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_tt_performance.py#L184)
 
 **Invocation:** `save-tt-performance`
 
