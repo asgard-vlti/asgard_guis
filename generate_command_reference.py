@@ -24,6 +24,8 @@ from pathlib import Path
 # TODO: headers at the top of each server that are manually written and point to additional docs
 # e.g. a list of axes for the MDS server
 
+# TODO: a generic command doc summarising all the script commands possible in each package too?
+
 DEFAULT_OUTPUT = Path("asgard_guis/docs/dcs_command_reference.md")
 
 
@@ -76,28 +78,52 @@ COMMANDER_BUILT_INS = (
     Command(
         name="description",
         description="Describe one command, including its signature.",
-        arguments=(Argument("arg_0", "std::string"),),
+        arguments=(
+            Argument(
+                "name",
+                "std::string",
+                description="Name of the command to describe.",
+            ),
+        ),
         return_type="std::string",
         source_line=0,
     ),
     Command(
         name="signature",
         description="Return the arguments and return type for one command.",
-        arguments=(Argument("arg_0", "std::string"),),
+        arguments=(
+            Argument(
+                "name",
+                "std::string",
+                description="Name of the command to inspect.",
+            ),
+        ),
         return_type="JSON",
         source_line=0,
     ),
     Command(
         name="arguments",
         description="Return argument metadata for one command.",
-        arguments=(Argument("arg_0", "std::string"),),
+        arguments=(
+            Argument(
+                "name",
+                "std::string",
+                description="Name of the command to inspect.",
+            ),
+        ),
         return_type="JSON",
         source_line=0,
     ),
     Command(
         name="return_type",
         description="Return the result type for one command.",
-        arguments=(Argument("arg_0", "std::string"),),
+        arguments=(
+            Argument(
+                "name",
+                "std::string",
+                description="Name of the command to inspect.",
+            ),
+        ),
         return_type="JSON",
         source_line=0,
     ),
@@ -346,6 +372,32 @@ def _format_cpp_default(expression: str) -> str:
 
 
 def _cpp_named_argument(expression: str) -> Argument | None:
+    helper_match = re.match(r"(?:(?:commander|co)::)?arg\s*\(", expression)
+    if helper_match:
+        opening = expression.find("(", helper_match.start())
+        closing = _matching_delimiter(expression, opening, "(", ")")
+        if expression[closing + 1 :].strip():
+            raise ExtractionError(
+                f"Unsupported Commander argument metadata: {expression}"
+            )
+        helper_arguments = _split_cpp_arguments(expression[opening + 1 : closing])
+        if len(helper_arguments) not in (2, 3):
+            raise ExtractionError(
+                f"Commander arg() expects a name, description, and optional default: {expression}"
+            )
+        name = _cpp_string(helper_arguments[0])
+        description = _cpp_string(helper_arguments[1])
+        if name is None or description is None:
+            raise ExtractionError(
+                f"Commander arg() name and description must be string literals: {expression}"
+            )
+        default = (
+            _format_cpp_default(helper_arguments[2])
+            if len(helper_arguments) == 3
+            else None
+        )
+        return Argument(name=name, default=default, description=description)
+
     parsed = _cpp_string_prefix(expression)
     if parsed is None:
         return None
@@ -440,7 +492,12 @@ def _extract_commander_commands(
 
         if named_arguments:
             command_arguments = tuple(
-                Argument(argument.name, type_name, argument.default)
+                Argument(
+                    argument.name,
+                    type_name,
+                    argument.default,
+                    argument.description,
+                )
                 for argument, type_name in zip(named_arguments, parameter_types)
             )
         else:

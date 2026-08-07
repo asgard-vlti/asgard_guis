@@ -22,12 +22,12 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 | Command | Invocation | Description |
 | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `arguments` | `arguments [name: std::string]` | Return argument metadata for one command. |
 | `cam_conf` | `cam_conf` | Summary of the current camera configuration |
-| `cli` | `cli [arg_0: std::string]` | Direct interface to the camera Command Line Interface. |
+| `cli` | `cli [command: std::string]` | Direct interface to the camera Command Line Interface. |
 | `command_names` | `command_names` | List all available command names. |
-| `crop_mode` | `crop_mode [arg_0: int]` | Set/unset the cropped readout mode. |
-| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `crop_mode` | `crop_mode [mode: int]` | Set/unset the cropped readout mode. |
+| `description` | `description [name: std::string]` | Describe one command, including its signature. |
 | `fetch` | `fetch` | Trigger fetching data from the camera. |
 | `get_det_temp` | `get_det_temp` | Prints the detector temperature. |
 | `get_fps` | `get_fps` | Temporarily stops and restarts readout to ask the camera for it's set frame rate.<br> Use 'status' for the internal saved rate. |
@@ -35,18 +35,18 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `get_water_temp` | `get_water_temp` | Prints the water temperature. |
 | `help` | `help` | List every command and its description. |
 | `make_dark` | `make_dark` | Records dark for current config. |
-| `ndmr_mode` | `ndmr_mode [arg_0: unsigned int]` | Set/unset the multiple readout mode. |
+| `ndmr_mode` | `ndmr_mode [reads: unsigned int]` | Set/unset the multiple readout mode. |
 | `quit` | `quit` | Stops and closes the server. |
-| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
-| `save_mode` | `save_mode [arg_0: int]` | Set/unset the FITS cube save mode. |
-| `set_fps` | `set_fps [arg_0: float]` | Updates the camera FPS and syncs SHM. |
-| `set_gain` | `set_gain [arg_0: int]` | Updates the camera gain. |
-| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
-| `skip_save_baldr` | `skip_save_baldr [arg_0: int]` | Skip saving BALDR data |
-| `split_mode` | `split_mode [arg_0: int]` | Set/unset the multi ROI use mode. |
+| `return_type` | `return_type [name: std::string]` | Return the result type for one command. |
+| `save_mode` | `save_mode [mode: int]` | Set/unset the FITS cube save mode. |
+| `set_fps` | `set_fps [fps: float]` | Updates the camera FPS and syncs SHM. |
+| `set_gain` | `set_gain [gain: int]` | Updates the camera gain. |
+| `signature` | `signature [name: std::string]` | Return the arguments and return type for one command. |
+| `skip_save_baldr` | `skip_save_baldr [mode: int]` | Skip saving BALDR data |
+| `split_mode` | `split_mode [mode: int]` | Set/unset the multi ROI use mode. |
 | `status` | `status` | Get the current status of the camera. |
 | `stop` | `stop` | Stop fetching data from the. camera. |
-| `subtract_dark` | `subtract_dark [arg_0: int]` | Set/unset the dark subtraction. |
+| `subtract_dark` | `subtract_dark [mode: int]` | Set/unset the dark subtraction. |
 
 ### Command details
 
@@ -54,13 +54,13 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 Return argument metadata for one command.
 
-**Invocation:** `arguments [arg_0: std::string]`
+**Invocation:** `arguments [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -88,13 +88,13 @@ _No arguments._
 
 Direct interface to the camera Command Line Interface.
 
-**Invocation:** `cli [arg_0: std::string]`
+**Invocation:** `cli [command: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `command` | `std::string` | Required | Raw command string forwarded to the camera CLI. |
 
 **Output**
 
@@ -122,13 +122,13 @@ _No arguments._
 
 Set/unset the cropped readout mode.
 
-**Invocation:** `crop_mode [arg_0: int]`
+**Invocation:** `crop_mode [mode: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `mode` | `int` | Required | Positive enables cropped readout; non-positive disables it. |
 
 **Output**
 
@@ -140,13 +140,13 @@ Set/unset the cropped readout mode.
 
 Describe one command, including its signature.
 
-**Invocation:** `description [arg_0: std::string]`
+**Invocation:** `description [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to describe. |
 
 **Output**
 
@@ -270,13 +270,13 @@ _No arguments._
 
 Set/unset the multiple readout mode.
 
-**Invocation:** `ndmr_mode [arg_0: unsigned int]`
+**Invocation:** `ndmr_mode [reads: unsigned int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `unsigned int` | Required | — |
+| `reads` | `unsigned int` | Required | Number of non-destructive reads; values up to 2 select GCDS mode. |
 
 **Output**
 
@@ -304,13 +304,13 @@ _No arguments._
 
 Return the result type for one command.
 
-**Invocation:** `return_type [arg_0: std::string]`
+**Invocation:** `return_type [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -322,13 +322,13 @@ Return the result type for one command.
 
 Set/unset the FITS cube save mode.
 
-**Invocation:** `save_mode [arg_0: int]`
+**Invocation:** `save_mode [mode: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `mode` | `int` | Required | Positive enables FITS cube saving; non-positive disables it. |
 
 **Output**
 
@@ -340,13 +340,13 @@ Set/unset the FITS cube save mode.
 
 Updates the camera FPS and syncs SHM.
 
-**Invocation:** `set_fps [arg_0: float]`
+**Invocation:** `set_fps [fps: float]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `float` | Required | — |
+| `fps` | `float` | Required | Requested camera frame rate in Hz. |
 
 **Output**
 
@@ -358,13 +358,13 @@ Updates the camera FPS and syncs SHM.
 
 Updates the camera gain.
 
-**Invocation:** `set_gain [arg_0: int]`
+**Invocation:** `set_gain [gain: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `gain` | `int` | Required | Detector gain value accepted by the camera. |
 
 **Output**
 
@@ -376,13 +376,13 @@ Updates the camera gain.
 
 Return the arguments and return type for one command.
 
-**Invocation:** `signature [arg_0: std::string]`
+**Invocation:** `signature [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -394,13 +394,13 @@ Return the arguments and return type for one command.
 
 Skip saving BALDR data
 
-**Invocation:** `skip_save_baldr [arg_0: int]`
+**Invocation:** `skip_save_baldr [mode: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `mode` | `int` | Required | Positive skips BALDR streams; non-positive saves all streams. |
 
 **Output**
 
@@ -412,13 +412,13 @@ Skip saving BALDR data
 
 Set/unset the multi ROI use mode.
 
-**Invocation:** `split_mode [arg_0: int]`
+**Invocation:** `split_mode [mode: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `mode` | `int` | Required | Positive enables ROI splitting; non-positive disables it. |
 
 **Output**
 
@@ -462,13 +462,13 @@ _No arguments._
 
 Set/unset the dark subtraction.
 
-**Invocation:** `subtract_dark [arg_0: int]`
+**Invocation:** `subtract_dark [mode: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `mode` | `int` | Required | Positive enables live dark subtraction; non-positive disables it. |
 
 **Output**
 
@@ -488,16 +488,16 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 | Command | Invocation | Description |
 | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `arguments` | `arguments [name: std::string]` | Return argument metadata for one command. |
 | `command_names` | `command_names` | List all available command names. |
-| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `description` | `description [name: std::string]` | Describe one command, including its signature. |
 | `get_nch` | `get_nch` | Returns the number of virtual channels per DM. |
 | `help` | `help` | List every command and its description. |
 | `quit` | `quit` | Stops and closes the server. |
-| `reset` | `reset [arg_0: int, arg_1: int]` | Resets DM #arg_0 channel #arg_1 (or if arg_1=-1). |
-| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
-| `set_nch` | `set_nch [arg_0: int]` | Updates the number of virtual channels per DM. |
-| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
+| `reset` | `reset [dm_id: int, channel: int]` | Resets one or all virtual channels of a DM. |
+| `return_type` | `return_type [name: std::string]` | Return the result type for one command. |
+| `set_nch` | `set_nch [n_channels: int]` | Updates the number of virtual channels per DM. |
+| `signature` | `signature [name: std::string]` | Return the arguments and return type for one command. |
 | `start` | `start` | Starts monitoring shared memory data structures. |
 | `status` | `status` | Returns status of the DM server. |
 | `stop` | `stop` | Stops monitoring shared memory data structures. |
@@ -508,13 +508,13 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 Return argument metadata for one command.
 
-**Invocation:** `arguments [arg_0: std::string]`
+**Invocation:** `arguments [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -542,13 +542,13 @@ _No arguments._
 
 Describe one command, including its signature.
 
-**Invocation:** `description [arg_0: std::string]`
+**Invocation:** `description [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to describe. |
 
 **Output**
 
@@ -606,16 +606,16 @@ _No arguments._
 
 #### `reset`
 
-Resets DM #arg_0 channel #arg_1 (or if arg_1=-1).
+Resets one or all virtual channels of a DM.
 
-**Invocation:** `reset [arg_0: int, arg_1: int]`
+**Invocation:** `reset [dm_id: int, channel: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
-| `arg_1` | `int` | Required | — |
+| `dm_id` | `int` | Required | One-based deformable mirror identifier. |
+| `channel` | `int` | Required | Zero-based virtual channel; a negative value resets all channels. |
 
 **Output**
 
@@ -627,13 +627,13 @@ Resets DM #arg_0 channel #arg_1 (or if arg_1=-1).
 
 Return the result type for one command.
 
-**Invocation:** `return_type [arg_0: std::string]`
+**Invocation:** `return_type [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -645,13 +645,13 @@ Return the result type for one command.
 
 Updates the number of virtual channels per DM.
 
-**Invocation:** `set_nch [arg_0: int]`
+**Invocation:** `set_nch [n_channels: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `int` | Required | — |
+| `n_channels` | `int` | Required | Number of virtual channels to allocate per DM. |
 
 **Output**
 
@@ -663,13 +663,13 @@ Updates the number of virtual channels per DM.
 
 Return the arguments and return type for one command.
 
-**Invocation:** `signature [arg_0: std::string]`
+**Invocation:** `signature [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -737,11 +737,11 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 | Command | Invocation | Description |
 | --- | --- | --- |
-| `arguments` | `arguments [arg_0: std::string]` | Return argument metadata for one command. |
+| `arguments` | `arguments [name: std::string]` | Return argument metadata for one command. |
 | `beams_active` | `beams_active [b1: int = 1, b2: int = 1, b3: int = 1, b4: int = 1]` | Set which beams are active |
 | `command_names` | `command_names` | List all available command names. |
 | `default_gains` | `default_gains` | Set the gains to default values |
-| `description` | `description [arg_0: std::string]` | Describe one command, including its signature. |
+| `description` | `description [name: std::string]` | Describe one command, including its signature. |
 | `dl` | `dl [beam: int, value: double = 0.0]` | Set a delay line value in microns |
 | `dl_type` | `dl_type [type: std::string = "piezo"]` | Set the delay line type and initialize. |
 | `dlr` | `dlr [dl_move1: double = 0.0, dl_move2: double = 0.0, dl_move3: double = 0.0, dl_move4: double = 0.0]` | Move the delay lines by a relative amount |
@@ -750,7 +750,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `fixed_dl` | `fixed_dl [value: int = 0]` | Set the fixed delay line value |
 | `foreground` | `foreground [state: int = 1]` | Set (1) or unset (0) foreground delay line offsets |
 | `gain` | `gain [gain: double = 0.0]` | Set the gain for the servo loop |
-| `get_baseline_im` | `get_baseline_im [arg_0: std::string, arg_1: int]` | Get a baseline image for K1 or K2 as an encoded string |
+| `get_baseline_im` | `get_baseline_im [filter: std::string, baseline: int]` | Get a baseline image for K1 or K2 as an encoded string |
 | `get_gd_toml_offsets` | `get_gd_toml_offsets` | Get the GD phasor offsets for all baselines in microns, to 3 decimal places |
 | `get_ps` | `get_ps [filter: std::string = "K1"]` | Get the power spectrum in 2D |
 | `get_search_offset` | `get_search_offset` | Get the search offset in microns |
@@ -760,7 +760,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `offload` | `offload [mode: std::string = "off"]` | Set the offload (slow servo) mode |
 | `offload_gd_gain` | `offload_gd_gain [gain: double = 0.0]` | Set the gain when operating GD only in steps |
 | `offload_time` | `offload_time [time: uint = 1000]` | Set the offload time in ms |
-| `return_type` | `return_type [arg_0: std::string]` | Return the result type for one command. |
+| `return_type` | `return_type [name: std::string]` | Return the result type for one command. |
 | `search` | `search [delta: double = 0.5, turnaround: uint = 10]` | Set the fringe tracker search parameter |
 | `servo` | `servo [mode: std::string = "off"]` | Set the servo mode |
 | `set_bad_pixels` | `set_bad_pixels [k1x: std::vector<unsigned int> = std::vector<int>(), k1y: std::vector<unsigned int> = std::vector<int>(), k2x: std::vector<unsigned int> = std::vector<int>(), k2y: std::vector<unsigned int> = std::vector<int>()]` | Set the bad pixel map from 4 vectors |
@@ -773,7 +773,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `set_pd_threshold` | `set_pd_threshold [value: double = 4.5]` | Set PD SNR threshold |
 | `set_search_offset` | `set_search_offset [offset: std::vector<double> = std::vector<double>(N_TEL, 0.0)]` | Set the search offset in microns. <br> This is added to the search position when starting a search. |
 | `settings` | `settings` | Get current system settings |
-| `signature` | `signature [arg_0: std::string]` | Return the arguments and return type for one command. |
+| `signature` | `signature [name: std::string]` | Return the arguments and return type for one command. |
 | `status` | `status` | Get the status of the system |
 | `test` | `test [beam: uint, value: double = 0.0, n: int = 10]` | Make a test pattern - fractional DM motion every n samples. |
 | `tweak_gd_offsets` | `tweak_gd_offsets [offset1: double = 0.0, offset2: double = 0.0, offset4: double = 0.0]` | Add offsets to beams 1,2,4 and project to baseline space |
@@ -785,13 +785,13 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 
 Return argument metadata for one command.
 
-**Invocation:** `arguments [arg_0: std::string]`
+**Invocation:** `arguments [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -809,10 +809,10 @@ Set which beams are active
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `b1` | `int` | `1` | — |
-| `b2` | `int` | `1` | — |
-| `b3` | `int` | `1` | — |
-| `b4` | `int` | `1` | — |
+| `b1` | `int` | `1` | Beam 1 state: 1 for active, 0 for inactive. |
+| `b2` | `int` | `1` | Beam 2 state: 1 for active, 0 for inactive. |
+| `b3` | `int` | `1` | Beam 3 state: 1 for active, 0 for inactive. |
+| `b4` | `int` | `1` | Beam 4 state: 1 for active, 0 for inactive. |
 
 **Output**
 
@@ -856,13 +856,13 @@ _No arguments._
 
 Describe one command, including its signature.
 
-**Invocation:** `description [arg_0: std::string]`
+**Invocation:** `description [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to describe. |
 
 **Output**
 
@@ -880,8 +880,8 @@ Set a delay line value in microns
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `beam` | `int` | Required | — |
-| `value` | `double` | `0.0` | — |
+| `beam` | `int` | Required | Beam number from 1 to 4. |
+| `value` | `double` | `0.0` | Absolute delay-line position in micrometres. |
 
 **Output**
 
@@ -899,7 +899,7 @@ Set the delay line type and initialize.
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `type` | `std::string` | `"piezo"` | — |
+| `type` | `std::string` | `"piezo"` | Delay-line implementation: 'piezo', 'hfo', 'rmn', or 'off'. |
 
 **Output**
 
@@ -917,10 +917,10 @@ Move the delay lines by a relative amount
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `dl_move1` | `double` | `0.0` | — |
-| `dl_move2` | `double` | `0.0` | — |
-| `dl_move3` | `double` | `0.0` | — |
-| `dl_move4` | `double` | `0.0` | — |
+| `dl_move1` | `double` | `0.0` | Relative beam 1 delay-line move in micrometres. |
+| `dl_move2` | `double` | `0.0` | Relative beam 2 delay-line move in micrometres. |
+| `dl_move3` | `double` | `0.0` | Relative beam 3 delay-line move in micrometres. |
+| `dl_move4` | `double` | `0.0` | Relative beam 4 delay-line move in micrometres. |
 
 **Output**
 
@@ -938,10 +938,10 @@ Set a delay line value in microns
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `dl1` | `double` | Required | — |
-| `dl2` | `double` | Required | — |
-| `dl3` | `double` | Required | — |
-| `dl4` | `double` | Required | — |
+| `dl1` | `double` | Required | Beam 1 delay-line position in micrometres. |
+| `dl2` | `double` | Required | Beam 2 delay-line position in micrometres. |
+| `dl3` | `double` | Required | Beam 3 delay-line position in micrometres. |
+| `dl4` | `double` | Required | Beam 4 delay-line position in micrometres. |
 
 **Output**
 
@@ -975,7 +975,7 @@ Set the fixed delay line value
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `int` | `0` | — |
+| `value` | `int` | `0` | Fixed delay line: 0 for none, or 1 to 4. |
 
 **Output**
 
@@ -993,7 +993,7 @@ Set (1) or unset (0) foreground delay line offsets
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `state` | `int` | `1` | — |
+| `state` | `int` | `1` | 1 applies foreground offsets; 0 removes them. |
 
 **Output**
 
@@ -1011,7 +1011,7 @@ Set the gain for the servo loop
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `gain` | `double` | `0.0` | — |
+| `gain` | `double` | `0.0` | Phase-delay proportional gain. |
 
 **Output**
 
@@ -1023,14 +1023,14 @@ Set the gain for the servo loop
 
 Get a baseline image for K1 or K2 as an encoded string
 
-**Invocation:** `get_baseline_im [arg_0: std::string, arg_1: int]`
+**Invocation:** `get_baseline_im [filter: std::string, baseline: int]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
-| `arg_1` | `int` | Required | — |
+| `filter` | `std::string` | Required | Spectral filter, either 'K1' or 'K2'. |
+| `baseline` | `int` | Required | Zero-based baseline index from 0 to 5. |
 
 **Output**
 
@@ -1064,7 +1064,7 @@ Get the power spectrum in 2D
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `filter` | `std::string` | `"K1"` | — |
+| `filter` | `std::string` | `"K1"` | Spectral filter, either 'K1' or 'K2'. |
 
 **Output**
 
@@ -1098,7 +1098,7 @@ Set the gain for the GD servo loop
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `gain` | `double` | `0.0` | — |
+| `gain` | `double` | `0.0` | Group-delay gain before boxcar normalization. |
 
 **Output**
 
@@ -1132,12 +1132,12 @@ Execute a linear fringe search on a single beam (1,2,3 or 4)
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `beam` | `uint` | Required | — |
-| `start` | `double` | Required | — |
-| `stop` | `double` | Required | — |
-| `rate` | `double` | `1.0` | — |
-| `search_dt_ms` | `uint` | `200` | — |
-| `search_snr_threshold` | `double` | `10.0` | — |
+| `beam` | `uint` | Required | Beam number from 1 to 4. |
+| `start` | `double` | Required | Search start position in micrometres. |
+| `stop` | `double` | Required | Search stop position in micrometres. |
+| `rate` | `double` | `1.0` | Delay-line rate used during the search. |
+| `search_dt_ms` | `uint` | `200` | Interval between search measurements in milliseconds. |
+| `search_snr_threshold` | `double` | `10.0` | SNR threshold that completes the search. |
 
 **Output**
 
@@ -1155,7 +1155,7 @@ Set the offload (slow servo) mode
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `mode` | `std::string` | `"off"` | — |
+| `mode` | `std::string` | `"off"` | One of 'off', 'nested', 'gd', 'mod', or 'manual'. |
 
 **Output**
 
@@ -1173,7 +1173,7 @@ Set the gain when operating GD only in steps
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `gain` | `double` | `0.0` | — |
+| `gain` | `double` | `0.0` | Gain used by group-delay-only offloading. |
 
 **Output**
 
@@ -1191,7 +1191,7 @@ Set the offload time in ms
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `time` | `uint` | `1000` | — |
+| `time` | `uint` | `1000` | Offload interval in milliseconds, from 10 to 10000. |
 
 **Output**
 
@@ -1203,13 +1203,13 @@ Set the offload time in ms
 
 Return the result type for one command.
 
-**Invocation:** `return_type [arg_0: std::string]`
+**Invocation:** `return_type [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -1227,8 +1227,8 @@ Set the fringe tracker search parameter
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `delta` | `double` | `0.5` | — |
-| `turnaround` | `uint` | `10` | — |
+| `delta` | `double` | `0.5` | Search step in micrometres, greater than 0 and at most 10. |
+| `turnaround` | `uint` | `10` | Number of steps before reversing direction, from 1 to 1000. |
 
 **Output**
 
@@ -1246,7 +1246,7 @@ Set the servo mode
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `mode` | `std::string` | `"off"` | — |
+| `mode` | `std::string` | `"off"` | One of 'off', 'simple', 'fight', 'lacour', or 'on'. |
 
 **Output**
 
@@ -1264,10 +1264,10 @@ Set the bad pixel map from 4 vectors
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `k1x` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
-| `k1y` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
-| `k2x` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
-| `k2y` | `std::vector<unsigned int>` | `std::vector<int>()` | — |
+| `k1x` | `std::vector<unsigned int>` | `std::vector<int>()` | X pixel coordinates to mask in the K1 image. |
+| `k1y` | `std::vector<unsigned int>` | `std::vector<int>()` | Y pixel coordinates to mask in the K1 image. |
+| `k2x` | `std::vector<unsigned int>` | `std::vector<int>()` | X pixel coordinates to mask in the K2 image. |
+| `k2y` | `std::vector<unsigned int>` | `std::vector<int>()` | Y pixel coordinates to mask in the K2 image. |
 
 **Output**
 
@@ -1285,7 +1285,7 @@ Set the DIT in seconds
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `dit` | `double` | `0.001` | — |
+| `dit` | `double` | `0.001` | Detector integration time in seconds, no greater than 0.05. |
 
 **Output**
 
@@ -1303,7 +1303,7 @@ Set the number of frames for the GD boxcar average
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `n` | `int` | `32` | — |
+| `n` | `int` | `32` | Number of frames in the group-delay average, from 1 to 1000. |
 
 **Output**
 
@@ -1321,9 +1321,9 @@ Set the GD offsets directly from a list of offsets for beams 1,2,4
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `offset1` | `double` | `0.0` | — |
-| `offset2` | `double` | `0.0` | — |
-| `offset4` | `double` | `0.0` | — |
+| `offset1` | `double` | `0.0` | Absolute phase offset for beam 1 in radians. |
+| `offset2` | `double` | `0.0` | Absolute phase offset for beam 2 in radians. |
+| `offset4` | `double` | `0.0` | Absolute phase offset for beam 4 in radians. |
 
 **Output**
 
@@ -1341,7 +1341,7 @@ Set GD search reset threshold
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `double` | `5.0` | — |
+| `value` | `double` | `5.0` | Group-delay SNR threshold that resets fringe search. |
 
 **Output**
 
@@ -1359,7 +1359,7 @@ Set GD SNR threshold
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `double` | `5.0` | — |
+| `value` | `double` | `5.0` | Group-delay SNR threshold. |
 
 **Output**
 
@@ -1377,7 +1377,7 @@ Set the target integration time
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `itime` | `double` | `100` | — |
+| `itime` | `double` | `100` | Target integration time in seconds, from 0 to 1000. |
 
 **Output**
 
@@ -1395,7 +1395,7 @@ Set PD SNR threshold
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `double` | `4.5` | — |
+| `value` | `double` | `4.5` | Phase-delay SNR threshold. |
 
 **Output**
 
@@ -1413,7 +1413,7 @@ Set the search offset in microns. This is added to the search position when star
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `offset` | `std::vector<double>` | `std::vector<double>(N_TEL, 0.0)` | — |
+| `offset` | `std::vector<double>` | `std::vector<double>(N_TEL, 0.0)` | Per-beam search offsets in micrometres; omitted beams are set to zero. |
 
 **Output**
 
@@ -1441,13 +1441,13 @@ _No arguments._
 
 Return the arguments and return type for one command.
 
-**Invocation:** `signature [arg_0: std::string]`
+**Invocation:** `signature [name: std::string]`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `arg_0` | `std::string` | Required | — |
+| `name` | `std::string` | Required | Name of the command to inspect. |
 
 **Output**
 
@@ -1481,9 +1481,9 @@ Make a test pattern - fractional DM motion every n samples.
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `beam` | `uint` | Required | — |
-| `value` | `double` | `0.0` | — |
-| `n` | `int` | `10` | — |
+| `beam` | `uint` | Required | Beam number from 1 to 4. |
+| `value` | `double` | `0.0` | Fractional DM piston applied by the test pattern. |
+| `n` | `int` | `10` | Number of samples between test-pattern changes. |
 
 **Output**
 
@@ -1501,9 +1501,9 @@ Add offsets to beams 1,2,4 and project to baseline space
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `offset1` | `double` | `0.0` | — |
-| `offset2` | `double` | `0.0` | — |
-| `offset4` | `double` | `0.0` | — |
+| `offset1` | `double` | `0.0` | Phase offset added to beam 1 in radians. |
+| `offset2` | `double` | `0.0` | Phase offset added to beam 2 in radians. |
+| `offset4` | `double` | `0.0` | Phase offset added to beam 4 in radians. |
 
 **Output**
 
@@ -1602,7 +1602,7 @@ list the expected arguments for a command
 
 | Type | Description |
 | --- | --- |
-| `JSON` | JSON array of name/type objects, JSON null for a command without arguments, or an error object for an unknown command. |
+| `JSON` | JSON array of name/type/description objects, JSON null for a command without arguments, or an error object for an unknown command. |
 
 #### `asg_setup`
 

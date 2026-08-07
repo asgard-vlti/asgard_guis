@@ -1,6 +1,7 @@
 import sys
 import zmq
 import json
+from html import escape
 from PyQt5 import QtWidgets, QtGui, QtCore
 import argparse
 import utils
@@ -77,11 +78,12 @@ class ServerTab(QtWidgets.QWidget):
                 self.text_area.append("No arguments required.")
             elif isinstance(args, list) and args and isinstance(args[0], dict):
                 # Display as a table
-                table = "<table border='1' cellspacing='0' cellpadding='2'><tr><th>Name</th><th>Type</th></tr>"
+                table = "<table border='1' cellspacing='0' cellpadding='2'><tr><th>Name</th><th>Type</th><th>Description</th></tr>"
                 for arg in args:
-                    name = arg.get("name", "")
-                    typ = arg.get("type", "")
-                    table += f"<tr><td>{name}</td><td>{typ}</td></tr>"
+                    name = escape(str(arg.get("name", "")))
+                    typ = escape(str(arg.get("type", "")))
+                    description = escape(str(arg.get("description", "")))
+                    table += f"<tr><td>{name}</td><td>{typ}</td><td>{description}</td></tr>"
                 table += "</table>"
                 self.text_area.append(table)
             else:
