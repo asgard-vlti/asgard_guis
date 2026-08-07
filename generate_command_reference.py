@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate an offline Markdown reference for the Asgard command servers."""
+"""Generate an offline Markdown reference for the Asgard command servers.
+This program is not intended to be run on wag.
+Instead, it should be run on a local machine with all asgard repos in a directory, and the file called using
+
+python asgard_guis/generate_command_reference.py
+
+The result is a Markdown file, located at asgard_guis/docs/dcs_command_reference.md by default, which can be viewed in a browser or text editor.
+"""
 
 from __future__ import annotations
 
