@@ -493,6 +493,7 @@ class UniversalLogClient(QtWidgets.QMainWindow):
 
 
 def main():
+    """Launch the Qt log viewer for Asgard server logs."""
     if len(sys.argv) == 1:
         log_root = DEFAULT_LOG_ROOT
     elif len(sys.argv) == 2:

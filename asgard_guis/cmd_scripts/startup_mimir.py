@@ -7,6 +7,7 @@ PDU_IP_ADDRESS = "192.168.100.11"
 
 
 def main():
+    """Power on the Mimir PDU outlets and verify that they report on."""
 
     pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
     pdu.connect()

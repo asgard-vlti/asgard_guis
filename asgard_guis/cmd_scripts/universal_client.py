@@ -474,6 +474,7 @@ class UniversalClient(QtWidgets.QMainWindow):
 
 
 def main():
+    """Launch the Qt command client for the configured Asgard servers."""
     if len(sys.argv) == 1:
         ip_addr = "mimir"
     elif len(sys.argv) == 2:

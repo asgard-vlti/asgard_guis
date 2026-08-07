@@ -20,6 +20,7 @@ def _confirm_or_abort(message):
 
 
 def main():
+    """Shut down Mimir and power off its configured PDU outlets."""
 
     pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
     pdu.connect()
