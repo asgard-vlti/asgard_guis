@@ -14,6 +14,8 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+# TODO: headers at the top of each server that are manually written and point to additional docs
+# e.g. a list of axes for the MDS server
 
 DEFAULT_OUTPUT = Path("asgard_guis/docs/dcs_command_reference.md")
 
@@ -118,7 +120,7 @@ MDS_SOURCE = Path("asgard-alignment/asgard_alignment/MultiDeviceServer.py")
 
 def _cpp_literal_end(text: str, start: int) -> int | None:
     """Return the end of a C++ string/character literal at ``start``."""
-    raw_prefixes = ("u8R\"", "uR\"", "UR\"", "LR\"", "R\"")
+    raw_prefixes = ('u8R"', 'uR"', 'UR"', 'LR"', 'R"')
     for prefix in raw_prefixes:
         if not text.startswith(prefix, start):
             continue
@@ -132,7 +134,7 @@ def _cpp_literal_end(text: str, start: int) -> int | None:
             raise ExtractionError(f"Unterminated raw C++ string at offset {start}")
         return closing + len(delimiter) + 2
 
-    ordinary_prefixes = ("u8\"", "u\"", "U\"", "L\"", '"', "u8'", "u'", "U'", "L'", "'")
+    ordinary_prefixes = ('u8"', 'u"', 'U"', 'L"', '"', "u8'", "u'", "U'", "L'", "'")
     for prefix in ordinary_prefixes:
         if not text.startswith(prefix, start):
             continue
@@ -225,7 +227,9 @@ def _split_cpp_arguments(text: str) -> list[str]:
 
 
 def _decode_cpp_string_token(token: str) -> str:
-    raw_match = re.fullmatch(r'(?:u8|u|U|L)?R"([^ ()\\\t\r\n]*)\((.*)\)\1"', token, re.DOTALL)
+    raw_match = re.fullmatch(
+        r'(?:u8|u|U|L)?R"([^ ()\\\t\r\n]*)\((.*)\)\1"', token, re.DOTALL
+    )
     if raw_match:
         return raw_match.group(2)
 
@@ -383,7 +387,9 @@ def _extract_commander_commands(
             )
         description = _cpp_string(raw_arguments[2]) if len(raw_arguments) >= 3 else ""
         if description is None:
-            raise ExtractionError(f"Non-literal description for {name!r} in {source_path}")
+            raise ExtractionError(
+                f"Non-literal description for {name!r} in {source_path}"
+            )
 
         named_arguments = [
             argument
@@ -391,7 +397,9 @@ def _extract_commander_commands(
             if (argument := _cpp_named_argument(expression)) is not None
         ]
         if len(named_arguments) != len(raw_arguments[3:]):
-            raise ExtractionError(f"Unsupported argument metadata for {name!r} in {source_path}")
+            raise ExtractionError(
+                f"Unsupported argument metadata for {name!r} in {source_path}"
+            )
 
         callable_name = _callable_name(raw_arguments[1])
         signature = (
@@ -471,9 +479,7 @@ def _literal_keyword(call: ast.Call, keyword_name: str) -> str:
     )
 
 
-def _optional_literal_keyword(
-    call: ast.Call, keyword_name: str, default: str
-) -> str:
+def _optional_literal_keyword(call: ast.Call, keyword_name: str, default: str) -> str:
     for keyword in call.keywords:
         if keyword.arg == keyword_name:
             try:
@@ -565,17 +571,24 @@ def _extract_mds_commands(source_path: Path) -> tuple[Command, ...]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
             continue
-        if any(isinstance(target, ast.Name) and target.id == "commands" for target in node.targets):
+        if any(
+            isinstance(target, ast.Name) and target.id == "commands"
+            for target in node.targets
+        ):
             command_dicts.append(node.value)
 
     if not command_dicts:
-        raise ExtractionError(f"Could not find the MDS commands dictionary in {source_path}")
+        raise ExtractionError(
+            f"Could not find the MDS commands dictionary in {source_path}"
+        )
     command_dict = max(command_dicts, key=lambda node: len(node.keys))
     commands: list[Command] = []
 
     for key_node, value_node in zip(command_dict.keys, command_dict.values):
         if key_node is None:
-            raise ExtractionError(f"Dictionary unpacking is not supported in {source_path}")
+            raise ExtractionError(
+                f"Dictionary unpacking is not supported in {source_path}"
+            )
         try:
             name = ast.literal_eval(key_node)
         except (ValueError, SyntaxError) as error:
@@ -583,7 +596,9 @@ def _extract_mds_commands(source_path: Path) -> tuple[Command, ...]:
                 f"MDS command names must be string literals at line {key_node.lineno}"
             ) from error
         if not isinstance(name, str) or not isinstance(value_node, ast.Call):
-            raise ExtractionError(f"Unsupported MDS command entry at line {key_node.lineno}")
+            raise ExtractionError(
+                f"Unsupported MDS command entry at line {key_node.lineno}"
+            )
 
         info = _literal_keyword(value_node, "info")
         format_string = _literal_keyword(value_node, "format_str")
@@ -737,9 +752,7 @@ def _render_server(server: Server, output_path: Path) -> list[str]:
     )
     for command in server.commands:
         usage = _markdown_cell(_command_usage(command, server.protocol))
-        description = _markdown_cell(
-            command.description or "No description provided."
-        )
+        description = _markdown_cell(command.description or "No description provided.")
         lines.append(f"| `{command.name}` | `{usage}` | {description} |")
 
     lines.extend(["", "### Command details", ""])
@@ -858,7 +871,10 @@ def main() -> int:
         return 1
 
     if args.check:
-        if not args.output.is_file() or args.output.read_text(encoding="utf-8") != document:
+        if (
+            not args.output.is_file()
+            or args.output.read_text(encoding="utf-8") != document
+        ):
             print(f"out of date: {args.output}", file=sys.stderr)
             return 1
         print(f"up to date: {args.output}")
