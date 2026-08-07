@@ -259,6 +259,20 @@ class RealWorkspaceIntegrationTests(unittest.TestCase):
             any("find-focal-masks" in warning for warning in warnings), warnings
         )
 
+        document = reference.render_document(
+            repositories, workspace / reference.DEFAULT_OUTPUT
+        )
+        self.assertIn("## asgard_guis (on wag)", document)
+        self.assertIn("## asgard-alignment (on mimir)", document)
+        self.assertIn("## dcs (on mimir)", document)
+        self.assertIn(
+            "https://github.com/asgard-vlti/asgard-alignment/blob/main/"
+            "asgard_alignment/cmd_scripts/b_mode.py#L68",
+            document,
+        )
+        self.assertNotIn("**Entry point:**", document)
+        self.assertEqual(document.count("\n---\n"), 37)
+
     def test_command_scripts_do_not_access_sys_argv_directly(self):
         workspace = Path(__file__).resolve().parent.parent
         roots = (

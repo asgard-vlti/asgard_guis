@@ -14,13 +14,13 @@ from __future__ import annotations
 
 import argparse
 import ast
-import os
 import re
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Iterator
+from urllib.parse import quote
 
 try:
     import tomllib
@@ -39,6 +39,16 @@ REPOSITORIES = (
     Path("asgard-alignment"),
     Path("dcs"),
 )
+DEPLOYMENT_HOSTS = {
+    "asgard_guis": "wag",
+    "asgard-alignment": "mimir",
+    "dcs": "mimir",
+}
+GITHUB_REPOSITORIES = {
+    "asgard_guis": "https://github.com/asgard-vlti/asgard_guis",
+    "asgard-alignment": "https://github.com/asgard-vlti/asgard-alignment",
+    "dcs": "https://github.com/asgard-vlti/dcs",
+}
 
 UNKNOWN = object()
 
@@ -989,9 +999,20 @@ def _markdown_cell(value: str) -> str:
     return value.replace("\n", "<br>")
 
 
-def _source_link(output_path: Path, source_path: Path, line: int | None = None) -> str:
-    relative = Path(os.path.relpath(source_path, output_path.parent)).as_posix()
-    return f"{relative}#L{line}" if line is not None else relative
+def _github_link(
+    repository: RepositoryReference,
+    source_path: Path,
+    line: int | None = None,
+) -> str:
+    try:
+        relative = source_path.relative_to(repository.root).as_posix()
+    except ValueError:
+        relative = source_path.as_posix()
+    github_repository = GITHUB_REPOSITORIES.get(repository.name)
+    if github_repository is None:
+        return f"{relative}#L{line}" if line is not None else relative
+    link = f"{github_repository}/blob/main/{quote(relative)}"
+    return f"{link}#L{line}" if line is not None else link
 
 
 def _display_path(path: Path, repository: RepositoryReference) -> Path:
@@ -1023,13 +1044,17 @@ def _render_argument_table(arguments: tuple[CliArgument, ...]) -> list[str]:
     return lines
 
 
-def _render_repository(
-    repository: RepositoryReference, output_path: Path
-) -> list[str]:
-    pyproject_link = _source_link(output_path, repository.pyproject)
+def _render_repository(repository: RepositoryReference) -> list[str]:
+    pyproject_link = _github_link(repository, repository.pyproject)
     pyproject_display = _display_path(repository.pyproject, repository)
+    deployment_host = DEPLOYMENT_HOSTS.get(repository.name)
+    heading = (
+        f"{repository.name} (on {deployment_host})"
+        if deployment_host
+        else repository.name
+    )
     lines = [
-        f"## {repository.name}",
+        f"## {heading}",
         "",
         f"Scripts declared in [`{pyproject_display.as_posix()}`]({pyproject_link}): "
         f"{len(repository.scripts)}.",
@@ -1046,16 +1071,16 @@ def _render_repository(
         )
     lines.extend(["", "### Script details", ""])
 
-    for script in repository.scripts:
-        source_link = _source_link(output_path, script.source, script.source_line)
+    for index, script in enumerate(repository.scripts):
+        if index:
+            lines.extend(["---", ""])
+        source_link = _github_link(repository, script.source, script.source_line)
         source_display = _display_path(script.source, repository)
         lines.extend(
             [
                 f"#### `{script.command}`",
                 "",
                 script.description,
-                "",
-                f"**Entry point:** `{script.target}`",
                 "",
                 f"**Source:** [`{source_display.as_posix()}:{script.source_line}`]({source_link})",
                 "",
@@ -1121,7 +1146,7 @@ def render_document(
         "",
     ]
     for repository in repositories:
-        lines.extend(_render_repository(repository, output_path))
+        lines.extend(_render_repository(repository))
     return "\n".join(lines).rstrip() + "\n"
 
 

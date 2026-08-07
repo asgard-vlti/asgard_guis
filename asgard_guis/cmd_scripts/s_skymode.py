@@ -1,5 +1,5 @@
 """
-put solarstein in skymode i.e. flippers down, sbb off
+put solarstein in skymode i.e. entrance flippers down, SBB off
 """
 
 import time

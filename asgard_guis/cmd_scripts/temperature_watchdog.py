@@ -18,7 +18,7 @@ def str_to_ls(s):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Temperature watchdog logger")
+    parser = argparse.ArgumentParser(description="Launch temperature watchdog logger")
     parser.add_argument(
         "--duration", type=float, default=8, help="Duration in hours (default: 8)"
     )

@@ -10,9 +10,9 @@ Regenerate it from the Asgard workspace root with:
 python asgard_guis/generate_cmd_scripts_reference.py
 ```
 
-## asgard_guis
+## asgard_guis (on wag)
 
-Scripts declared in [`asgard_guis/pyproject.toml`](../pyproject.toml): 13.
+Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 13.
 
 ### Quick reference
 
@@ -25,11 +25,11 @@ Scripts declared in [`asgard_guis/pyproject.toml`](../pyproject.toml): 13.
 | `mimir-startup` | `mimir-startup` | Power on the Mimir PDU outlets and verify that they report on. |
 | `pu-search-gui` | `pu-search-gui [--debug]` | Pupil Search GUI |
 | `s-labmode` | `s-labmode` | put solarstein in labmode i.e. flippers up, sbb position and sbb on |
-| `s-skymode` | `s-skymode` | put solarstein in skymode i.e. flippers down, sbb off |
+| `s-skymode` | `s-skymode` | put solarstein in skymode i.e. entrance flippers down, SBB off |
 | `shortcuts` | `shortcuts [--host HOST] [--debug]` | ASGARD shortcuts GUI |
 | `status-mimir` | `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--gui]` | Poll watchdog status updates from a ZMQ REQ endpoint. |
 | `temperature-plotting` | `temperature-plotting [LOGFILE] [--window WINDOW] [--interval INTERVAL] [--lookback LOOKBACK]` | Plot temperature logs from temperature_watchdog. |
-| `temperature-watchdog` | `temperature-watchdog [--duration DURATION] [--sampling SAMPLING]` | Temperature watchdog logger |
+| `temperature-watchdog` | `temperature-watchdog [--duration DURATION] [--sampling SAMPLING]` | Launch temperature watchdog logger |
 | `text-clients` | `text-clients [IP_ADDRESS]` | Launch the Qt command client for the configured Asgard servers. |
 
 ### Script details
@@ -38,9 +38,7 @@ Scripts declared in [`asgard_guis/pyproject.toml`](../pyproject.toml): 13.
 
 Real-time scrolling plots for Heimdallr.
 
-**Entry point:** `asgard_guis.cmd_scripts.Heimdallr_RTC_performance:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py:296`](../asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py#L296)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py:296`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py#L296)
 
 **Invocation:** `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [-o {print,heim}]`
 
@@ -53,13 +51,13 @@ Real-time scrolling plots for Heimdallr.
 | `--linewidth` | `float` | No | `2.0` | — | Line width for plot curves (default: 2.0) |
 | `-o`, `--output` | `str` | No | `heim` | `print, heim` | Output method for offsets (default: heim) |
 
+---
+
 #### `im-search-gui`
 
 Spiral Search GUI
 
-**Entry point:** `asgard_guis.cmd_scripts.image_search_gui:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/image_search_gui.py:81`](../asgard_guis/cmd_scripts/image_search_gui.py#L81)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/image_search_gui.py:81`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/image_search_gui.py#L81)
 
 **Invocation:** `im-search-gui [--debug]`
 
@@ -69,13 +67,13 @@ Spiral Search GUI
 | --- | --- | --- | --- | --- | --- |
 | `--debug` | `bool` | No | `False` | — | Enable debug mode (print commands instead of running) |
 
+---
+
 #### `logs-client`
 
 Launch the Qt log viewer for Asgard server logs.
 
-**Entry point:** `asgard_guis.cmd_scripts.log_viewer:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:496`](../asgard_guis/cmd_scripts/log_viewer.py#L496)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:496`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L496)
 
 **Invocation:** `logs-client [LOG_ROOT]`
 
@@ -85,13 +83,13 @@ Launch the Qt log viewer for Asgard server logs.
 | --- | --- | --- | --- | --- | --- |
 | `log_root` | `str` | No | `/home/asg/logs` | — | f'Root directory containing server logs (default: {DEFAULT_LOG_ROOT})' |
 
+---
+
 #### `mimir-shutdown`
 
 Shut down Mimir and power off its configured PDU outlets.
 
-**Entry point:** `asgard_guis.cmd_scripts.shutdown_mimir:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shutdown_mimir.py:22`](../asgard_guis/cmd_scripts/shutdown_mimir.py#L22)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shutdown_mimir.py:22`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shutdown_mimir.py#L22)
 
 **Invocation:** `mimir-shutdown`
 
@@ -99,13 +97,13 @@ Shut down Mimir and power off its configured PDU outlets.
 
 _No command-line arguments._
 
+---
+
 #### `mimir-startup`
 
 Power on the Mimir PDU outlets and verify that they report on.
 
-**Entry point:** `asgard_guis.cmd_scripts.startup_mimir:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/startup_mimir.py:9`](../asgard_guis/cmd_scripts/startup_mimir.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/startup_mimir.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/startup_mimir.py#L9)
 
 **Invocation:** `mimir-startup`
 
@@ -113,13 +111,13 @@ Power on the Mimir PDU outlets and verify that they report on.
 
 _No command-line arguments._
 
+---
+
 #### `pu-search-gui`
 
 Pupil Search GUI
 
-**Entry point:** `asgard_guis.cmd_scripts.pupil_search_gui:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/pupil_search_gui.py:79`](../asgard_guis/cmd_scripts/pupil_search_gui.py#L79)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/pupil_search_gui.py:79`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/pupil_search_gui.py#L79)
 
 **Invocation:** `pu-search-gui [--debug]`
 
@@ -129,13 +127,13 @@ Pupil Search GUI
 | --- | --- | --- | --- | --- | --- |
 | `--debug` | `bool` | No | `False` | — | Enable debug mode (print commands instead of running) |
 
+---
+
 #### `s-labmode`
 
 put solarstein in labmode i.e. flippers up, sbb position and sbb on
 
-**Entry point:** `asgard_guis.cmd_scripts.s_labmode:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_labmode.py:9`](../asgard_guis/cmd_scripts/s_labmode.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_labmode.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_labmode.py#L9)
 
 **Invocation:** `s-labmode`
 
@@ -143,13 +141,13 @@ put solarstein in labmode i.e. flippers up, sbb position and sbb on
 
 _No command-line arguments._
 
+---
+
 #### `s-skymode`
 
-put solarstein in skymode i.e. flippers down, sbb off
+put solarstein in skymode i.e. entrance flippers down, SBB off
 
-**Entry point:** `asgard_guis.cmd_scripts.s_skymode:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_skymode.py:9`](../asgard_guis/cmd_scripts/s_skymode.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_skymode.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_skymode.py#L9)
 
 **Invocation:** `s-skymode`
 
@@ -157,13 +155,13 @@ put solarstein in skymode i.e. flippers down, sbb off
 
 _No command-line arguments._
 
+---
+
 #### `shortcuts`
 
 ASGARD shortcuts GUI
 
-**Entry point:** `asgard_guis.cmd_scripts.shortcuts:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:444`](../asgard_guis/cmd_scripts/shortcuts.py#L444)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:444`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shortcuts.py#L444)
 
 **Invocation:** `shortcuts [--host HOST] [--debug]`
 
@@ -174,13 +172,13 @@ ASGARD shortcuts GUI
 | `--host` | `str` | No | `mimir` | — | ZMQ host |
 | `--debug` | `bool` | No | `False` | — | Log commands without sending or launching scripts |
 
+---
+
 #### `status-mimir`
 
 Poll watchdog status updates from a ZMQ REQ endpoint.
 
-**Entry point:** `asgard_guis.cmd_scripts.status:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:661`](../asgard_guis/cmd_scripts/status.py#L661)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:661`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L661)
 
 **Invocation:** `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--gui]`
 
@@ -192,13 +190,13 @@ Poll watchdog status updates from a ZMQ REQ endpoint.
 | `--request-interval` | `float` | No | `5.0` | — | Seconds between status requests (default: 5.0). |
 | `--gui` | `bool` | No | `True` | — | If the display should be a GUI instead of terminal output |
 
+---
+
 #### `temperature-plotting`
 
 Plot temperature logs from temperature_watchdog.
 
-**Entry point:** `asgard_guis.cmd_scripts.plot_temps:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/plot_temps.py:275`](../asgard_guis/cmd_scripts/plot_temps.py#L275)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/plot_temps.py:275`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/plot_temps.py#L275)
 
 **Invocation:** `temperature-plotting [LOGFILE] [--window WINDOW] [--interval INTERVAL] [--lookback LOOKBACK]`
 
@@ -211,13 +209,13 @@ Plot temperature logs from temperature_watchdog.
 | `--interval` | `float` | No | `5` | — | Update interval in seconds (default: 5) |
 | `--lookback` | `float` | No | `None` | — | Number of minutes to look back in the plot (default: all times) |
 
+---
+
 #### `temperature-watchdog`
 
-Temperature watchdog logger
+Launch temperature watchdog logger
 
-**Entry point:** `asgard_guis.cmd_scripts.temperature_watchdog:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/temperature_watchdog.py:20`](../asgard_guis/cmd_scripts/temperature_watchdog.py#L20)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/temperature_watchdog.py:20`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/temperature_watchdog.py#L20)
 
 **Invocation:** `temperature-watchdog [--duration DURATION] [--sampling SAMPLING]`
 
@@ -228,13 +226,13 @@ Temperature watchdog logger
 | `--duration` | `float` | No | `8` | — | Duration in hours (default: 8) |
 | `--sampling` | `int` | No | `5` | — | Sampling interval in seconds (default: 5) |
 
+---
+
 #### `text-clients`
 
 Launch the Qt command client for the configured Asgard servers.
 
-**Entry point:** `asgard_guis.cmd_scripts.universal_client:main`
-
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:477`](../asgard_guis/cmd_scripts/universal_client.py#L477)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:477`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/universal_client.py#L477)
 
 **Invocation:** `text-clients [IP_ADDRESS]`
 
@@ -244,9 +242,9 @@ Launch the Qt command client for the configured Asgard servers.
 | --- | --- | --- | --- | --- | --- |
 | `ip_address` | `str` | No | `mimir` | — | Server IP address or hostname (default: mimir) |
 
-## asgard-alignment
+## asgard-alignment (on mimir)
 
-Scripts declared in [`asgard-alignment/pyproject.toml`](../../asgard-alignment/pyproject.toml): 12.
+Scripts declared in [`asgard-alignment/pyproject.toml`](https://github.com/asgard-vlti/asgard-alignment/blob/main/pyproject.toml): 12.
 
 ### Quick reference
 
@@ -271,9 +269,7 @@ Scripts declared in [`asgard-alignment/pyproject.toml`](../../asgard-alignment/p
 
 Move ADCs to zero positions
 
-**Entry point:** `asgard_alignment.cmd_scripts.adc_mv_zero:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/adc_mv_zero.py:66`](../../asgard-alignment/asgard_alignment/cmd_scripts/adc_mv_zero.py#L66)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/adc_mv_zero.py:66`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/adc_mv_zero.py#L66)
 
 **Invocation:** `adc-mv-zero [--config CONFIG]`
 
@@ -283,13 +279,13 @@ Move ADCs to zero positions
 | --- | --- | --- | --- | --- | --- |
 | `--config` | `str` | No | `os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config_files', 'adc_slew_config.toml')` | — | Path to the ADC zero positions config file |
 
+---
+
 #### `adc-track`
 
 Slew/track ADCs from target RA/Dec
 
-**Entry point:** `asgard_alignment.cmd_scripts.adc_track:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/adc_track.py:171`](../../asgard-alignment/asgard_alignment/cmd_scripts/adc_track.py#L171)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/adc_track.py:173`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/adc_track.py#L173)
 
 **Invocation:** `adc-track RA DEC [--config CONFIG] [--dry-run] [--track-interval TRACK_INTERVAL] [--lat LAT] [--long LON] [--el EL] [--const-a CONST_A] [--sign1 SIGN1] [--adc-zeropos BACU1 BACL1 BACU2 BACL2 BACU3 BACL3 BACU4 BACL4] [--slew | --track]`
 
@@ -302,7 +298,7 @@ Slew/track ADCs from target RA/Dec
 | `--config` | `str` | No | `DEFAULT_CONFIG_PATH` | — | Path to ADC slew config TOML |
 | `--dry-run` | `bool` | No | `False` | — | Do not send any move command |
 | `--slew` | `bool` | No | `False` | — | Run one-shot slew |
-| `--track` | `bool` | No | `False` | — | Continuously recompute and slew |
+| `--track` | `bool` | No | `False` | — | Continuously recompute and track the rotation during the observation |
 | `--track-interval` | `float` | No | `5.0` | — | Seconds between track updates (only with --track) |
 | `--lat` | `float` | No | `None` | — | Observatory latitude in deg |
 | `--long` | `float` | No | `None` | — | Observatory longitude in deg |
@@ -315,13 +311,13 @@ Slew/track ADCs from target RA/Dec
 
 - `--slew`, `--track`: at most one may be used.
 
+---
+
 #### `b-mode`
 
 Switch the Baldr beams to FAINT or STANDARD mode and restore their state.
 
-**Entry point:** `asgard_alignment.cmd_scripts.b_mode:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_mode.py:68`](../../asgard-alignment/asgard_alignment/cmd_scripts/b_mode.py#L68)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_mode.py:68`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_mode.py#L68)
 
 **Invocation:** `b-mode {FAINT,STANDARD}`
 
@@ -331,13 +327,13 @@ Switch the Baldr beams to FAINT or STANDARD mode and restore their state.
 | --- | --- | --- | --- | --- | --- |
 | `mode` | `str.upper` | Yes | — | `FAINT, STANDARD` | Baldr operating mode |
 
+---
+
 #### `b-savemode`
 
 Archive and save the current Baldr state for FAINT or STANDARD mode.
 
-**Entry point:** `asgard_alignment.cmd_scripts.b_savemode:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:62`](../../asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py#L62)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:62`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_savemode.py#L62)
 
 **Invocation:** `b-savemode {FAINT,STANDARD}`
 
@@ -347,13 +343,13 @@ Archive and save the current Baldr state for FAINT or STANDARD mode.
 | --- | --- | --- | --- | --- | --- |
 | `mode` | `str.upper` | Yes | — | `FAINT, STANDARD` | Baldr state category to save |
 
+---
+
 #### `eng_gui`
 
 Launch the Streamlit engineering GUI unless it is already running.
 
-**Entry point:** `asgard_alignment.cmd_scripts.eng_gui_startup:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/eng_gui_startup.py:12`](../../asgard-alignment/asgard_alignment/cmd_scripts/eng_gui_startup.py#L12)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/eng_gui_startup.py:12`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/eng_gui_startup.py#L12)
 
 **Invocation:** `eng_gui`
 
@@ -361,13 +357,13 @@ Launch the Streamlit engineering GUI unless it is already running.
 
 _No command-line arguments._
 
+---
+
 #### `find-focal-masks`
 
 Find a line of focal-plane mask dots by repeated local raster scans.
 
-**Entry point:** `asgard_alignment.calibration.DanBeamFinder.find_focal_masks:main`
-
-**Source:** [`asgard-alignment/calibration/DanBeamFinder/find_focal_masks.py:146`](../../asgard-alignment/calibration/DanBeamFinder/find_focal_masks.py#L146)
+**Source:** [`asgard-alignment/calibration/DanBeamFinder/find_focal_masks.py:146`](https://github.com/asgard-vlti/asgard-alignment/blob/main/calibration/DanBeamFinder/find_focal_masks.py#L146)
 
 _Resolution note: the declared module path has no matching file; the source was found after stripping its declared package prefix._
 
@@ -388,13 +384,13 @@ _Resolution note: the declared module path has no matching file; the source was 
 | `--detection-threshold` | `float` | No | `0.9` | — | Detection threshold for mask match. Lower is stricter; use values below ~1.0. Default: 0.9. |
 | `--out-file` | `str` | No | `focal_mask_positions.json` | — | Output JSON filename for found dot positions and run metadata. Default: focal_mask_positions.json. |
 
+---
+
 #### `flatten-beam`
 
 Flatten beam wavefront using DM optimization
 
-**Entry point:** `asgard_alignment.cmd_scripts.flatten_beam:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/flatten_beam.py:28`](../../asgard-alignment/asgard_alignment/cmd_scripts/flatten_beam.py#L28)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/flatten_beam.py:28`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/flatten_beam.py#L28)
 
 **Invocation:** `flatten-beam BEAM [--show-plots]`
 
@@ -405,13 +401,13 @@ Flatten beam wavefront using DM optimization
 | `beam` | `int` | Yes | — | — | Beam number |
 | `--show-plots` | `bool` | No | `False` | — | Show plots at the end of optimization |
 
+---
+
 #### `instrument-shutdown`
 
 Run the instrument shutdown sequence, optionally including C-RED.
 
-**Entry point:** `asgard_alignment.cmd_scripts.shutdown_instrument:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:142`](../../asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py#L142)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:142`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/shutdown_instrument.py#L142)
 
 **Invocation:** `instrument-shutdown [inc_CRED]`
 
@@ -421,13 +417,13 @@ Run the instrument shutdown sequence, optionally including C-RED.
 | --- | --- | --- | --- | --- | --- |
 | `include_cred` | `str` | No | `None` | `inc_CRED` | Pass inc_CRED to include the C-RED camera in the shutdown |
 
+---
+
 #### `instrument-startup`
 
 A full system startup, starting from the case where only mimir is on
 
-**Entry point:** `asgard_alignment.cmd_scripts.startup_instrument:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:163`](../../asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py#L163)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:163`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/startup_instrument.py#L163)
 
 **Invocation:** `instrument-startup`
 
@@ -435,13 +431,13 @@ A full system startup, starting from the case where only mimir is on
 
 _No command-line arguments._
 
+---
+
 #### `mds`
 
 Run the MDS server.
 
-**Entry point:** `asgard_alignment.cmd_scripts.mds_startup:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/mds_startup.py:18`](../../asgard-alignment/asgard_alignment/cmd_scripts/mds_startup.py#L18)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/mds_startup.py:18`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/mds_startup.py#L18)
 
 **Invocation:** `mds [--host HOST] [--log-location LOG_LOCATION] [-p PORT]`
 
@@ -453,13 +449,13 @@ Run the MDS server.
 | `--log-location` | `str` | No | `~/logs/mds/` | — | Path to the log directory |
 | `-p`, `--port` | `int` | No | `5555` | — | Port number |
 
+---
+
 #### `restart-kaya`
 
 Power-cycle the Kaya device through the Controllino.
 
-**Entry point:** `asgard_alignment.cmd_scripts.restart_kaya:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/restart_kaya.py:5`](../../asgard-alignment/asgard_alignment/cmd_scripts/restart_kaya.py#L5)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/restart_kaya.py:5`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/restart_kaya.py#L5)
 
 **Invocation:** `restart-kaya`
 
@@ -467,13 +463,13 @@ Power-cycle the Kaya device through the Controllino.
 
 _No command-line arguments._
 
+---
+
 #### `test-cmd-script`
 
 Autoalign Heimdallr beams.
 
-**Entry point:** `asgard_alignment.cmd_scripts.test_cmd_script:main`
-
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/test_cmd_script.py:4`](../../asgard-alignment/asgard_alignment/cmd_scripts/test_cmd_script.py#L4)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/test_cmd_script.py:4`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/test_cmd_script.py#L4)
 
 **Invocation:** `test-cmd-script [--shutter_pause_time SHUTTER_PAUSE_TIME]`
 
@@ -483,9 +479,9 @@ Autoalign Heimdallr beams.
 | --- | --- | --- | --- | --- | --- |
 | `--shutter_pause_time` | `float` | No | `2.5` | — | Seconds to pause after shuttering (default: 2.5) |
 
-## dcs
+## dcs (on mimir)
 
-Scripts declared in [`dcs/pyproject.toml`](../../dcs/pyproject.toml): 15.
+Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 15.
 
 ### Quick reference
 
@@ -513,9 +509,7 @@ Scripts declared in [`dcs/pyproject.toml`](../../dcs/pyproject.toml): 15.
 
 Acquire the singleton lock and run the Asgard back-end server.
 
-**Entry point:** `back_end_server.back_end_server:main`
-
-**Source:** [`dcs/back_end_server/back_end_server.py:768`](../../dcs/back_end_server/back_end_server.py#L768)
+**Source:** [`dcs/back_end_server/back_end_server.py:768`](https://github.com/asgard-vlti/dcs/blob/main/back_end_server/back_end_server.py#L768)
 
 **Invocation:** `back-end-server`
 
@@ -523,13 +517,13 @@ Acquire the singleton lock and run the Asgard back-end server.
 
 _No command-line arguments._
 
+---
+
 #### `baldr-server`
 
 Baldr RTC Python server (per-beam instance).
 
-**Entry point:** `baldr_python_rtc.scripts.baldr_server:main`
-
-**Source:** [`dcs/baldr_python_rtc/scripts/baldr_server.py:27`](../../dcs/baldr_python_rtc/scripts/baldr_server.py#L27)
+**Source:** [`dcs/baldr_python_rtc/scripts/baldr_server.py:27`](https://github.com/asgard-vlti/dcs/blob/main/baldr_python_rtc/scripts/baldr_server.py#L27)
 
 **Invocation:** `baldr-server --beam {1,2,3,4} [--phasemask PHASEMASK] [--socket SOCKET] --config CONFIG [--telem-dir TELEM_DIR] [--telem-capacity TELEM_CAPACITY] [--flush-hz FLUSH_HZ] [--chunk-seconds CHUNK_SECONDS] [--debug]`
 
@@ -547,13 +541,13 @@ Baldr RTC Python server (per-beam instance).
 | `--chunk-seconds` | `float` | No | `0.1` | — | Telemetry chunk duration (seconds). |
 | `--debug` | `bool` | No | `False` | — | Enable more verbose printing and/or plots for debugging |
 
+---
+
 #### `baldr-start-all`
 
 Launch one Baldr RTC server per beam in separate xterm windows.
 
-**Entry point:** `dcs.cmd_scripts.baldr_start_all:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/baldr_start_all.py:24`](../../dcs/dcs/cmd_scripts/baldr_start_all.py#L24)
+**Source:** [`dcs/dcs/cmd_scripts/baldr_start_all.py:24`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/baldr_start_all.py#L24)
 
 **Invocation:** `baldr-start-all [--phasemask PHASEMASK] [--config-template CONFIG_TEMPLATE] [--telem-root TELEM_ROOT]`
 
@@ -565,13 +559,13 @@ Launch one Baldr RTC server per beam in separate xterm windows.
 | `--config-template` | `str` | No | `/usr/local/etc/baldr/baldr_config_{beam}.toml` | — | — |
 | `--telem-root` | `str` | No | `str(Path.home() / 'data' / 'baldr_telem')` | — | — |
 
+---
+
 #### `baldrtt-start-all`
 
 Launch one Baldr tip-tilt process per beam in separate xterm windows.
 
-**Entry point:** `dcs.cmd_scripts.baldrtt_start_all:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/baldrtt_start_all.py:24`](../../dcs/dcs/cmd_scripts/baldrtt_start_all.py#L24)
+**Source:** [`dcs/dcs/cmd_scripts/baldrtt_start_all.py:24`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/baldrtt_start_all.py#L24)
 
 **Invocation:** `baldrtt-start-all`
 
@@ -579,13 +573,13 @@ Launch one Baldr tip-tilt process per beam in separate xterm windows.
 
 _No command-line arguments._
 
+---
+
 #### `dmview`
 
 Low-bandwidth DM SHM viewer
 
-**Entry point:** `dcs.cmd_scripts.dmview:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/dmview.py:226`](../../dcs/dcs/cmd_scripts/dmview.py#L226)
+**Source:** [`dcs/dcs/cmd_scripts/dmview.py:226`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dmview.py#L226)
 
 **Invocation:** `dmview BEAM [BEAM ...]`
 
@@ -593,15 +587,15 @@ Low-bandwidth DM SHM viewer
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `beam` | `str` | Yes | — | — | One or more beam indices used in dm<beam> shared-memory names |
+| `beam` | `str` | Yes | — | — | One or more beam indices used in dm<beam> shared-memory names, -1 for all beams |
+
+---
 
 #### `flat-load`
 
 Load a factory flat file to the DM.
 
-**Entry point:** `dcs.cmd_scripts.flat_load:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/flat_load.py:77`](../../dcs/dcs/cmd_scripts/flat_load.py#L77)
+**Source:** [`dcs/dcs/cmd_scripts/flat_load.py:77`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/flat_load.py#L77)
 
 **Invocation:** `flat-load {-1,1,2,3,4} {lab,night-standard,night-faint,factory,test} [--file FILE]`
 
@@ -613,13 +607,13 @@ Load a factory flat file to the DM.
 | `category` | `str` | Yes | — | `lab, night-standard, night-faint, factory, test` | The category of the flat to load. |
 | `--file` | `pathlib.Path` | No | `None` | — | The path to the flat file to load. Overrides category and beam if specified. |
 
+---
+
 #### `flat-save`
 
 Save the current DM shape to a flat file.
 
-**Entry point:** `dcs.cmd_scripts.flat_save:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/flat_save.py:59`](../../dcs/dcs/cmd_scripts/flat_save.py#L59)
+**Source:** [`dcs/dcs/cmd_scripts/flat_save.py:59`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/flat_save.py#L59)
 
 **Invocation:** `flat-save {-1,1,2,3,4} {lab,night-standard,night-faint,test}`
 
@@ -630,13 +624,13 @@ Save the current DM shape to a flat file.
 | `beam_id` | `int` | Yes | — | `-1, 1, 2, 3, 4` | The beam ID of the DM to save (1-4), or -1 to save all beams. |
 | `category` | `str` | Yes | — | `lab, night-standard, night-faint, test` | The category to save the flat under. |
 
+---
+
 #### `fringe-monitor`
 
 Launch the Qt Heimdallr fringe-monitoring GUI.
 
-**Entry point:** `pyeng_heimdallr.fringe_monitor:main`
-
-**Source:** [`dcs/pyeng_heimdallr/fringe_monitor.py:567`](../../dcs/pyeng_heimdallr/fringe_monitor.py#L567)
+**Source:** [`dcs/pyeng_heimdallr/fringe_monitor.py:567`](https://github.com/asgard-vlti/dcs/blob/main/pyeng_heimdallr/fringe_monitor.py#L567)
 
 **Invocation:** `fringe-monitor`
 
@@ -644,13 +638,13 @@ Launch the Qt Heimdallr fringe-monitoring GUI.
 
 _No command-line arguments._
 
+---
+
 #### `h-autoalign`
 
 Autoalign Heimdallr beams.
 
-**Entry point:** `dcs.cmd_scripts.h_autoalign:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/h_autoalign.py:643`](../../dcs/dcs/cmd_scripts/h_autoalign.py#L643)
+**Source:** [`dcs/dcs/cmd_scripts/h_autoalign.py:643`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/h_autoalign.py#L643)
 
 **Invocation:** `h-autoalign [--shutter_pause_time SHUTTER_PAUSE_TIME] -a {cp,coarseparallel,ia,imageall,p3,p1,pupil3,pa,pupilall,test_mcs} [-b {K1,K2}] [-s SAVE_PATH] [-p PLOT] [-o {internal,mcs,none}] [-n NCUBES] [-t T_PAUSE]`
 
@@ -667,13 +661,13 @@ Autoalign Heimdallr beams.
 | `-n`, `--ncubes` | `int` | No | `3` | — | Number of cubes to use, each of 200 frames (default: 3) |
 | `-t`, `--t-pause` | `float` | No | `0.8` | — | Seconds to pause between cubes when averaging (default: 0.8) |
 
+---
+
 #### `h-shutter`
 
 Conduct a heimdallr shutter sequence
 
-**Entry point:** `dcs.cmd_scripts.h_shutterseq:main`
-
-**Source:** [`dcs/dcs/cmd_scripts/h_shutterseq.py:113`](../../dcs/dcs/cmd_scripts/h_shutterseq.py#L113)
+**Source:** [`dcs/dcs/cmd_scripts/h_shutterseq.py:113`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/h_shutterseq.py#L113)
 
 **Invocation:** `h-shutter [--dark-time DARK_TIME] [--beam-time BEAM_TIME] [--use-splay] [--test-mcs]`
 
@@ -686,13 +680,13 @@ Conduct a heimdallr shutter sequence
 | `--use-splay` | `bool` | No | `False` | — | Use splay shutter sequence  |
 | `--test-mcs` | `bool` | No | `False` | — | test mcs connection, sends hdlr complete only |
 
+---
+
 #### `h-tilts`
 
 Modify tip/tilt. Algorithm... 1) Read in all the baseline averaged power for K1 and K2. 2) Add K1 and K2 together. Let's keep this simple! 3) Find the SNR of each image by noise = np.percentile(power,15), and SNR = (np.max(power) - noise)/noise 4) Computer the centroids for baselines, and convert to telescopes by weighted least squares. 5) Via an MDS connection, move the HTXI motors!
 
-**Entry point:** `heimdallr.slow_hdlr_tt_offload:main_loop`
-
-**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:101`](../../dcs/heimdallr/slow_hdlr_tt_offload.py#L101)
+**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:101`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/slow_hdlr_tt_offload.py#L101)
 
 **Invocation:** `h-tilts`
 
@@ -700,13 +694,13 @@ Modify tip/tilt. Algorithm... 1) Read in all the baseline averaged power for K1 
 
 _No command-line arguments._
 
+---
+
 #### `mcs-client`
 
 Run the MDS server.
 
-**Entry point:** `mcs_client.mcs_client:main`
-
-**Source:** [`dcs/mcs_client/mcs_client.py:951`](../../dcs/mcs_client/mcs_client.py#L951)
+**Source:** [`dcs/mcs_client/mcs_client.py:951`](https://github.com/asgard-vlti/dcs/blob/main/mcs_client/mcs_client.py#L951)
 
 **Invocation:** `mcs-client [--log-location LOG_LOCATION] [--script-only]`
 
@@ -717,13 +711,13 @@ Run the MDS server.
 | `--log-location` | `str` | No | `~/logs/mcs/` | — | Path to the log directory |
 | `--script-only` | `bool` | No | `False` | — | Run script only (no status messages from Heimdallr or Baldr) |
 
+---
+
 #### `save-ft-performance`
 
 FT performance data logging script
 
-**Entry point:** `heimdallr.save_ft_performance:main`
-
-**Source:** [`dcs/heimdallr/save_ft_performance.py:176`](../../dcs/heimdallr/save_ft_performance.py#L176)
+**Source:** [`dcs/heimdallr/save_ft_performance.py:175`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/save_ft_performance.py#L175)
 
 **Invocation:** `save-ft-performance [--gdrate GDRATE] [--rate RATE]`
 
@@ -734,13 +728,13 @@ FT performance data logging script
 | `--gdrate` | `int` | No | `10` | — | Sample rate when group delay tracking in Hz |
 | `--rate` | `int` | No | `1000` | — | Sample rate in Hz |
 
+---
+
 #### `save-tt-performance`
 
 Connect to the socket and save a fixed number of tip/tilt metrology points to a fits file (number as an optional argv input)
 
-**Entry point:** `baldr_tt.save_tt_performance:main`
-
-**Source:** [`dcs/baldr_tt/save_tt_performance.py:190`](../../dcs/baldr_tt/save_tt_performance.py#L190)
+**Source:** [`dcs/baldr_tt/save_tt_performance.py:190`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_tt_performance.py#L190)
 
 **Invocation:** `save-tt-performance`
 
@@ -748,13 +742,13 @@ Connect to the socket and save a fixed number of tip/tilt metrology points to a 
 
 _No command-line arguments._
 
+---
+
 #### `text-clients`
 
 Launch the Qt command client for the configured DCS servers.
 
-**Entry point:** `utils.universal_client:main`
-
-**Source:** [`dcs/utils/universal_client.py:303`](../../dcs/utils/universal_client.py#L303)
+**Source:** [`dcs/utils/universal_client.py:303`](https://github.com/asgard-vlti/dcs/blob/main/utils/universal_client.py#L303)
 
 **Invocation:** `text-clients IP_ADDRESS`
 
