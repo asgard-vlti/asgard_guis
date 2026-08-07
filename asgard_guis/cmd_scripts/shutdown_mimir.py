@@ -32,32 +32,14 @@ def main():
     # To do this, something like the following should be added to visudo:
     # %group_name ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
     # (Can replace %group_name with user_name , noting lack of %)
-    # Gather the required env vars for the remsh command
-    rhost = os.getenv("RHOST", None)
-    ruser = os.getenv("RUSER", None)
-    display = os.getenv("DISPLAY", None)
     # Execute the shutdown command
     shutdown_result = None
-    if not any(_ is None for _ in [rhost, ruser, display]):
-        shutdown_result = subprocess.call(
-            [
-                "remsh",
-                f"{rhost}",
-                "-l",
-                f"{ruser}",
-                "-n",
-                f"DISPLAY={display} xterm -e ssh -XC mimir sudo /usr/sbin/shutdown -h now 1>&- 2>&- &",
-            ]
-        )
-    else:
-        proceed_to_poweroff = _confirm_or_abort(
-            "WARNING: At least one env var required for the shutdown "
-            "command to be sent is missing. This means this script "
-            "cannot execute the shutdown command on mimir, and "
-            "you will need to trigger that manually first. "
-            "Do you still want to "
-            "attempt the power off? (y/n):"
-        )
+    shutdown_result = subprocess.call(
+        [
+            "ssh", "-XC", "mimir",
+            "-e", "sudo shutdown -h now",
+        ]
+    )
 
     if proceed_to_poweroff and (shutdown_result is None or shutdown_result != 0):
         proceed_to_poweroff = _confirm_or_abort(
@@ -77,7 +59,7 @@ def main():
 
     # Add a 30 second wait to allow shutdown to progress
     print("Waiting 30s to ensure shutdown has completed...")
-    time.sleep(30.0)
+    time.sleep(30)
 
     print("Powering off Mimir outlets...")
 
