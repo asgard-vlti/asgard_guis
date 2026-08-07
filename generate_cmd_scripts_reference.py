@@ -83,6 +83,7 @@ class ScriptReference:
     source: Path
     source_line: int
     description: str
+    epilog: str | None
     arguments: tuple[CliArgument, ...]
     exclusive_groups: tuple[ExclusiveGroup, ...]
     nonstandard_resolution: bool
@@ -406,7 +407,12 @@ def _extract_argparse(
     tree: ast.Module,
     entry: ast.FunctionDef | ast.AsyncFunctionDef,
     constants: dict[str, ast.expr],
-) -> tuple[str | None, tuple[CliArgument, ...], tuple[ExclusiveGroup, ...]]:
+) -> tuple[
+    str | None,
+    str | None,
+    tuple[CliArgument, ...],
+    tuple[ExclusiveGroup, ...],
+]:
     definitions = {
         node.name: node
         for node in tree.body
@@ -418,6 +424,7 @@ def _extract_argparse(
     )
 
     parser_descriptions: list[tuple[int, str]] = []
+    parser_epilogs: list[tuple[int, str]] = []
     arguments: list[tuple[int, CliArgument, str | None]] = []
     group_required: dict[str, bool] = {}
 
@@ -435,10 +442,15 @@ def _extract_argparse(
                 continue
             if _is_argument_parser_call(value):
                 parser_names.add(name)
-                description_node = _keyword_map(value).get("description")
+                keywords = _keyword_map(value)
+                description_node = keywords.get("description")
                 description = _literal_string(description_node, constants)
                 if description:
                     parser_descriptions.append((value.lineno, description))
+                epilog_node = keywords.get("epilog")
+                epilog = _literal_string(epilog_node, constants)
+                if epilog:
+                    parser_epilogs.append((value.lineno, epilog))
 
         for node in nodes:
             if not isinstance(node, (ast.Assign, ast.AnnAssign)):
@@ -491,7 +503,12 @@ def _extract_argparse(
         if parser_descriptions
         else None
     )
-    return description, tuple(unique_arguments), groups
+    epilog = (
+        min(parser_epilogs, key=lambda item: item[0])[1].strip()
+        if parser_epilogs
+        else None
+    )
+    return description, epilog, tuple(unique_arguments), groups
 
 
 def _sys_argv_index(node: ast.AST) -> int | None:
@@ -835,7 +852,7 @@ def _extract_script(
         )
     entry = entries[0]
     constants = _module_constants(tree)
-    parser_description, parser_arguments, groups = _extract_argparse(
+    parser_description, parser_epilog, parser_arguments, groups = _extract_argparse(
         tree, entry, constants
     )
     manual_arguments, manual_warnings = _extract_manual_arguments(entry, constants)
@@ -870,6 +887,7 @@ def _extract_script(
             source=source,
             source_line=entry.lineno,
             description=description,
+            epilog=parser_epilog,
             arguments=arguments,
             exclusive_groups=groups,
             nonstandard_resolution=nonstandard,
@@ -1082,6 +1100,12 @@ def _render_repository(repository: RepositoryReference) -> list[str]:
                 "",
                 script.description,
                 "",
+            ]
+        )
+        if script.epilog:
+            lines.extend([_markdown_cell(script.epilog), ""])
+        lines.extend(
+            [
                 f"**Source:** [`{source_display.as_posix()}:{script.source_line}`]({source_link})",
                 "",
             ]

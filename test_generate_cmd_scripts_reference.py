@@ -73,7 +73,10 @@ class CommandScriptReferenceTests(unittest.TestCase):
                         raise RuntimeError("this module must not execute")
 
                         def main():
-                            parser = argparse.ArgumentParser(description="Direct command")
+                            parser = argparse.ArgumentParser(
+                                description="Direct command",
+                                epilog="Longer direct command guidance.\\nSecond line.",
+                            )
                             parser.add_argument("beam", type=int, choices=[1, 2])
                             parser.add_argument("--debug", action="store_true", help="Debug output")
                             parser.parse_args()
@@ -111,6 +114,10 @@ class CommandScriptReferenceTests(unittest.TestCase):
             scripts = {script.command: script for script in repository.scripts}
             self.assertEqual(scripts["direct"].description, "Direct command")
             self.assertEqual(
+                scripts["direct"].epilog,
+                "Longer direct command guidance.\nSecond line.",
+            )
+            self.assertEqual(
                 [argument.destination for argument in scripts["direct"].arguments],
                 ["beam", "debug"],
             )
@@ -122,6 +129,15 @@ class CommandScriptReferenceTests(unittest.TestCase):
             )
             self.assertEqual(scripts["module-level"].description, "Module command")
             self.assertEqual(scripts["module-level"].arguments[0].default, "3")
+
+            document = reference.render_document(
+                (repository,), workspace / "reference.md"
+            )
+            quick_reference, details = document.split("### Script details", maxsplit=1)
+            self.assertNotIn("Longer direct command guidance.", quick_reference)
+            self.assertIn(
+                "Longer direct command guidance.<br>Second line.", details
+            )
 
     def test_manual_sys_argv_and_dynamic_expressions_are_documented_statically(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -255,6 +271,18 @@ class RealWorkspaceIntegrationTests(unittest.TestCase):
             if script.command == "text-clients"
         ]
         self.assertEqual(len(text_clients), 2)
+        h_tilts = next(
+            script
+            for repository in repositories
+            for script in repository.scripts
+            if repository.name == "dcs" and script.command == "h-tilts"
+        )
+        self.assertEqual(
+            h_tilts.description,
+            "Run Heimdallr's internal tip/tilt offload method.",
+        )
+        self.assertIsNotNone(h_tilts.epilog)
+        self.assertTrue(h_tilts.epilog.startswith("Method:\n1."))
         self.assertTrue(
             any("find-focal-masks" in warning for warning in warnings), warnings
         )

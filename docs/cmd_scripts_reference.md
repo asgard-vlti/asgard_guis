@@ -363,6 +363,8 @@ _No command-line arguments._
 
 Find a line of focal-plane mask dots by repeated local raster scans.
 
+Behavior:<br>  1) Scan around --start-center to find the first dot.<br>  2) Move along --line-direction and repeat until --n-dots are found.<br>  3) Save found positions to --out-file under --save-path.<br><br>Notes:<br>  - !! Note that the starting position must have no features !!<br>  - For --detection-threshold, no-mask is typically ~1.0, so choose <1.0.<br>  - --start-center accepts either 'current' or a string like '[x, y]'.<br><br>Examples:<br>  python find_focal_masks.py --beam 2 --line-direction=+x<br>  python find_focal_masks.py --beam 3 --line-direction=-y --start-center '[1020, 3980]' --n-dots 7
+
 **Source:** [`asgard-alignment/calibration/DanBeamFinder/find_focal_masks.py:146`](https://github.com/asgard-vlti/asgard-alignment/blob/main/calibration/DanBeamFinder/find_focal_masks.py#L146)
 
 _Resolution note: the declared module path has no matching file; the source was found after stripping its declared package prefix._
@@ -497,7 +499,7 @@ Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/bl
 | `fringe-monitor` | `fringe-monitor` | Launch the Qt Heimdallr fringe-monitoring GUI. |
 | `h-autoalign` | `h-autoalign [--shutter_pause_time SHUTTER_PAUSE_TIME] -a {cp,coarseparallel,ia,imageall,p3,p1,pupil3,pa,pupilall,test_mcs} [-b {K1,K2}] [-s SAVE_PATH] [-p PLOT] [-o {internal,mcs,none}] [-n NCUBES] [-t T_PAUSE]` | Autoalign Heimdallr beams. |
 | `h-shutter` | `h-shutter [--dark-time DARK_TIME] [--beam-time BEAM_TIME] [--use-splay] [--test-mcs]` | Conduct a heimdallr shutter sequence |
-| `h-tilts` | `h-tilts` | Modify tip/tilt. Algorithm... 1) Read in all the baseline averaged power for K1 and K2. 2) Add K1 and K2 together. Let's keep this simple! 3) Find the SNR of each image by noise = np.percentile(power,15), and SNR = (np.max(power) - noise)/noise 4) Computer the centroids for baselines, and convert to telescopes by weighted least squares. 5) Via an MDS connection, move the HTXI motors! |
+| `h-tilts` | `h-tilts` | Run Heimdallr's internal tip/tilt offload method. |
 | `mcs-client` | `mcs-client [--log-location LOG_LOCATION] [--script-only]` | Run the MDS server. |
 | `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE]` | FT performance data logging script |
 | `save-tt-performance` | `save-tt-performance` | Connect to the socket and save a fixed number of tip/tilt metrology points to a fits file (number as an optional argv input) |
@@ -684,9 +686,11 @@ Conduct a heimdallr shutter sequence
 
 #### `h-tilts`
 
-Modify tip/tilt. Algorithm... 1) Read in all the baseline averaged power for K1 and K2. 2) Add K1 and K2 together. Let's keep this simple! 3) Find the SNR of each image by noise = np.percentile(power,15), and SNR = (np.max(power) - noise)/noise 4) Computer the centroids for baselines, and convert to telescopes by weighted least squares. 5) Via an MDS connection, move the HTXI motors!
+Run Heimdallr's internal tip/tilt offload method.
 
-**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:101`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/slow_hdlr_tt_offload.py#L101)
+Method:<br>1. Read the baseline-averaged power images for K1 and K2.<br>2. Sum the K1 and K2 power images for each baseline.<br>3. Estimate noise from the 15th percentile and calculate each image's SNR.<br>4. Convert baseline centroids into telescope offsets with SNR-weighted least squares.<br>5. Send the resulting tip/tilt steps to the HTTI and HTPI motors through MDS.
+
+**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:102`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/slow_hdlr_tt_offload.py#L102)
 
 **Invocation:** `h-tilts`
 
