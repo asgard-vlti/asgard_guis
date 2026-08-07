@@ -312,7 +312,7 @@ def main():
         except ValueError:
             log_path = args.logfile
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication([])
     widget = TempPlotWidget(
         interval=args.interval,
         lookback=args.lookback,

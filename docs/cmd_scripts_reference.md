@@ -75,7 +75,7 @@ Launch the Qt log viewer for Asgard server logs.
 
 **Entry point:** `asgard_guis.cmd_scripts.log_viewer:main`
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:495`](../asgard_guis/cmd_scripts/log_viewer.py#L495)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:496`](../asgard_guis/cmd_scripts/log_viewer.py#L496)
 
 **Invocation:** `logs-client [LOG_ROOT]`
 
@@ -83,7 +83,7 @@ Launch the Qt log viewer for Asgard server logs.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `log_root` | `str` | No | `/home/asg/logs` | — | Manual positional argument read from sys.argv[1]. Source usage: python log_viewer.py <log_root> |
+| `log_root` | `str` | No | `/home/asg/logs` | — | f'Root directory containing server logs (default: {DEFAULT_LOG_ROOT})' |
 
 #### `mimir-shutdown`
 
@@ -234,7 +234,7 @@ Launch the Qt command client for the configured Asgard servers.
 
 **Entry point:** `asgard_guis.cmd_scripts.universal_client:main`
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:476`](../asgard_guis/cmd_scripts/universal_client.py#L476)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:477`](../asgard_guis/cmd_scripts/universal_client.py#L477)
 
 **Invocation:** `text-clients [IP_ADDRESS]`
 
@@ -242,7 +242,7 @@ Launch the Qt command client for the configured Asgard servers.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `ip_address` | `str` | No | `mimir` | — | Manual positional argument read from sys.argv[1]. Source usage: python universal_client.py <ip_address> |
+| `ip_address` | `str` | No | `mimir` | — | Server IP address or hostname (default: mimir) |
 
 ## asgard-alignment
 
@@ -329,7 +329,7 @@ Switch the Baldr beams to FAINT or STANDARD mode and restore their state.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `mode` | `str` | Yes | — | `FAINT, STANDARD` | Manual positional argument read from sys.argv[1]. Source usage: python b_mode.py [FAINT\|STANDARD] |
+| `mode` | `str.upper` | Yes | — | `FAINT, STANDARD` | Baldr operating mode |
 
 #### `b-savemode`
 
@@ -337,7 +337,7 @@ Archive and save the current Baldr state for FAINT or STANDARD mode.
 
 **Entry point:** `asgard_alignment.cmd_scripts.b_savemode:main`
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:61`](../../asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py#L61)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:62`](../../asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py#L62)
 
 **Invocation:** `b-savemode {FAINT,STANDARD}`
 
@@ -345,7 +345,7 @@ Archive and save the current Baldr state for FAINT or STANDARD mode.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `mode` | `str` | Yes | — | `FAINT, STANDARD` | Manual positional argument read from sys.argv[1]. Source usage: python b_savemode.py [FAINT\|STANDARD] |
+| `mode` | `str.upper` | Yes | — | `FAINT, STANDARD` | Baldr state category to save |
 
 #### `eng_gui`
 
@@ -419,7 +419,7 @@ Run the instrument shutdown sequence, optionally including C-RED.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `inc_CRED` | `str` | No | `Not supplied` | `inc_CRED` | Manual positional argument read from sys.argv[1]. |
+| `include_cred` | `str` | No | `None` | `inc_CRED` | Pass inc_CRED to include the C-RED camera in the shutdown |
 
 #### `instrument-startup`
 
@@ -585,7 +585,7 @@ Low-bandwidth DM SHM viewer
 
 **Entry point:** `dcs.cmd_scripts.dmview:main`
 
-**Source:** [`dcs/dcs/cmd_scripts/dmview.py:227`](../../dcs/dcs/cmd_scripts/dmview.py#L227)
+**Source:** [`dcs/dcs/cmd_scripts/dmview.py:226`](../../dcs/dcs/cmd_scripts/dmview.py#L226)
 
 **Invocation:** `dmview BEAM [BEAM ...]`
 
@@ -754,7 +754,7 @@ Launch the Qt command client for the configured DCS servers.
 
 **Entry point:** `utils.universal_client:main`
 
-**Source:** [`dcs/utils/universal_client.py:302`](../../dcs/utils/universal_client.py#L302)
+**Source:** [`dcs/utils/universal_client.py:303`](../../dcs/utils/universal_client.py#L303)
 
 **Invocation:** `text-clients IP_ADDRESS`
 
@@ -762,4 +762,4 @@ Launch the Qt command client for the configured DCS servers.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `ip_address` | `str` | Yes | — | — | Manual positional argument read from sys.argv[1]. Source usage: python universal_client.py <ip_address> |
+| `ip_address` | `str` | Yes | — | — | Server IP address or hostname |

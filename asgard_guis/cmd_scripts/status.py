@@ -699,7 +699,7 @@ def main() -> None:
         if window_cls is None:
             raise ImportError("PyQt5 is required for --gui mode")
 
-        app = QtWidgets.QApplication(sys.argv)
+        app = QtWidgets.QApplication([])
         window = cast(Any, window_cls)(args.endpoint, args.request_interval)
         getattr(window, "show")()
         sys.exit(app.exec_())
