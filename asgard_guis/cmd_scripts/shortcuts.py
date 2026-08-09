@@ -451,7 +451,7 @@ def main():
 	)
 	args = parser.parse_args()
 
-	app = QtWidgets.QApplication(sys.argv)
+	app = QtWidgets.QApplication([])
 	win = ShortcutsGUI(host=args.host, debug=args.debug)
 	win.show()
 	sys.exit(app.exec_())

@@ -85,7 +85,7 @@ def main():
     )
     args = parser.parse_args()
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication([])
     win = PupilSearchGUI(debug=args.debug)
     win.show()
     sys.exit(app.exec_())

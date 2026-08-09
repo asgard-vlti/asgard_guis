@@ -1,17 +1,65 @@
 import asgard_guis.PDU
 import time
+import subprocess
+import os
+
+# FIXME have these imported from somewhere common
+MIMIR_OUTLETS = [1, 8]
+PDU_IP_ADDRESS = "192.168.100.11"
+
+
+def _confirm_or_abort(message):
+    conf = input(message)
+    if conf == "y" or conf == "Y":
+        return True  # Continue
+    elif conf == "n" or conf == "N":
+        return False  # Abort
+    else:
+        print(f"Unable to interpret response '{conf}', please try again.")
+        return _confirm_or_abort(message)
 
 
 def main():
-    MIMIR_OUTLETS = [1, 8]
+    """Shut down Mimir and power off its configured PDU outlets."""
 
-    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
     pdu.connect()
 
-    input("Did you type sudo shutdown -h now on Mimir? Press Enter to continue...")
+    proceed_to_poweroff = True
+
+    # Execute the shutdown command on mimir
+    # This requires passwordless sudo shutdown command to be active on mimir
+    # To do this, something like the following should be added to visudo:
+    # %group_name ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
+    # (Can replace %group_name with user_name , noting lack of %)
+    # Execute the shutdown command
+    shutdown_result = None
+    shutdown_result = subprocess.call(
+        [
+            "ssh", "-XC", "mimir",
+            "-e", "sudo shutdown -h now",
+        ]
+    )
+
+    if proceed_to_poweroff and (shutdown_result is None or shutdown_result != 0):
+        proceed_to_poweroff = _confirm_or_abort(
+            f"WARNING: Mimir shutdown may not have occurred "
+            f"(return code: {'n/a' if shutdown_result is None else shutdown_result.result}). "
+            f"Either verify shutdown is proceeding and/or trigger manually and "
+            f"then type Y to proceed, or type N to abort. (y/n):"
+        )
+
+    if not proceed_to_poweroff:
+        print("ERROR: Mimir power off has been aborted.")
+        return
 
     for outlet in MIMIR_OUTLETS:
         pdu.switch_outlet_status(outlet, "off")
+
+
+    # Add a 30 second wait to allow shutdown to progress
+    print("Waiting 30s to ensure shutdown has completed...")
+    time.sleep(30)
 
     print("Powering off Mimir outlets...")
 

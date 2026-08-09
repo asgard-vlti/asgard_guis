@@ -1,3 +1,4 @@
+import argparse
 import sys
 import zmq
 import json
@@ -474,16 +475,18 @@ class UniversalClient(QtWidgets.QMainWindow):
 
 
 def main():
-    if len(sys.argv) == 1:
-        ip_addr = "mimir"
-    elif len(sys.argv) == 2:
-        ip_addr = sys.argv[1]
-    else:
-        print("Usage: python universal_client.py <ip_address>")
-        sys.exit(1)
+    """Launch the Qt command client for the configured Asgard servers."""
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument(
+        "ip_address",
+        nargs="?",
+        default="mimir",
+        help="Server IP address or hostname (default: mimir)",
+    )
+    args = parser.parse_args()
     servers = sockets
-    app = QtWidgets.QApplication(sys.argv)
-    client = UniversalClient(ip_addr, servers)
+    app = QtWidgets.QApplication([])
+    client = UniversalClient(args.ip_address, servers)
     client.show()
     sys.exit(app.exec_())
 
