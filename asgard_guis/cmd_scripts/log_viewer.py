@@ -1,3 +1,4 @@
+import argparse
 import html
 import os
 import re
@@ -499,16 +500,18 @@ class UniversalLogClient(QtWidgets.QMainWindow):
 
 
 def main():
-    if len(sys.argv) == 1:
-        log_root = DEFAULT_LOG_ROOT
-    elif len(sys.argv) == 2:
-        log_root = sys.argv[1]
-    else:
-        print("Usage: python log_viewer.py <log_root>")
-        sys.exit(1)
+    """Launch the Qt log viewer for Asgard server logs."""
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument(
+        "log_root",
+        nargs="?",
+        default=DEFAULT_LOG_ROOT,
+        help=f"Root directory containing server logs (default: {DEFAULT_LOG_ROOT})",
+    )
+    args = parser.parse_args()
 
-    app = QtWidgets.QApplication(sys.argv)
-    client = UniversalLogClient(log_root)
+    app = QtWidgets.QApplication([])
+    client = UniversalLogClient(args.log_root)
     client.show()
     sys.exit(app.exec_())
 

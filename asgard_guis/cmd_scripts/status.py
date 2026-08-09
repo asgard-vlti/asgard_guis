@@ -23,6 +23,7 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     QtCore = cast(Any, None)
     QtWidgets = cast(Any, None)
 
+# TODO: add BDS and SSF check and make into a nicer GUI that shows the layout of the instr
 
 class StatusFormatter:
     GREEN = "\033[32m"
@@ -698,7 +699,7 @@ def main() -> None:
         if window_cls is None:
             raise ImportError("PyQt5 is required for --gui mode")
 
-        app = QtWidgets.QApplication(sys.argv)
+        app = QtWidgets.QApplication([])
         window = cast(Any, window_cls)(args.endpoint, args.request_interval)
         getattr(window, "show")()
         sys.exit(app.exec_())
