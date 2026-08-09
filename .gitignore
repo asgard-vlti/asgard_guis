@@ -27,3 +27,5 @@ build
 !requirements.txt
 !spinview_reqs.txt
 *.austin
+
+*.diff

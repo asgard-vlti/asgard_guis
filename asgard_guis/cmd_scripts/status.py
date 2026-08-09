@@ -392,7 +392,9 @@ if QtWidgets is not None:
                 return
             self._opacity_effect.setOpacity(0.4 if is_dimmed else 1.0)
 
-        def update_from_task(self, task_block: dict[str, Any]) -> None:
+        def update_from_task(
+            self, task_block: dict[str, Any], evaluate_progress: bool = True
+        ) -> None:
             html_lines: list[str] = []
             current_cnt: int | None = None
 
@@ -424,21 +426,24 @@ if QtWidgets is not None:
 
             self.details.setText("<br/>".join(html_lines))
 
-            # Determine border color: red takes precedence, then yellow if cnt unchanged
             has_red = bool(task_block.get("has_red"))
-            cnt_unchanged = (
-                current_cnt is not None
-                and self._previous_cnt is not None
-                and current_cnt == self._previous_cnt
-            )
-
-            self._apply_border(
-                red_border=has_red, yellow_border=cnt_unchanged and not has_red
-            )
-
-            # Update previous cnt for next comparison
-            if current_cnt is not None:
-                self._previous_cnt = current_cnt
+            if evaluate_progress:
+                # Determine border color only on fresh polled data.
+                # Red takes precedence, then yellow if cnt unchanged.
+                cnt_unchanged = (
+                    current_cnt is not None
+                    and self._previous_cnt is not None
+                    and current_cnt == self._previous_cnt
+                )
+                self._apply_border(
+                    red_border=has_red, yellow_border=cnt_unchanged and not has_red
+                )
+                # Update previous cnt for next comparison
+                if current_cnt is not None:
+                    self._previous_cnt = current_cnt
+            elif has_red:
+                # Still allow red override on redraws of cached data.
+                self._apply_border(red_border=True)
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
         GRID_COLUMNS = 4
@@ -556,7 +561,9 @@ if QtWidgets is not None:
             self._boxes[task_name] = box
             return box
 
-        def _render(self, wd_status: Any, update_last_time: bool) -> None:
+        def _render(
+            self, wd_status: Any, update_last_time: bool, evaluate_progress: bool = True
+        ) -> None:
             state = self.formatter.build_render_state(
                 wd_status,
                 update_last_time=update_last_time,
@@ -581,7 +588,7 @@ if QtWidgets is not None:
                 task_name = task["task_name"]
                 seen.add(task_name)
                 box = self._get_or_create_box(task_name)
-                box.update_from_task(task)
+                box.update_from_task(task, evaluate_progress=evaluate_progress)
                 self.grid.removeWidget(box)
                 row, col, row_span, col_span = positions[task_name]
                 self.grid.addWidget(box, row, col, row_span, col_span)
@@ -635,11 +642,11 @@ if QtWidgets is not None:
                 # print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
                 self.last_wd_status = wd_status
-                self._render(wd_status, update_last_time=True)
+                self._render(wd_status, update_last_time=True, evaluate_progress=True)
                 return
 
             if self.last_wd_status is not None:
-                self._render(self.last_wd_status, update_last_time=False)
+                self._render(self.last_wd_status, update_last_time=False, evaluate_progress=False)
 
         def keyPressEvent(self, event: Any) -> None:
             key = event.key() if hasattr(event, "key") else None

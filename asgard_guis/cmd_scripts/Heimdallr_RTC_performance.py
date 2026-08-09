@@ -3,6 +3,8 @@ Various methods of drawing scrolling plots using pyqtgraph for speed and simplic
 """
 
 import asgard_guis.ZMQ_control_client as Z
+from asgard_guis.cmd_scripts import status
+from asgard_guis.cmd_scripts import status
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
@@ -272,6 +274,10 @@ class HeimdallrStateMachine(StateMachine):
             return np.sum(self.most_recent_gd_snr < self.threshold_lower) >= 3
 
     def should_go_to_servo_on(self):
+        # Require explicit operator enablement for phase-delay servo transitions.
+        if not getattr(self, "phase_delay_enabled", False):
+            return False
+
         # Use most recent gd_snr only
         buf = self.most_recent_gd_snr
         return np.all(buf > self.threshold_upper)
@@ -299,16 +305,26 @@ def main():
         def __init__(self, sm, parent=None):
             super().__init__(parent)
             self.setWindowTitle("State Machine Control")
-            self.setFixedSize(300, 150)
+            self.setFixedSize(430, 150)
             layout = QtWidgets.QVBoxLayout()
             self.setLayout(layout)
 
-            # Enable/disable tickbox
+            # Enable/disable tickboxes
+            checkbox_row = QtWidgets.QHBoxLayout()
+
             self.enable_checkbox = QtWidgets.QCheckBox("Enable State Machine")
             self.enable_checkbox.setChecked(False)
-            layout.addWidget(self.enable_checkbox)
+            checkbox_row.addWidget(self.enable_checkbox)
+
+            self.phase_delay_checkbox = QtWidgets.QCheckBox("Phase Delay")
+            self.phase_delay_checkbox.setChecked(False)
+            checkbox_row.addWidget(self.phase_delay_checkbox)
+            checkbox_row.addStretch()
+            layout.addLayout(checkbox_row)
+
             # Set state machine inactive by default
             setattr(sm, "active", False)
+            setattr(sm, "phase_delay_enabled", False)
 
             # Lower threshold input
             lower_layout = QtWidgets.QHBoxLayout()
@@ -334,6 +350,7 @@ def main():
 
             # Connect signals
             self.enable_checkbox.stateChanged.connect(self.on_enable_changed)
+            self.phase_delay_checkbox.stateChanged.connect(self.on_phase_delay_changed)
             self.lower_spin.valueChanged.connect(self.on_lower_changed)
             self.upper_spin.valueChanged.connect(self.on_upper_changed)
             self.sm = sm
@@ -342,6 +359,10 @@ def main():
             enabled = state == QtCore.Qt.Checked
             # Store on the state machine for access in update()
             setattr(self.sm, "active", enabled)
+
+        def on_phase_delay_changed(self, state):
+            enabled = state == QtCore.Qt.Checked
+            setattr(self.sm, "phase_delay_enabled", enabled)
 
         def on_lower_changed(self, value):
             self.sm.threshold_lower = value
@@ -512,6 +533,7 @@ def main():
 
     FADE_DURATION_SECONDS = 60.0
     SCATTER_EDGE_WIDTH = 1.2
+    DEBUG_GD_OFFSET_UPDATES = True
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
@@ -541,7 +563,7 @@ def main():
             else:
                 idx = -1
                 for i, o in enumerate(self.offsets):
-                    if np.isclose(offset, o, atol=1e-3):
+                    if np.isclose(offset, o, atol=0.1): # !!! Data bucketing bug? Was 1e-3
                         idx = i
                         break
 
@@ -1301,17 +1323,34 @@ def main():
 
         # update gd_snr_vs_offsets
         baselines_of_interest = [1, 3, 5]  # baselines involving telescope 1,2,4 with 3
-        gd_re = np.array(status["gd_phasor_real"])
-        gd_im = np.array(status["gd_phasor_imag"])
-        gd_phasor = gd_re + 1j * gd_im
+        # The following lines are commented out because the offsets are now calculated directly from gd_tel
+        #gd_re = np.array(status["gd_phasor_real"])
+        #gd_im = np.array(status["gd_phasor_imag"])
+        #gd_phasor = gd_re + 1j * gd_im
+        #gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
 
-        gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
+        #gd_offsets now come from gd_tel with respect to telescope 3,
+        #multiplied by a scaling factor of 2 pi radians per 
+        # (2.05)/(2.25-2.05) = 20.5 wavelengths.
+        gd_offsets = np.array(status["gd_tel"])[[0, 1, 3]] - status["gd_tel"][2]
+        gd_offsets = np.array(gd_offsets) * (2 * np.pi / 20.5)
 
         for i, baseline_idx in enumerate(baselines_of_interest):
             if gd_snr[-1, baseline_idx] > gd_threshold:
                 gd_snr_vs_offsets[i].add_measurement(
                     gd_offsets[i], gd_snr[-1, baseline_idx]
                 )
+
+        if DEBUG_GD_OFFSET_UPDATES:
+            latest_snr = gd_snr[-1, baselines_of_interest]
+            sample_counts = [len(obj.offsets) for obj in gd_snr_vs_offsets]
+            print(
+                "[GD-SNR-vs-Offset] "
+                f"thr={gd_threshold:.2f} | "
+                f"snr(13,23,34)=[{', '.join(f'{x:.2f}' for x in latest_snr)}] | "
+                f"off(rad)=[{', '.join(f'{x:.3f}' for x in gd_offsets)}] | "
+                f"counts={sample_counts}"
+            )
 
         # --- Update GD SNR vs Offset plot ---
         for i, gd_obj in enumerate(gd_snr_vs_offsets):

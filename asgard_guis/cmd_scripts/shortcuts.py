@@ -12,7 +12,7 @@ class BLFPoller(QtCore.QThread):
 
 	status_updated = QtCore.pyqtSignal(str)
 
-	def __init__(self, host, port=5555, interval_ms=5000):
+	def __init__(self, host, port=5555, interval_ms=10000):
 		super().__init__()
 		self._host = host
 		self._port = port
@@ -26,8 +26,8 @@ class BLFPoller(QtCore.QThread):
 				self._do_poll(context)
 				elapsed = 0
 				while elapsed < self._interval_ms and not self._stop:
-					self.msleep(100)
-					elapsed += 100
+					self.msleep(200)
+					elapsed += 200
 		finally:
 			context.term()
 
@@ -362,7 +362,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self._send_cmd(self.heim_socket, cmd)
 
 	def _fringe_scan(self):
-		cmds = ["set_gd_threshold 100", "search 1.0, 50", "dls 0,0,0,0"]
+		cmds = ["set_gd_threshold 100", "search 0.7, 50", "dls 0,0,0,0"]
 		for cmd in cmds:
 			self._send_cmd(self.heim_socket, cmd)
 
