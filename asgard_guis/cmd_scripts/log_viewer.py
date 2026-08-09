@@ -18,6 +18,8 @@ SERVER_DIRS = [
     "heimdallr",
 ]
 
+BALDR_INSTANCES = ("1", "2", "3", "4")
+
 ANSI_PATTERN = re.compile(r"\x1b\[([0-9;]*)m")
 ANSI_STRIP_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -241,6 +243,8 @@ class LogTab(QtWidgets.QWidget):
         self.clear_filter_button = QtWidgets.QPushButton("Clear", self)
         self.kill_button = QtWidgets.QPushButton("Kill", self)
         self.restart_button = QtWidgets.QPushButton("Restart", self)
+        self.kill_all_button = None
+        self.restart_all_button = None
 
         controls.addWidget(QtWidgets.QLabel("Filter:", self))
         controls.addWidget(self.filter_input)
@@ -252,9 +256,13 @@ class LogTab(QtWidgets.QWidget):
         self.instance_dropdown = None
         if self.with_baldr_selector:
             self.instance_dropdown = QtWidgets.QComboBox(self)
-            self.instance_dropdown.addItems(["1", "2", "3", "4"])
+            self.instance_dropdown.addItems(list(BALDR_INSTANCES))
             controls.addWidget(QtWidgets.QLabel("Instance:", self))
             controls.addWidget(self.instance_dropdown)
+            self.kill_all_button = QtWidgets.QPushButton("Kill All", self)
+            self.restart_all_button = QtWidgets.QPushButton("Restart All", self)
+            controls.addWidget(self.kill_all_button)
+            controls.addWidget(self.restart_all_button)
 
         self.text_area = QtWidgets.QTextEdit(self)
         self.text_area.setReadOnly(True)
@@ -274,6 +282,11 @@ class LogTab(QtWidgets.QWidget):
 
         if self.instance_dropdown is not None:
             self.instance_dropdown.currentIndexChanged.connect(self.refresh_log)
+
+        if self.kill_all_button is not None:
+            self.kill_all_button.clicked.connect(self.kill_all_servers)
+        if self.restart_all_button is not None:
+            self.restart_all_button.clicked.connect(self.restart_all_servers)
 
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(REFRESH_MS)
@@ -311,6 +324,12 @@ class LogTab(QtWidgets.QWidget):
         if self.with_baldr_selector and self.instance_dropdown is not None:
             return f"run_{self.relative_log_dir} {self.instance_dropdown.currentText()}"
         return f"run_{self.relative_log_dir}"
+
+    def server_key_for_instance(self, instance):
+        return f"{self.relative_log_dir}.{instance}"
+
+    def restart_command_for_instance(self, instance):
+        return f"run_{self.relative_log_dir} {instance}"
 
     def append_action_line(self, message):
         timestamp = QtCore.QDateTime.currentDateTimeUtc().toString("yyyy-MM-ddTHH:mm:ss'Z'")
@@ -402,6 +421,93 @@ class LogTab(QtWidgets.QWidget):
             self.append_action_line(
                 f"Failed to restart {self.server_key()} with '{cmd}': {exc}"
             )
+
+        self.refresh_log(force=True)
+
+    def kill_all_servers(self):
+        if not self.with_baldr_selector or self.instance_dropdown is None:
+            return
+
+        target_keys = [self.server_key_for_instance(i) for i in BALDR_INSTANCES]
+        target_list = ", ".join(target_keys)
+
+        if not self.confirm_action("Confirm Kill All", f"Kill {target_list} now?"):
+            self.append_action_line(f"Kill all cancelled for {target_list}.")
+            self.refresh_log(force=True)
+            return
+
+        self.append_action_line(f"Kill all requested for {target_list}.")
+
+        for instance in BALDR_INSTANCES:
+            target_key = self.server_key_for_instance(instance)
+            lock_path = f"/tmp/asg.{target_key}.lock"
+            pid = None
+
+            try:
+                with open(lock_path, "r", encoding="utf-8") as lock_file:
+                    content = lock_file.read().strip()
+            except OSError:
+                content = ""
+
+            if content:
+                try:
+                    pid = int(content)
+                except ValueError:
+                    pid = None
+
+            if pid is None:
+                self.append_action_line(
+                    f"No PID found in lockfile for {target_key}. Lockfile: {lock_path}"
+                )
+                continue
+
+            try:
+                os.kill(pid, signal.SIGKILL)
+                self.append_action_line(f"Killed {target_key} (PID {pid}).")
+            except ProcessLookupError:
+                self.append_action_line(
+                    f"No PID found for {target_key} (stale lock PID {pid})."
+                )
+            except PermissionError as exc:
+                self.append_action_line(
+                    f"Failed to kill {target_key} (PID {pid}): {exc}"
+                )
+            except OSError as exc:
+                self.append_action_line(
+                    f"Failed to kill {target_key} (PID {pid}): {exc}"
+                )
+
+        self.refresh_log(force=True)
+
+    def restart_all_servers(self):
+        if not self.with_baldr_selector or self.instance_dropdown is None:
+            return
+
+        target_keys = [self.server_key_for_instance(i) for i in BALDR_INSTANCES]
+        target_list = ", ".join(target_keys)
+
+        if not self.confirm_action("Confirm Restart All", f"Restart {target_list} now?"):
+            self.append_action_line(f"Restart all cancelled for {target_list}.")
+            self.refresh_log(force=True)
+            return
+
+        self.append_action_line(f"Restart all requested for {target_list}.")
+        for instance in BALDR_INSTANCES:
+            target_key = self.server_key_for_instance(instance)
+            cmd = self.restart_command_for_instance(instance)
+            try:
+                subprocess.Popen(
+                    cmd,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                self.append_action_line(f"Restarted {target_key} with '{cmd}'.")
+            except OSError as exc:
+                self.append_action_line(
+                    f"Failed to restart {target_key} with '{cmd}': {exc}"
+                )
 
         self.refresh_log(force=True)
 
