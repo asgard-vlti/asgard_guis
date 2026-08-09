@@ -19,6 +19,10 @@ SERVER_DIRS = [
 ]
 
 BALDR_INSTANCES = ("1", "2", "3", "4")
+TELEM_LOCK_KEYS = {
+    "heim_telem": "heim_telem",
+    "baldr_tt_telem": "baldr_tt_telem",
+}
 
 ANSI_PATTERN = re.compile(r"\x1b\[([0-9;]*)m")
 ANSI_STRIP_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
@@ -321,9 +325,16 @@ class LogTab(QtWidgets.QWidget):
         return self.relative_log_dir
 
     def restart_command(self):
+        if self.relative_log_dir in TELEM_LOCK_KEYS:
+            return "run_telem"
         if self.with_baldr_selector and self.instance_dropdown is not None:
             return f"run_{self.relative_log_dir} {self.instance_dropdown.currentText()}"
         return f"run_{self.relative_log_dir}"
+
+    def kill_lock_key(self):
+        if self.with_baldr_selector and self.instance_dropdown is not None:
+            return self.server_key()
+        return TELEM_LOCK_KEYS.get(self.relative_log_dir, self.server_key())
 
     def server_key_for_instance(self, instance):
         return f"{self.relative_log_dir}.{instance}"
@@ -359,15 +370,16 @@ class LogTab(QtWidgets.QWidget):
         return result == QtWidgets.QMessageBox.Yes
 
     def kill_server(self):
+        lock_key = self.kill_lock_key()
         if not self.confirm_action(
             "Confirm Kill",
-            f"Kill {self.server_key()} now?",
+            f"Kill {lock_key} now?",
         ):
-            self.append_action_line(f"Kill cancelled for {self.server_key()}.")
+            self.append_action_line(f"Kill cancelled for {lock_key}.")
             self.refresh_log(force=True)
             return
 
-        lock_path = f"/tmp/asg.{self.server_key()}.lock"
+        lock_path = f"/tmp/asg.{lock_key}.lock"
         pid = None
 
         try:
@@ -383,24 +395,24 @@ class LogTab(QtWidgets.QWidget):
                 pid = None
 
         if pid is None:
-            self.append_action_line(f"No PID found in lockfile for {self.server_key()}. Lockfile: {lock_path}")
+            self.append_action_line(f"No PID found in lockfile for {lock_key}. Lockfile: {lock_path}")
             self.refresh_log(force=True)
             return
 
         try:
             os.kill(pid, signal.SIGKILL)
-            self.append_action_line(f"Killed {self.server_key()} (PID {pid}).")
+            self.append_action_line(f"Killed {lock_key} (PID {pid}).")
         except ProcessLookupError:
             self.append_action_line(
-                f"No PID found for {self.server_key()} (stale lock PID {pid})."
+                f"No PID found for {lock_key} (stale lock PID {pid})."
             )
         except PermissionError as exc:
             self.append_action_line(
-                f"Failed to kill {self.server_key()} (PID {pid}): {exc}"
+                f"Failed to kill {lock_key} (PID {pid}): {exc}"
             )
         except OSError as exc:
             self.append_action_line(
-                f"Failed to kill {self.server_key()} (PID {pid}): {exc}"
+                f"Failed to kill {lock_key} (PID {pid}): {exc}"
             )
 
         self.refresh_log(force=True)
