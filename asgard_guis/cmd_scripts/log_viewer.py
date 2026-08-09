@@ -12,9 +12,15 @@ TAIL_LINES = 100
 REFRESH_MS = 1000
 
 SERVER_DIRS = [
+    "mds",
+    "eng_gui",
+    "back_end_server",
+    "heim_telem", 
+    "baldr_tt_telem",
     "cam_server",
     "DM_server",
     "heimdallr",
+    "mcs_client"
 ]
 
 ANSI_PATTERN = re.compile(r"\x1b\[([0-9;]*)m")
