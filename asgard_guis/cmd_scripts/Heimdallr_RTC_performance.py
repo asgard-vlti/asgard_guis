@@ -533,6 +533,7 @@ def main():
 
     FADE_DURATION_SECONDS = 60.0
     SCATTER_EDGE_WIDTH = 1.2
+    DEBUG_GD_OFFSET_UPDATES = True
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
@@ -562,7 +563,7 @@ def main():
             else:
                 idx = -1
                 for i, o in enumerate(self.offsets):
-                    if np.isclose(offset, o, atol=1e-3):
+                    if np.isclose(offset, o, atol=0.1): # !!! Data bucketing bug? Was 1e-3
                         idx = i
                         break
 
@@ -1331,7 +1332,7 @@ def main():
         #gd_offsets now come from gd_tel with respect to telescope 3,
         #multiplied by a scaling factor of 2 pi radians per 
         # (2.05)/(2.25-2.05) = 20.5 wavelengths.
-        gd_offsets = status["gd_tel"][[0, 1, 3]] - status["gd_tel"][2]
+        gd_offsets = np.array(status["gd_tel"])[[0, 1, 3]] - status["gd_tel"][2]
         gd_offsets = np.array(gd_offsets) * (2 * np.pi / 20.5)
 
         for i, baseline_idx in enumerate(baselines_of_interest):
@@ -1339,6 +1340,17 @@ def main():
                 gd_snr_vs_offsets[i].add_measurement(
                     gd_offsets[i], gd_snr[-1, baseline_idx]
                 )
+
+        if DEBUG_GD_OFFSET_UPDATES:
+            latest_snr = gd_snr[-1, baselines_of_interest]
+            sample_counts = [len(obj.offsets) for obj in gd_snr_vs_offsets]
+            print(
+                "[GD-SNR-vs-Offset] "
+                f"thr={gd_threshold:.2f} | "
+                f"snr(13,23,34)=[{', '.join(f'{x:.2f}' for x in latest_snr)}] | "
+                f"off(rad)=[{', '.join(f'{x:.3f}' for x in gd_offsets)}] | "
+                f"counts={sample_counts}"
+            )
 
         # --- Update GD SNR vs Offset plot ---
         for i, gd_obj in enumerate(gd_snr_vs_offsets):
