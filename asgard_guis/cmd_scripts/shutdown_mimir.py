@@ -37,14 +37,14 @@ def main():
     shutdown_result = subprocess.call(
         [
             "ssh", "-XC", "mimir",
-            "-e", "sudo shutdown -h now",
+            "sudo shutdown -h now",
         ]
     )
 
     if proceed_to_poweroff and (shutdown_result is None or shutdown_result != 0):
         proceed_to_poweroff = _confirm_or_abort(
             f"WARNING: Mimir shutdown may not have occurred "
-            f"(return code: {'n/a' if shutdown_result is None else shutdown_result.result}). "
+            f"(return code: {'n/a' if shutdown_result is None else shutdown_result}). "
             f"Either verify shutdown is proceeding and/or trigger manually and "
             f"then type Y to proceed, or type N to abort. (y/n):"
         )
@@ -77,13 +77,16 @@ def main():
         time.sleep(1)
 
     if all(is_off):
-        print("Mimir is off")
+        print("--- Mimir is off ---")
     else:
         print("ERROR: Mimir is not off, check PDU status manually")
         for outlet, status in zip(MIMIR_OUTLETS, is_off):
             if not status:
                 print(f"Outlet {outlet} is still on")
 
-
 if __name__ == "__main__":
     main()
+
+
+
+
