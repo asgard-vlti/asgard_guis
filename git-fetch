@@ -1,0 +1,13 @@
+#!/bin/bash
+cd /vltuser/asg/dcs.git
+git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+git update-ref -d refs/heads/main
+git update-ref refs/heads/main refs/remotes/origin/main
+cd /vltuser/asg/asgard-alignment.git
+git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+git update-ref -d refs/heads/main
+git update-ref refs/heads/main refs/remotes/origin/main
+cd /vltuser/asg/bifrost/bifrost.git
+git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+git update-ref -d refs/heads/main
+git update-ref refs/heads/main refs/remotes/origin/main
