@@ -1,6 +1,7 @@
 import argparse
 import subprocess
 import sys
+import time
 
 import zmq
 from PyQt5 import QtCore, QtWidgets
@@ -372,24 +373,34 @@ class ShortcutsGUI(QtWidgets.QWidget):
 	def _make_dark(self):
 		prev_SBB_state = self._send_cmd(self.mds_socket, "read SBB")
 		self._send_cmd(self.mds_socket, "off SBB")
-		prev_SFF_states = []
+		self._append_log(f"[INFO] Light source off. Sending SSFs to up.")
+		prev_SSF_states = []
+		num_flippers=0
 		for i in range(1, 5):
-			prev_SFF_states[i - 1] = self._send_cmd(self.mds_socket, f"read SSF{i}")
-			if (prev_SFF_states[i - 1] != "IN"):
+			prev_SSF_states += [self._send_cmd(self.mds_socket, f"read SSF{i}")]
+			if (prev_SSF_states[i - 1] != "IN"):
 				mds_cmd = f"moveabs SSF{i} 1.0"
 				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+			else:
+				num_flippers += 1
+		#If no flippers, we need to wait for the light source
+		if num_flippers==0:
+			time.sleep(2)
 		#In case of a slow camera mode, a small delay
-		self.msleep(500)
+		time.sleep(0.5)
   		#Now make the dark.
+		self._append_log(f"[INFO] Making Dark.")
 		self._send_cmd(self.cam_server_socket, "make_dark")
 		# Restore SBB state
 		if int(prev_SBB_state) == 1:
 			self._send_cmd(self.mds_socket, "on SBB")
-		# Restore SFF states
+		# Restore SSF states
+		self._append_log(f"[INFO] Restoring previous SSF states.")
 		for i in range(1, 5):
-			if prev_SFF_states[i - 1] == "OUT":
+			if prev_SSF_states[i - 1].startswith("OUT"):
 				mds_cmd = f"moveabs SSF{i} 0.0"
 				self._send_cmd(self.mds_socket, f"{mds_cmd}")
+		self._append_log(f"[INFO] Done making dark!")
 
 	def _send_baldr_all(self, cmd):
 		if not cmd or cmd.endswith(" "):

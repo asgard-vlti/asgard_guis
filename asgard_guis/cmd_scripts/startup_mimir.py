@@ -32,7 +32,7 @@ def main():
         time.sleep(1)
 
     if all(is_on):
-        print("Mimir is on, expecting 10 mins to boot")
+        print("--- Mimir is on, expecting 10 mins to boot ---")
     else:
         print("ERROR: Mimir is not on, check PDU status manually")
         for outlet, status in zip(MIMIR_OUTLETS, is_on):
