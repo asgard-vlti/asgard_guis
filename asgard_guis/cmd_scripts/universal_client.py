@@ -148,16 +148,16 @@ class ServerTab(QtWidgets.QWidget):
     def set_input_line(self, cmd):
         self.input_line.setText(cmd)
         # Fetch and display arguments for the selected command
-        self.display_command_arguments(cmd)
+        self.display_command_signature(cmd)
 
-    def display_command_arguments(self, cmd):
-        # Send 'arguments "<cmd>"' to the server and display the result as a table
+    def display_command_signature(self, cmd):
+        # Send 'signature "<cmd>"' to the server and display the result as a table
         try:
-            self.zmq_socket.send_string(f'arguments "{cmd}"')
+            self.zmq_socket.send_string(f'signature "{cmd}"')
             reply = self.zmq_socket.recv_string()
         except zmq.error.Again:
             self.append_colored(
-                "[Error] ZMQ request timed out while fetching arguments."
+                "[Error] ZMQ request timed out while fetching signature."
             )
             return
         except zmq.error.ZMQError as e:
@@ -167,11 +167,11 @@ class ServerTab(QtWidgets.QWidget):
                 )
                 self.reconnect_socket()
                 try:
-                    self.zmq_socket.send_string(f'arguments "{cmd}"')
+                    self.zmq_socket.send_string(f'signature "{cmd}"')
                     reply = self.zmq_socket.recv_string()
                 except Exception:
                     self.append_colored(
-                        "[Error] Could not fetch arguments after reconnect."
+                        "[Error] Could not fetch signature after reconnect."
                     )
                     return
             else:
@@ -183,20 +183,29 @@ class ServerTab(QtWidgets.QWidget):
 
         # Try to parse the reply and display as a table
         try:
-            args = json.loads(reply)
-            if args is None:
-                self.text_area.append("No arguments required.")
-            elif isinstance(args, list) and args and isinstance(args[0], dict):
-                # Display as a table
-                table = "<table border='1' cellspacing='0' cellpadding='2'><tr><th>Name</th><th>Type</th></tr>"
-                for arg in args:
-                    name = arg.get("name", "")
-                    typ = arg.get("type", "")
-                    table += f"<tr><td>{name}</td><td>{typ}</td></tr>"
-                table += "</table>"
-                self.text_area.append(table)
+            signature = json.loads(reply)
+            if isinstance(signature, dict) and "arguments" in signature:
+                args = signature["arguments"]
+                if args is None:
+                    self.text_area.append("No arguments required.")
+                elif isinstance(args, list) and args and isinstance(args[0], dict):
+                    # Display as a table
+                    table = "<table border='1' cellspacing='0' cellpadding='2'><tr><th>Name</th><th>Type</th><th>Description</th></tr>"
+                    for arg in args:
+                        name = arg.get("name", "")
+                        typ = arg.get("type", "")
+                        desc = arg.get("description", "")
+                        table += f"<tr><td>{name}</td><td>{typ}</td><td>{desc}</td></tr>"
+                    table += "</table>"
+                    self.text_area.append(table)
+                else:
+                    self.append_colored(str(args))
             else:
-                self.append_colored(str(args))
+                self.append_colored(f"[Error] Unexpected signature format without arguments: {reply}")
+            if isinstance(signature, dict) and "return_type" in signature:
+                return_type = signature["return_type"]
+                self.append_colored(f"Return type: {return_type}")
+            args = json.loads(reply)["arguments"]
         except Exception:
             # Fallback: just show the reply
             self.append_colored(reply.replace("\\n", "\n"))
