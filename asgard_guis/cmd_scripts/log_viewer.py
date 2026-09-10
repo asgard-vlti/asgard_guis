@@ -593,8 +593,11 @@ class UniversalLogClient(QtWidgets.QMainWindow):
             tab = LogTab(server_name, server_name, self.log_root)
             self.tabs.addTab(tab, server_name)
 
-        baldr_tab = LogTab("baldr_tt", "baldr_tt", self.log_root, with_baldr_selector=True)
-        self.tabs.addTab(baldr_tab, "baldr_tt")
+        baldr_tab = LogTab("baldr", "baldr", self.log_root, with_baldr_selector=True)
+        self.tabs.addTab(baldr_tab, "baldr")
+
+        baldr_tt_tab = LogTab("baldr_tt", "baldr_tt", self.log_root, with_baldr_selector=True)
+        self.tabs.addTab(baldr_tt_tab, "baldr_tt")
 
         self.installEventFilter(self)
 

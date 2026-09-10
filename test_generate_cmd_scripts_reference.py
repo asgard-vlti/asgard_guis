@@ -1,18 +1,43 @@
 from __future__ import annotations
 
+import os
 import re
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
 
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 try:
     from . import generate_cmd_scripts_reference as reference
 except ImportError:  # Direct execution from the workspace root or repository
     import generate_cmd_scripts_reference as reference
 
+try:
+    from PyQt5 import QtWidgets
+    from asgard_guis.cmd_scripts import log_viewer
+except ImportError:  # pragma: no cover - only matters when Qt is unavailable in tests
+    QtWidgets = None
+    log_viewer = None
+
 
 class CommandScriptReferenceTests(unittest.TestCase):
+    def test_baldr_tabs_include_baldr_before_baldr_tt(self):
+        if QtWidgets is None or log_viewer is None:
+            self.skipTest("PyQt5 is not available")
+
+        app = QtWidgets.QApplication.instance()
+        if app is None:
+            app = QtWidgets.QApplication([])
+
+        viewer = log_viewer.UniversalLogClient("/tmp")
+        tab_names = [viewer.tabs.tabText(i) for i in range(viewer.tabs.count())]
+        self.assertIn("baldr", tab_names)
+        self.assertIn("baldr_tt", tab_names)
+        self.assertLess(tab_names.index("baldr"), tab_names.index("baldr_tt"))
+        viewer.close()
+
     def _write_repository(
         self,
         workspace: Path,
