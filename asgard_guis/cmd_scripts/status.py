@@ -86,7 +86,13 @@ class StatusFormatter:
         if not isinstance(status_payload, str):
             return status_payload
         try:
-            return json.loads(status_payload)
+            json_payload = json.loads(status_payload)
+            # This is a hack to incorporate Jesse's new status format, 
+            # which wraps the actual status in a "data" field while
+            # an error status is in a "status_code" field.
+            if "data" in json_payload:
+                return json_payload["data"]
+            return json_payload
         except json.JSONDecodeError:
             return status_payload
 
