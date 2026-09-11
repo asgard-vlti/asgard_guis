@@ -107,7 +107,10 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 	def _set_spherical(self, enabled):
 		if enabled:
 			beam = self.beam_combo.currentText()
-			self._run_script("dm-zernike", [beam, "10", "0.1"])
+			self._run_script("dm-zernike", [beam, "11", "0.1"])
+		else:
+			beam = self.beam_combo.currentText()
+			self._run_script("dm-zernike", [beam, "11", "0.0"])
 
 	def _run_script(self, script, args):
 		command = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
