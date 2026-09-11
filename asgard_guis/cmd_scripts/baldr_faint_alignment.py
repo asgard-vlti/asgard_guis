@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 import zmq
@@ -29,6 +30,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 
 		header_layout.addWidget(QtWidgets.QLabel("Spherical?"))
 		self.spherical_checkbox = QtWidgets.QCheckBox()
+		self.spherical_checkbox.toggled.connect(self._set_spherical)
 		header_layout.addWidget(self.spherical_checkbox)
 
 		self.move_delta_label = QtWidgets.QLabel()
@@ -49,7 +51,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 			0,
 			self._move_field_lens,
 		)
-		self._add_direction_controls(layout, "Pupil", 0, 3)
+		self._add_direction_controls(layout, "Pupil", 0, 3, self._move_pupil)
 		self.more_btn = QtWidgets.QPushButton("More")
 		self.more_btn.clicked.connect(lambda: self._change_move_delta(2))
 		layout.addWidget(self.more_btn, 1, 6)
@@ -62,6 +64,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		layout.addWidget(self.align_btn, 5, 0, 1, 3)
 
 		self.save_btn = QtWidgets.QPushButton("Save")
+		self.save_btn.clicked.connect(lambda: self._run_script("b-savemode", ["FAINT"]))
 		layout.addWidget(self.save_btn, 5, 3, 1, 3)
 		root_layout.addLayout(layout)
 
@@ -101,6 +104,18 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 	def _update_move_delta_label(self):
 		self.move_delta_label.setText(f"Move Delta: {self.move_delta:g}")
 
+	def _set_spherical(self, enabled):
+		if enabled:
+			beam = self.beam_combo.currentText()
+			self._run_script("dm-zernike", [beam, "10", "0.1"])
+
+	def _run_script(self, script, args):
+		command = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
+		try:
+			subprocess.Popen(command)
+		except OSError as exc:
+			print(f"[ERROR] failed to launch {' '.join(command)} -> {exc}")
+
 	def _build_socket(self):
 		socket = self.context.socket(zmq.REQ)
 		socket.setsockopt(zmq.SNDTIMEO, 1500)
@@ -118,9 +133,33 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		}[direction]
 		if beam == 4 and motor_axis == "BMX":
 			sign *= -1
-
-		command = f"moverel {motor_axis}{beam} {sign * 10.0 * self.move_delta:g}"
+        #Format the motion to have at least 1 decimal point.
+		command = f"moverel {motor_axis}{beam} {sign * 10.0 * self.move_delta:.1f}"
 		self._send_mds_command(command)
+
+	def _move_pupil(self, direction):
+		beam = int(self.beam_combo.currentText())
+		pupil_moves = {
+			1: {"right": (("BTP1", 0.08),), "up": (("BTT1", 0.08),)},
+			2: {
+				"right": (("BTP2", 0.07), ("BOTT2", 0.005)),
+				"up": (("BTT2", 0.11), ("BOTP2", -0.005)),
+			},
+			3: {
+				"right": (("BTP3", 0.04), ("BOTT3", 0.005)),
+				"up": (("BTT3", 0.06), ("BOTP3", -0.005)),
+			},
+			4: {
+				"right": (("BTP4", 0.015), ("BOTT4", 0.005)),
+				"up": (("BTT4", 0.022), ("BOTP4", -0.005)),
+			},
+		}
+		base_direction = "right" if direction in {"right", "left"} else "up"
+		sign = -1 if direction in {"left", "down"} else 1
+		for motor, distance in pupil_moves[beam][base_direction]:
+			self._send_mds_command(
+				f"moverel {motor} {sign * distance * self.move_delta:g}"
+			)
 
 	def _send_mds_command(self, command):
 		try:
