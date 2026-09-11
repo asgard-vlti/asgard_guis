@@ -72,39 +72,22 @@ class BLFPoller(QtCore.QThread):
 
 
 class ReconWorker(QtCore.QThread):
-	"""Run the Baldr TT reconstruction sequence without blocking the GUI."""
+	"""Run the long Baldr TT reconstructor process without blocking the GUI."""
 
 	log_message = QtCore.pyqtSignal(str)
 	recon_finished = QtCore.pyqtSignal(bool)
 
-	def __init__(self, host, debug=False):
+	def __init__(self, debug=False):
 		super().__init__()
-		self._host = host
 		self._debug = debug
 
 	def run(self):
-		commands = ['servo "off"', "zero_tt", 'servo "tt"', "auto_coupling"]
 		if self._debug:
-			for command in commands:
-				self.log_message.emit(f"[DEBUG] Baldr TT: {command}")
-				time.sleep(0.5)
 			self.log_message.emit("[DEBUG] run: baldrtt-recon")
-			self.log_message.emit("[DEBUG] Baldr TT: recon")
 			self.recon_finished.emit(True)
 			return
 
-		context = zmq.Context()
-		socket = context.socket(zmq.REQ)
-		socket.setsockopt(zmq.SNDTIMEO, 1500)
-		socket.setsockopt(zmq.RCVTIMEO, 2000)
-		socket.connect(f"tcp://{self._host}:6671")
 		try:
-			for command in commands:
-				if not self._send_command(socket, command):
-					self.recon_finished.emit(False)
-					return
-				time.sleep(0.5)
-
 			script = "/home/asg/.conda/envs/asgard/bin/baldrtt-recon"
 			self.log_message.emit(f"[INFO] Running: {script}")
 			try:
@@ -114,23 +97,10 @@ class ReconWorker(QtCore.QThread):
 				self.recon_finished.emit(False)
 				return
 
-			time.sleep(0.5)
-			success = self._send_command(socket, "recon")
-			self.recon_finished.emit(success)
-		finally:
-			socket.setsockopt(zmq.LINGER, 0)
-			socket.close()
-			context.term()
-
-	def _send_command(self, socket, command):
-		try:
-			socket.send_string(command)
-			reply = socket.recv_string()
-			self.log_message.emit(f"[OK] Baldr TT {command} -> {reply}")
-			return True
+			self.recon_finished.emit(True)
 		except Exception as exc:
-			self.log_message.emit(f"[ERROR] Baldr TT {command} -> {exc}")
-			return False
+			self.log_message.emit(f"[ERROR] {script} failed: {exc}")
+			self.recon_finished.emit(False)
 
 
 class ShortcutsGUI(QtWidgets.QWidget):
@@ -498,13 +468,26 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		self.recon_status_label.setText("waiting for reconstructor construction")
 		self.recon_btn.setEnabled(False)
-		self.recon_worker = ReconWorker(self.host, self.debug)
+		for command in ['servo "off"', "zero_tt", 'servo "tt"', "auto_coupling"]:
+			self._send_baldr_all(command)
+			time.sleep(0.5)
+
+		self.recon_worker = ReconWorker(self.debug)
 		self.recon_worker.log_message.connect(self._append_log)
 		self.recon_worker.recon_finished.connect(self._on_recon_finished)
 		self.recon_worker.start()
 
 	def _on_recon_finished(self, success):
-		self.recon_status_label.setText("Recon complete" if success else "Recon failed")
+		if not success:
+			self.recon_status_label.setText("Recon failed")
+			self.recon_btn.setEnabled(True)
+			return
+
+		QtCore.QTimer.singleShot(500, self._send_recon_command)
+
+	def _send_recon_command(self):
+		self._send_baldr_all("recon")
+		self.recon_status_label.setText("Recon complete")
 		self.recon_btn.setEnabled(True)
 
 	def _run_script(self, script, args):
