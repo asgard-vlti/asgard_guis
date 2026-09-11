@@ -14,6 +14,8 @@ try:
 except ImportError:  # Direct execution from the workspace root or repository
     import generate_cmd_scripts_reference as reference
 
+from asgard_guis.cmd_scripts.status import StatusFormatter
+
 try:
     from PyQt5 import QtWidgets
     from asgard_guis.cmd_scripts import log_viewer
@@ -23,6 +25,23 @@ except ImportError:  # pragma: no cover - only matters when Qt is unavailable in
 
 
 class CommandScriptReferenceTests(unittest.TestCase):
+    def test_bao_status_displays_counter(self):
+        state = StatusFormatter().build_render_state(
+            {
+                "BAO1": {
+                    "process": "running",
+                    "zmq": "open",
+                    "status": '{"cnt": 42}',
+                }
+            }
+        )
+
+        entries = state["tasks"][0]["entries"]
+        self.assertIn(
+            {"label": "cnt", "value": "42", "color": "default", "indent": 1},
+            entries,
+        )
+
     def test_baldr_tabs_include_baldr_before_baldr_tt(self):
         if QtWidgets is None or log_viewer is None:
             self.skipTest("PyQt5 is not available")

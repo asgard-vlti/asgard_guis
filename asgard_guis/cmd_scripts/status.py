@@ -40,6 +40,10 @@ class StatusFormatter:
         "BTT2": ["cnt"],
         "BTT3": ["cnt"],
         "BTT4": ["cnt"],
+        "BAO1": ["cnt"],
+        "BAO2": ["cnt"],
+        "BAO3": ["cnt"],
+        "BAO4": ["cnt"],
         "CRED1": ["cam_status", "shm_error", "fps"],
         "DM": None,
         "HDLR": ["cnt", "locked"],
@@ -136,10 +140,7 @@ class StatusFormatter:
             zmq_color = self._state_color(zmq_state)
             add_entry("zmq", zmq_state, zmq_color, indent=1)
 
-            if (
-                task_status.get("status") is not None
-                and task_name in self.fields_of_interest
-            ):
+            if task_status.get("status") is not None and task_name in self.fields_of_interest:
                 fields = self.fields_of_interest[task_name]
                 decoded_status = self._decode_status(task_status.get("status"))
 
