@@ -1,12 +1,16 @@
 import sys
 
+import zmq
 from PyQt5 import QtCore, QtWidgets
 
 
 class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
-	def __init__(self):
+	def __init__(self, host="mimir"):
 		super().__init__()
+		self.host = host
 		self.move_delta = 1.0
+		self.context = zmq.Context()
+		self.mds_socket = self._build_socket()
 		self.setWindowTitle("Baldr Faint Alignment")
 		self._apply_dark_theme()
 		self._init_ui()
@@ -14,45 +18,65 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		self.setMinimumSize(self.minimumSizeHint())
 
 	def _init_ui(self):
-		layout = QtWidgets.QGridLayout(self)
+		root_layout = QtWidgets.QVBoxLayout(self)
+		header_layout = QtWidgets.QHBoxLayout()
 
-		layout.addWidget(QtWidgets.QLabel("Beam:"), 0, 0)
+		header_layout.addWidget(QtWidgets.QLabel("Beam:"))
 		self.beam_combo = QtWidgets.QComboBox()
 		self.beam_combo.addItems(["1", "2", "3", "4"])
 		self.beam_combo.currentTextChanged.connect(self._update_align_button)
-		layout.addWidget(self.beam_combo, 0, 1)
+		header_layout.addWidget(self.beam_combo)
 
-		layout.addWidget(QtWidgets.QLabel("Spherical?"), 0, 2)
+		header_layout.addWidget(QtWidgets.QLabel("Spherical?"))
 		self.spherical_checkbox = QtWidgets.QCheckBox()
-		layout.addWidget(self.spherical_checkbox, 0, 3)
+		header_layout.addWidget(self.spherical_checkbox)
 
 		self.move_delta_label = QtWidgets.QLabel()
+		self.move_delta_label.setFixedWidth(
+			self.move_delta_label.fontMetrics().horizontalAdvance("Move Delta: 0.0009765625")
+		)
 		self._update_move_delta_label()
-		layout.addWidget(self.move_delta_label, 0, 4, 1, 2)
+		header_layout.addWidget(self.move_delta_label)
+		header_layout.addStretch()
+		root_layout.addLayout(header_layout)
 
-		self._add_direction_controls(layout, "Field Lens", 1, 0)
-		self._add_direction_controls(layout, "Pupil", 1, 3)
+		layout = QtWidgets.QGridLayout()
+
+		self._add_direction_controls(
+			layout,
+			"Field Lens",
+			0,
+			0,
+			self._move_field_lens,
+		)
+		self._add_direction_controls(layout, "Pupil", 0, 3)
 		self.more_btn = QtWidgets.QPushButton("More")
 		self.more_btn.clicked.connect(lambda: self._change_move_delta(2))
-		layout.addWidget(self.more_btn, 2, 6)
+		layout.addWidget(self.more_btn, 1, 6)
 		self.less_btn = QtWidgets.QPushButton("Less")
 		self.less_btn.clicked.connect(lambda: self._change_move_delta(0.5))
-		layout.addWidget(self.less_btn, 3, 6)
+		layout.addWidget(self.less_btn, 2, 6)
 
 		self.align_btn = QtWidgets.QPushButton()
 		self._update_align_button(self.beam_combo.currentText())
-		layout.addWidget(self.align_btn, 6, 0, 1, 3)
+		layout.addWidget(self.align_btn, 5, 0, 1, 3)
 
 		self.save_btn = QtWidgets.QPushButton("Save")
-		layout.addWidget(self.save_btn, 6, 3, 1, 3)
+		layout.addWidget(self.save_btn, 5, 3, 1, 3)
+		root_layout.addLayout(layout)
 
-	def _add_direction_controls(self, layout, label, row, column):
+	def _add_direction_controls(self, layout, label, row, column, handler=None):
 		layout.addWidget(QtWidgets.QLabel(label), row, column, 1, 3, QtCore.Qt.AlignCenter)
 
 		up_button = self._arrow_button(QtCore.Qt.UpArrow)
 		left_button = self._arrow_button(QtCore.Qt.LeftArrow)
 		right_button = self._arrow_button(QtCore.Qt.RightArrow)
 		down_button = self._arrow_button(QtCore.Qt.DownArrow)
+		if handler is not None:
+			up_button.clicked.connect(lambda: handler("up"))
+			left_button.clicked.connect(lambda: handler("left"))
+			right_button.clicked.connect(lambda: handler("right"))
+			down_button.clicked.connect(lambda: handler("down"))
 
 		layout.addWidget(up_button, row + 1, column + 1)
 		layout.addWidget(left_button, row + 2, column)
@@ -76,6 +100,42 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 
 	def _update_move_delta_label(self):
 		self.move_delta_label.setText(f"Move Delta: {self.move_delta:g}")
+
+	def _build_socket(self):
+		socket = self.context.socket(zmq.REQ)
+		socket.setsockopt(zmq.SNDTIMEO, 1500)
+		socket.setsockopt(zmq.RCVTIMEO, 2000)
+		socket.connect(f"tcp://{self.host}:5555")
+		return socket
+
+	def _move_field_lens(self, direction):
+		beam = int(self.beam_combo.currentText())
+		motor_axis, sign = {
+			"up": ("BMY", -1),
+			"down": ("BMY", 1),
+			"left": ("BMX", -1),
+			"right": ("BMX", 1),
+		}[direction]
+		if beam == 4 and motor_axis == "BMX":
+			sign *= -1
+
+		command = f"moverel {motor_axis}{beam} {sign * 10.0 * self.move_delta:g}"
+		self._send_mds_command(command)
+
+	def _send_mds_command(self, command):
+		try:
+			self.mds_socket.send_string(command)
+			self.mds_socket.recv_string()
+		except zmq.error.Again:
+			print(f"[TIMEOUT] {command}")
+		except Exception as exc:
+			print(f"[ERROR] {command} -> {exc}")
+
+	def closeEvent(self, event):
+		self.mds_socket.setsockopt(zmq.LINGER, 0)
+		self.mds_socket.close()
+		self.context.term()
+		super().closeEvent(event)
 
 	def _apply_dark_theme(self):
 		self.setStyleSheet(
@@ -121,7 +181,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 
 
 def main():
-	app = QtWidgets.QApplication([])
+	app = QtWidgets.QApplication(sys.argv)
 	window = BaldrFaintAlignmentGUI()
 	window.show()
 	sys.exit(app.exec_())
