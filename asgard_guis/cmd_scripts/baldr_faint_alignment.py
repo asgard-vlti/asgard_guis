@@ -60,6 +60,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		layout.addWidget(self.less_btn, 2, 6)
 
 		self.align_btn = QtWidgets.QPushButton()
+		self.align_btn.clicked.connect(self._align)
 		self._update_align_button(self.beam_combo.currentText())
 		layout.addWidget(self.align_btn, 5, 0, 1, 3)
 
@@ -96,6 +97,11 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 	def _update_align_button(self, beam):
 		label = "Align CRed box" if beam == "1" else "Align BOTX"
 		self.align_btn.setText(label)
+
+	def _align(self):
+		beam = self.beam_combo.currentText()
+		script = "b-movebox" if beam == "1" else "b-faint-tweak-botx"
+		self._run_script(script, [beam])
 
 	def _change_move_delta(self, factor):
 		self.move_delta *= factor
