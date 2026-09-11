@@ -83,12 +83,12 @@ class ReconWorker(QtCore.QThread):
 		self._debug = debug
 
 	def run(self):
-		commands = ['servo "off"', "zero_tt", "auto_coupling"]
+		commands = ['servo "off"', "zero_tt", 'servo "tt"', "auto_coupling"]
 		if self._debug:
 			for command in commands:
 				self.log_message.emit(f"[DEBUG] Baldr TT: {command}")
 				time.sleep(0.5)
-			self.log_message.emit("[DEBUG] run: baldr_tt_recon")
+			self.log_message.emit("[DEBUG] run: baldrtt-recon")
 			self.log_message.emit("[DEBUG] Baldr TT: recon")
 			self.recon_finished.emit(True)
 			return
@@ -105,7 +105,7 @@ class ReconWorker(QtCore.QThread):
 					return
 				time.sleep(0.5)
 
-			script = "/home/asg/.conda/envs/asgard/bin/baldr_tt_recon"
+			script = "/home/asg/.conda/envs/asgard/bin/baldrtt-recon"
 			self.log_message.emit(f"[INFO] Running: {script}")
 			try:
 				subprocess.run([script], check=True)
