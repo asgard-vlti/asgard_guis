@@ -22,6 +22,7 @@ status-mimir = "asgard_guis.cmd_scripts.status:main"
 logs-client = "asgard_guis.cmd_scripts.log_viewer:main"
 shortcuts = "asgard_guis.cmd_scripts.shortcuts:main" 
 baldr-faint-alignment = "asgard_guis.cmd_scripts.baldr_faint_alignment:main"
+baldr-pupil-mask-alignment = "asgard_guis.cmd_scripts.baldr_pupil_mask_alignment:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
