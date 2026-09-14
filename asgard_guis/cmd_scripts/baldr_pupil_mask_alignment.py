@@ -46,6 +46,11 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		root_layout.addLayout(header_layout)
 
 		layout = QtWidgets.QGridLayout()
+		layout.setAlignment(QtCore.Qt.AlignLeft)
+		layout.setHorizontalSpacing(4)
+		for column in range(6):
+			layout.setColumnMinimumWidth(column, 36)
+			layout.setColumnStretch(column, 0)
 		self.left_control = self._add_direction_controls(
 			layout, "Image/Cold Stop", 0, 0, self._move_image_cold_stop
 		)
@@ -54,11 +59,11 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		)
 
 		self.more_btn = QtWidgets.QPushButton("More")
-		self.more_btn.setFixedWidth(45)
+		self.more_btn.setFixedWidth(65)
 		self.more_btn.clicked.connect(lambda: self._change_move_delta(2))
 		layout.addWidget(self.more_btn, 1, 6)
 		self.less_btn = QtWidgets.QPushButton("Less")
-		self.less_btn.setFixedWidth(45)
+		self.less_btn.setFixedWidth(65)
 		self.less_btn.clicked.connect(lambda: self._change_move_delta(0.5))
 		layout.addWidget(self.less_btn, 2, 6)
 
@@ -113,13 +118,13 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 
 	def _change_alignment_mode(self, aligning_pupil):
 		self._send_mds_command(
-			f"movabs BMY1 {500.0 if aligning_pupil else -500.0:.1f}"
+			f"moveabs BMY1 {500.0 if aligning_pupil else -500.0:.1f}"
 		)
 		self._update_controls()
 
 	def _change_beam(self):
 		if self.align_pupil_radio.isChecked():
-			self._send_mds_command("movabs BMY1 -500.0")
+			self._send_mds_command("moveabs BMY1 -500.0")
 		self._update_controls()
 
 	def _change_move_delta(self, factor):
