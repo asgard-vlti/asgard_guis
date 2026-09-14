@@ -57,7 +57,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			layout.setColumnMinimumWidth(column, 36)
 			layout.setColumnStretch(column, 0)
 		self.left_control = self._add_direction_controls(
-			layout, "Image/Cold Stop", 0, 0, self._move_image_cold_stop
+			layout, "Image/Cold Stop", 0, 0, self._move_left_control
 		)
 		self.right_control = self._add_direction_controls(
 			layout, "Pupil", 0, 3, self._move_pupil
@@ -74,7 +74,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		layout.addWidget(self.less_btn, 3, 6)
 
 		self.save_btn = QtWidgets.QPushButton("Save all")
-		self.save_btn.clicked.connect(lambda: self._send_mds_command("fpm_write -1"))
+		self.save_btn.clicked.connect(self._save_all)
 		layout.addWidget(self.save_btn, 5, 0, 1, 3)
 		self.update_beam_btn = QtWidgets.QPushButton("Update Beam")
 		self.update_beam_btn.clicked.connect(self._update_beam)
@@ -152,6 +152,20 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		socket.connect(f"tcp://{self.host}:{port}")
 		return socket
 
+	def _move_left_control(self, direction):
+		if self.align_mask_radio.isChecked():
+			self._move_phase_mask(direction)
+			return
+		self._move_image_cold_stop(direction)
+
+	def _move_phase_mask(self, direction):
+		beam = self.beam_combo.currentText()
+		axis = "BMX" if direction in {"right", "left"} else "BMY"
+		sign = -1 if direction in {"left", "down"} else 1
+		self._send_mds_command(
+			f"asg_setup {axis}{beam} NAME {sign * 10.0 * self.move_delta:.1f}"
+		)
+
 	def _move_image_cold_stop(self, direction):
 		beam = int(self.beam_combo.currentText())
 		x, y = self._movement_vector(direction)
@@ -173,7 +187,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		y *= self.move_delta
 		if beam == 1:
 			self._send_camera_command(
-				f"move_roi {x * 2:g} {y * 2:g}"
+				f"move_roi 'baldr{beam}' {x * 2:g} {y * 2:g}"
 			)
 			return
 		self._send_mds_command(
@@ -195,9 +209,20 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			f"fpm_update {beam} {self.mask_combo.currentText()} {update_scope}"
 		)
 
+	def _save_all(self):
+		self._send_mds_command("fpm_write -1")
+		self._run_script("b_savemode", ["STANDARD"])
+
 	def _move_to_mask(self, mask):
 		for beam in range(1, 5):
 			self._send_mds_command(f"fpm_movetomask {beam} {mask}")
+
+	def _run_script(self, script, args):
+		command = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
+		try:
+			subprocess.Popen(command)
+		except OSError as exc:
+			print(f"[ERROR] failed to launch {' '.join(command)} -> {exc}")
 
 	def _send_mds_command(self, command):
 		self._send_command(self.mds_socket, command)
