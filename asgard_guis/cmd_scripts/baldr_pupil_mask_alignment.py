@@ -26,13 +26,13 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		header_layout.addWidget(QtWidgets.QLabel("Beam:"))
 		self.beam_combo = QtWidgets.QComboBox()
 		self.beam_combo.addItems(["1", "2", "3", "4"])
-		self.beam_combo.currentTextChanged.connect(self._update_controls)
+		self.beam_combo.currentTextChanged.connect(self._change_beam)
 		header_layout.addWidget(self.beam_combo)
 
 		self.align_pupil_radio = QtWidgets.QRadioButton("Align Pupil")
 		self.align_mask_radio = QtWidgets.QRadioButton("Align Mask")
-		self.align_pupil_radio.setChecked(True)
-		self.align_pupil_radio.toggled.connect(self._update_controls)
+		self.align_mask_radio.setChecked(True)
+		self.align_pupil_radio.toggled.connect(self._change_alignment_mode)
 		header_layout.addWidget(self.align_pupil_radio)
 		header_layout.addWidget(self.align_mask_radio)
 
@@ -54,9 +54,11 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		)
 
 		self.more_btn = QtWidgets.QPushButton("More")
+		self.more_btn.setFixedWidth(45)
 		self.more_btn.clicked.connect(lambda: self._change_move_delta(2))
 		layout.addWidget(self.more_btn, 1, 6)
 		self.less_btn = QtWidgets.QPushButton("Less")
+		self.less_btn.setFixedWidth(45)
 		self.less_btn.clicked.connect(lambda: self._change_move_delta(0.5))
 		layout.addWidget(self.less_btn, 2, 6)
 
@@ -109,6 +111,17 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		for button in self.right_control[1]:
 			button.setEnabled(aligning_pupil)
 
+	def _change_alignment_mode(self, aligning_pupil):
+		self._send_mds_command(
+			f"movabs BMY1 {500.0 if aligning_pupil else -500.0:.1f}"
+		)
+		self._update_controls()
+
+	def _change_beam(self):
+		if self.align_pupil_radio.isChecked():
+			self._send_mds_command("movabs BMY1 -500.0")
+		self._update_controls()
+
 	def _change_move_delta(self, factor):
 		self.move_delta *= factor
 		self._update_move_delta_label()
@@ -133,7 +146,9 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			distance = (x or y) * 0.06
 			self._send_mds_command(f"moverel {motor} {distance:g}")
 			return
-		self._send_mds_command(f"mv_img baldr {beam} {x:g} {y:g}")
+		self._send_mds_command(
+			f"mv_img baldr {beam} {x * 0.2:.1f} {y * 0.2:.1f}"
+		)
 
 	def _move_pupil(self, direction):
 		beam = int(self.beam_combo.currentText())
@@ -145,7 +160,9 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 				f"move_roi {x * 2:g} {y * 2:g}"
 			)
 			return
-		self._send_mds_command(f"mv_pup baldr {beam} {x:g} {y:g}")
+		self._send_mds_command(
+			f"mv_pup baldr {beam} {y * 2:.1f} {x * 2:.1f}"
+		)
 
 	def _movement_vector(self, direction):
 		return {
