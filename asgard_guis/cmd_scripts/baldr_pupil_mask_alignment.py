@@ -268,7 +268,8 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			QCheckBox::indicator {
 				width: 16px;
 				height: 16px;
-				border: 1px solid #8c919a;
+				border: 2px solid #e6e6e6;
+				border-radius: 2px;
 				background-color: #272a30;
 			}
 			QCheckBox::indicator:checked {
