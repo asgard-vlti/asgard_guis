@@ -117,14 +117,16 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			button.setEnabled(aligning_pupil)
 
 	def _change_alignment_mode(self, aligning_pupil):
+		beam = self.beam_combo.currentText()
 		self._send_mds_command(
-			f"moveabs BMY1 {500.0 if aligning_pupil else -500.0:.1f}"
+			f"moverel BMY{beam} {500.0 if aligning_pupil else -500.0:.1f}"
 		)
 		self._update_controls()
 
 	def _change_beam(self):
 		if self.align_pupil_radio.isChecked():
-			self._send_mds_command("moveabs BMY1 -500.0")
+			beam = self.beam_combo.currentText()
+			self._send_mds_command(f"moverel BMY{beam} -500.0")
 		self._update_controls()
 
 	def _change_move_delta(self, factor):
