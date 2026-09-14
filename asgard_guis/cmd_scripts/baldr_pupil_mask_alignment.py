@@ -163,7 +163,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		axis = "BMX" if direction in {"right", "left"} else "BMY"
 		sign = -1 if direction in {"left", "down"} else 1
 		self._send_mds_command(
-			f"asg_setup {axis}{beam} NAME {sign * 10.0 * self.move_delta:.1f}"
+			f"moverel {axis}{beam} {sign * 10.0 * self.move_delta:.1f}"
 		)
 
 	def _move_image_cold_stop(self, direction):
