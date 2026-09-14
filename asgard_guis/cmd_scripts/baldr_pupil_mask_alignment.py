@@ -35,6 +35,12 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		self.align_pupil_radio.toggled.connect(self._change_alignment_mode)
 		header_layout.addWidget(self.align_pupil_radio)
 		header_layout.addWidget(self.align_mask_radio)
+		header_layout.addWidget(QtWidgets.QLabel("Mask:"))
+		self.mask_combo = QtWidgets.QComboBox()
+		self.mask_combo.addItems(["H2", "H3", "H4", "H5", "J1", "J2", "J3", "J4"])
+		self.mask_combo.setCurrentText("H3")
+		self.mask_combo.currentTextChanged.connect(self._move_to_mask)
+		header_layout.addWidget(self.mask_combo)
 
 		self.move_delta_label = QtWidgets.QLabel()
 		self.move_delta_label.setFixedWidth(
@@ -115,6 +121,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		self.right_control[0].setText(right_label)
 		for button in self.right_control[1]:
 			button.setEnabled(aligning_pupil)
+		self.mask_combo.setEnabled(not aligning_pupil)
 
 	def _change_alignment_mode(self, aligning_pupil):
 		beam = self.beam_combo.currentText()
@@ -181,7 +188,11 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 
 	def _update_beam(self):
 		beam = self.beam_combo.currentText()
-		self._send_mds_command(f"fpm_update {beam} H3 one")
+		self._send_mds_command(f"fpm_update {beam} {self.mask_combo.currentText()} one")
+
+	def _move_to_mask(self, mask):
+		for beam in range(1, 5):
+			self._send_mds_command(f"fpm_movetomask {beam} {mask}")
 
 	def _send_mds_command(self, command):
 		self._send_command(self.mds_socket, command)
