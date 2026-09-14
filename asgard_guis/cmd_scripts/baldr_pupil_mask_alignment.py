@@ -47,7 +47,6 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			self.move_delta_label.fontMetrics().horizontalAdvance("Move Delta: 0.0009765625")
 		)
 		self._update_move_delta_label()
-		header_layout.addWidget(self.move_delta_label)
 		header_layout.addStretch()
 		root_layout.addLayout(header_layout)
 
@@ -63,15 +62,16 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		self.right_control = self._add_direction_controls(
 			layout, "Pupil", 0, 3, self._move_pupil
 		)
+		layout.addWidget(self.move_delta_label, 1, 6)
 
 		self.more_btn = QtWidgets.QPushButton("More")
 		self.more_btn.setFixedWidth(65)
 		self.more_btn.clicked.connect(lambda: self._change_move_delta(2))
-		layout.addWidget(self.more_btn, 1, 6)
+		layout.addWidget(self.more_btn, 2, 6)
 		self.less_btn = QtWidgets.QPushButton("Less")
 		self.less_btn.setFixedWidth(65)
 		self.less_btn.clicked.connect(lambda: self._change_move_delta(0.5))
-		layout.addWidget(self.less_btn, 2, 6)
+		layout.addWidget(self.less_btn, 3, 6)
 
 		self.save_btn = QtWidgets.QPushButton("Save all")
 		self.save_btn.clicked.connect(lambda: self._send_mds_command("fpm_write -1"))
@@ -79,6 +79,8 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		self.update_beam_btn = QtWidgets.QPushButton("Update Beam")
 		self.update_beam_btn.clicked.connect(self._update_beam)
 		layout.addWidget(self.update_beam_btn, 5, 3, 1, 3)
+		self.all_masks_checkbox = QtWidgets.QCheckBox("All masks?")
+		layout.addWidget(self.all_masks_checkbox, 5, 6)
 		root_layout.addLayout(layout)
 		self._update_controls()
 
@@ -188,7 +190,10 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 
 	def _update_beam(self):
 		beam = self.beam_combo.currentText()
-		self._send_mds_command(f"fpm_update {beam} {self.mask_combo.currentText()} one")
+		update_scope = "all" if self.all_masks_checkbox.isChecked() else "one"
+		self._send_mds_command(
+			f"fpm_update {beam} {self.mask_combo.currentText()} {update_scope}"
+		)
 
 	def _move_to_mask(self, mask):
 		for beam in range(1, 5):
