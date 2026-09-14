@@ -265,6 +265,19 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			QRadioButton::indicator:checked {
 				background-color: #3f6db3;
 			}
+			QCheckBox::indicator {
+				width: 16px;
+				height: 16px;
+				border: 1px solid #8c919a;
+				background-color: #272a30;
+			}
+			QCheckBox::indicator:checked {
+				background-color: #3f6db3;
+			}
+			QCheckBox::indicator:disabled {
+				border-color: #4a4f57;
+				background-color: #25272b;
+			}
 			"""
 		)
 
