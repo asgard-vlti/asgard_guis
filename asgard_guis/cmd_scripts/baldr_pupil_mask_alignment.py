@@ -211,7 +211,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 
 	def _save_all(self):
 		self._send_mds_command("fpm_write -1")
-		self._run_script("b_savemode", ["STANDARD"])
+		self._run_script("b-savemode", ["STANDARD"])
 
 	def _move_to_mask(self, mask):
 		for beam in range(1, 5):
