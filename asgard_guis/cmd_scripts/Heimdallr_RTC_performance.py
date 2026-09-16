@@ -607,7 +607,7 @@ def main():
 
     # --- Color legend window ---
     legend_win = QtWidgets.QWidget()
-    legend_win.setWindowTitle("Color Legend")
+    legend_win.setWindowTitle("Buttons and Legend")
     legend_win.setFixedSize(350, legend_fixed_height)
     legend_layout = QtWidgets.QVBoxLayout()
     legend_win.setLayout(legend_layout)
@@ -709,10 +709,24 @@ def main():
     reset_button = QtWidgets.QPushButton("Reset best_gd_SNR")
     reset_button.clicked.connect(heimdallr_sm.reset_best_gd_SNR)
 
+    def set_search_offset():
+        current_status = Z.send("status")
+        search_offset = np.asarray(current_status["dl_offload"], dtype=float)
+        if search_offset.shape != (N_TSCOPES,):
+            raise ValueError(
+                f"Expected {N_TSCOPES} dl_offload values, got {search_offset.shape}"
+            )
+        send(f"set_search_offset [{','.join(str(value) for value in search_offset)}]")
+        send("dls 0,0,0,0")
+
+    set_search_offset_button = QtWidgets.QPushButton("Set Search Offset")
+    set_search_offset_button.clicked.connect(set_search_offset)
+
     # Insert buttons above the Telescopes label
     legend_layout.addLayout(offset_buttons_layout)
     legend_layout.addLayout(offset_buttons_layout2)
     legend_layout.addWidget(reset_button)
+    legend_layout.addWidget(set_search_offset_button)
 
     # --- Integration time progress bar ---
     itime_progress_bar = QtWidgets.QProgressBar()

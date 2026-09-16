@@ -12,12 +12,14 @@ class BLFPoller(QtCore.QThread):
 
 	status_updated = QtCore.pyqtSignal(str)
 
-	def __init__(self, host, port=5555, interval_ms=10000):
+	def __init__(self, host, port=5555, interval_ms=15000):
 		super().__init__()
 		self._host = host
 		self._port = port
 		self._interval_ms = interval_ms
 		self._stop = False
+		self._blf_values = [None] * 4
+		self._next_blf_index = 0
 
 	def run(self):
 		context = zmq.Context()
@@ -32,40 +34,45 @@ class BLFPoller(QtCore.QThread):
 			context.term()
 
 	def _do_poll(self, context):
-		socket = context.socket(zmq.REQ)
-		socket.setsockopt(zmq.SNDTIMEO, 500)
-		socket.setsockopt(zmq.RCVTIMEO, 500)
-		socket.connect(f"tcp://{self._host}:{self._port}")
+		index = self._next_blf_index
+		value = self._read_blf(context, index)
+		value_changed = (
+			self._blf_values[index] is not None and value != self._blf_values[index]
+		)
+		self._blf_values[index] = value
+		self._next_blf_index = (index + 1) % 4
 
-		values = []
-		for i in range(1, 5):
-			try:
-				socket.send_string(f"read BLF{i}")
-				reply = socket.recv_string().strip()
-				values.append(int(float(reply)))
-			except (zmq.error.Again, ValueError, Exception):
-				values.append(None)
-				# Lazy pirate: fresh socket for next request
-				socket.setsockopt(zmq.LINGER, 0)
-				socket.close()
-				socket = context.socket(zmq.REQ)
-				socket.setsockopt(zmq.SNDTIMEO, 500)
-				socket.setsockopt(zmq.RCVTIMEO, 500)
-				socket.connect(f"tcp://{self._host}:{self._port}")
+		if value_changed:
+			for other_index in range(4):
+				if other_index != index:
+					self._blf_values[other_index] = self._read_blf(context, other_index)
 
-		socket.setsockopt(zmq.LINGER, 0)
-		socket.close()
-
-		if any(v is None for v in values):
+		values = self._blf_values
+		if any(value is None for value in values):
 			status = "Mixed/Error"
-		elif all(v == 0 for v in values):
+		elif all(value == 0 for value in values):
 			status = "Standard"
-		elif all(v == 1 for v in values):
+		elif all(value == 1 for value in values):
 			status = "Faint"
 		else:
 			status = "Mixed/Error"
 
 		self.status_updated.emit(status)
+
+	def _read_blf(self, context, index):
+		socket = context.socket(zmq.REQ)
+		socket.setsockopt(zmq.SNDTIMEO, 500)
+		socket.setsockopt(zmq.RCVTIMEO, 500)
+		socket.connect(f"tcp://{self._host}:{self._port}")
+
+		try:
+			socket.send_string(f"read BLF{index + 1}")
+			return int(float(socket.recv_string().strip()))
+		except (zmq.error.Again, ValueError, Exception):
+			return None
+		finally:
+			socket.setsockopt(zmq.LINGER, 0)
+			socket.close()
 
 	def stop(self):
 		self._stop = True

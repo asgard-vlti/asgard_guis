@@ -26,6 +26,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		header_layout.addWidget(QtWidgets.QLabel("Beam:"))
 		self.beam_combo = QtWidgets.QComboBox()
 		self.beam_combo.addItems(["1", "2", "3", "4"])
+		self.previous_beam = self.beam_combo.currentText()
 		self.beam_combo.currentTextChanged.connect(self._change_beam)
 		header_layout.addWidget(self.beam_combo)
 
@@ -132,10 +133,11 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		)
 		self._update_controls()
 
-	def _change_beam(self):
+	def _change_beam(self, beam):
 		if self.align_pupil_radio.isChecked():
-			beam = self.beam_combo.currentText()
-			self._send_mds_command(f"moverel BMY{beam} -500.0")
+			self._send_mds_command(f"moverel BMY{self.previous_beam} -500.0")
+			self._send_mds_command(f"moverel BMY{beam} 500.0")
+		self.previous_beam = beam
 		self._update_controls()
 
 	def _change_move_delta(self, factor):
@@ -177,7 +179,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 			self._send_mds_command(f"moverel {motor} {distance:g}")
 			return
 		self._send_mds_command(
-			f"mv_img baldr {beam} {x * 0.2:.1f} {y * 0.2:.1f}"
+			f"mv_img baldr {beam} {y * 0.2:.1f} {x * 0.2:.1f}"
 		)
 
 	def _move_pupil(self, direction):
@@ -187,7 +189,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		y *= self.move_delta
 		if beam == 1:
 			self._send_camera_command(
-				f"move_roi 'baldr{beam}' {x * 2:g} {y * 2:g}"
+				f"move_roi 'baldr{beam}' {int(x * 2)} {int(y * 2)}"
 			)
 			return
 		self._send_mds_command(
