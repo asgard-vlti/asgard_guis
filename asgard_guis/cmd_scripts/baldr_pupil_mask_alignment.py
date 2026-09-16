@@ -190,7 +190,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		y *= self.move_delta
 		if beam == 1:
 			self._send_camera_command(
-				f'move_roi "baldr{beam}" {int(x * 2)} {int(y * 2)}'
+				f'move_roi "baldr{beam}", {int(x * 2)}, {int(y * 2)}'
 			)
 			return
 		self._send_mds_command(
