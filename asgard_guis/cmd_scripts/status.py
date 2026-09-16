@@ -178,7 +178,12 @@ class StatusFormatter:
                         else "N/A"
                     )
                     value_str = str(value)
-                    add_entry(field, value_str, self._state_color(value_str), indent=1)
+                    color = (
+                        "yellow"
+                        if task_name == "MDS" and field == "SDLA" and self._is_sdla_error(value_str)
+                        else self._state_color(value_str)
+                    )
+                    add_entry(field, value_str, color, indent=1)
                 elif len(fields) > 1:
                     for field in fields:
                         inverse = "error" in field.lower()
@@ -207,7 +212,11 @@ class StatusFormatter:
         has_yellow = (
             task_name == "MDS"
             and any(
-                entry["label"] == "SDLA" and self._is_zero(entry["value"])
+                entry["label"] == "SDLA"
+                and (
+                    self._is_zero(entry["value"])
+                    or self._is_sdla_error(entry["value"])
+                )
                 for entry in entries
             )
         )
@@ -224,6 +233,10 @@ class StatusFormatter:
             return float(value) == 0.0
         except (TypeError, ValueError):
             return False
+
+    @staticmethod
+    def _is_sdla_error(value: Any) -> bool:
+        return str(value) == "Error (Standby?)"
 
     def build_render_state(
         self, wd_status: Any, update_last_time: bool = True
@@ -262,7 +275,7 @@ def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
     socket.connect(mds_endpoint)
     try:
         socket.send_string("read SDLA")
-        sdla = socket.recv_string().strip()
+        sdla_response = socket.recv_string().strip()
     except zmq.ZMQError as error:
         logging.warning("Could not read SDLA from MDS: %s", error)
         return wd_status
@@ -273,6 +286,11 @@ def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
     decoded_status = StatusFormatter._decode_status(mds_status.get("status"))
     if not isinstance(decoded_status, dict):
         decoded_status = {"status": decoded_status}
+    try:
+        sdla_value = float(sdla_response)
+        sdla = f"{sdla_value:.1f}" if math.isfinite(sdla_value) else "Error (Standby?)"
+    except ValueError:
+        sdla = "Error (Standby?)"
     decoded_status["SDLA"] = sdla
     mds_status["status"] = json.dumps(decoded_status)
     return wd_status
