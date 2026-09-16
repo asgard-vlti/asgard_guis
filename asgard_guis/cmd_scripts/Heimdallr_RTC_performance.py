@@ -520,6 +520,12 @@ def main():
     time_axis = np.linspace(-samples * update_time / 1000.0, 0, samples)
 
     status = Z.send("status")
+    settings = Z.send("settings")
+    search_offset = np.asarray(settings["search_offset"], dtype=float)
+    if search_offset.shape != (N_TSCOPES,):
+        raise ValueError(
+            f"Expected {N_TSCOPES} search_offset values, got {search_offset.shape}"
+        )
     v2_K1 = np.zeros((samples, N_BASELINES))
     v2_K2 = np.zeros((samples, N_BASELINES))
     pd_tel = np.zeros((samples, N_TSCOPES))
@@ -711,12 +717,15 @@ def main():
 
     def set_search_offset():
         current_status = Z.send("status")
-        search_offset = np.asarray(current_status["dl_offload"], dtype=float)
-        if search_offset.shape != (N_TSCOPES,):
+        dl_offload = np.asarray(current_status["dl_offload"], dtype=float)
+        if dl_offload.shape != (N_TSCOPES,):
             raise ValueError(
-                f"Expected {N_TSCOPES} dl_offload values, got {search_offset.shape}"
+                f"Expected {N_TSCOPES} dl_offload values, got {dl_offload.shape}"
             )
-        send(f"set_search_offset [{','.join(str(value) for value in search_offset)}]")
+        new_search_offset = search_offset + dl_offload
+        send(
+            f"set_search_offset [{','.join(str(value) for value in new_search_offset)}]"
+        )
         send("dls 0,0,0,0")
 
     set_search_offset_button = QtWidgets.QPushButton("Set Search Offset")
@@ -1237,7 +1246,7 @@ def main():
 
     def update():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
-        nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets
+        nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets, search_offset
         status = Z.send("status")
         if status is None:
             print("Error communicating with server.. retrying.")
@@ -1263,6 +1272,11 @@ def main():
             arr[-1] = status[key]
 
         settings = Z.send("settings")
+        search_offset = np.asarray(settings["search_offset"], dtype=float)
+        if search_offset.shape != (N_TSCOPES,):
+            raise ValueError(
+                f"Expected {N_TSCOPES} search_offset values, got {search_offset.shape}"
+            )
         gd_threshold = float(settings.get("gd_threshold", gd_threshold))
         # Update the horizontal line position
         gd_threshold_line.setValue(gd_threshold)
