@@ -65,7 +65,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		layout.addWidget(self.align_btn, 5, 0, 1, 3)
 
 		self.save_btn = QtWidgets.QPushButton("Save")
-		self.save_btn.clicked.connect(lambda: self._run_script("b-savemode", ["FAINT"]))
+		self.save_btn.clicked.connect(self._save)
 		layout.addWidget(self.save_btn, 5, 3, 1, 3)
 		root_layout.addLayout(layout)
 
@@ -102,6 +102,12 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		beam = self.beam_combo.currentText()
 		script = "b-movebox" if beam == "1" else "b-faint-tweak-botx"
 		self._run_script(script, [beam])
+
+	def _save(self):
+		for beam in range(1, 5):
+			self._send_mds_command(f"fpm_update {beam} LL one")
+		self._send_mds_command("fpm_write -1")
+		self._run_script("b-savemode", ["FAINT"])
 
 	def _change_move_delta(self, factor):
 		self.move_delta *= factor
