@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import threading
 
 import zmq
 from PyQt5 import QtCore, QtWidgets
@@ -189,7 +190,7 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 		y *= self.move_delta
 		if beam == 1:
 			self._send_camera_command(
-				f"move_roi 'baldr{beam}' {int(x * 2)} {int(y * 2)}"
+				f'move_roi "baldr{beam}" {int(x * 2)} {int(y * 2)}'
 			)
 			return
 		self._send_mds_command(
@@ -222,9 +223,27 @@ class BaldrPupilMaskAlignmentGUI(QtWidgets.QWidget):
 	def _run_script(self, script, args):
 		command = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
 		try:
-			subprocess.Popen(command)
+			process = subprocess.Popen(
+				command,
+				stdout=subprocess.PIPE,
+				stderr=subprocess.STDOUT,
+				text=True,
+			)
 		except OSError as exc:
 			print(f"[ERROR] failed to launch {' '.join(command)} -> {exc}")
+			return
+
+		def report_result():
+			output, _ = process.communicate()
+			if process.returncode:
+				print(
+					f"[ERROR] {' '.join(command)} exited with "
+					f"code {process.returncode}\n{output.strip()}"
+				)
+			elif output.strip():
+				print(f"[INFO] {' '.join(command)}\n{output.strip()}")
+
+		threading.Thread(target=report_result, daemon=True).start()
 
 	def _send_mds_command(self, command):
 		self._send_command(self.mds_socket, command)
