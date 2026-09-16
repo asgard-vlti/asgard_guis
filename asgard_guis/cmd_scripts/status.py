@@ -34,6 +34,7 @@ class StatusFormatter:
         "default": "#d4d8e2",
         "green": "#74d99f",
         "red": "#ff7b7b",
+        "yellow": "#ffd700",
     }
     fields_of_interest = {
         "BTT1": ["cnt"],
@@ -44,9 +45,10 @@ class StatusFormatter:
         "BAO2": ["cnt"],
         "BAO3": ["cnt"],
         "BAO4": ["cnt"],
-        "CRED1": ["cam_status", "shm_error", "fps"],
+        "CRED1": ["cam_status", "shm_error", "fps", "gain"],
         "DM": None,
         "HDLR": ["cnt", "locked"],
+        "MDS": ["SDLA"],
         "back_end": [],
     }
 
@@ -202,11 +204,26 @@ class StatusFormatter:
             add_entry("status", status, self._state_color(status), indent=1)
 
         has_red = any(entry["color"] == "red" for entry in entries)
+        has_yellow = (
+            task_name == "MDS"
+            and any(
+                entry["label"] == "SDLA" and self._is_zero(entry["value"])
+                for entry in entries
+            )
+        )
         return {
             "task_name": task_name,
             "entries": entries,
             "has_red": has_red,
+            "has_yellow": has_yellow,
         }
+
+    @staticmethod
+    def _is_zero(value: Any) -> bool:
+        try:
+            return float(value) == 0.0
+        except (TypeError, ValueError):
+            return False
 
     def build_render_state(
         self, wd_status: Any, update_last_time: bool = True
@@ -231,6 +248,34 @@ class StatusFormatter:
             "is_stale": is_stale,
             "tasks": tasks,
         }
+
+
+def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
+    if not isinstance(wd_status, dict) or not isinstance(wd_status.get("MDS"), dict):
+        return wd_status
+
+    context = zmq.Context.instance()
+    socket = context.socket(zmq.REQ)
+    socket.setsockopt(zmq.LINGER, 0)
+    socket.setsockopt(zmq.RCVTIMEO, 1000)
+    socket.setsockopt(zmq.SNDTIMEO, 1000)
+    socket.connect(mds_endpoint)
+    try:
+        socket.send_string("read SDLA")
+        sdla = socket.recv_string().strip()
+    except zmq.ZMQError as error:
+        logging.warning("Could not read SDLA from MDS: %s", error)
+        return wd_status
+    finally:
+        socket.close()
+
+    mds_status = wd_status["MDS"]
+    decoded_status = StatusFormatter._decode_status(mds_status.get("status"))
+    if not isinstance(decoded_status, dict):
+        decoded_status = {"status": decoded_status}
+    decoded_status["SDLA"] = sdla
+    mds_status["status"] = json.dumps(decoded_status)
+    return wd_status
 
 
 class TextStatusInfo(StatusFormatter):
@@ -272,7 +317,10 @@ class TextStatusInfo(StatusFormatter):
             print("\n".join(lines), flush=True)
 
     def run_server(
-        self, connect_endpoint: str, request_interval_s: float = 5.0
+        self,
+        connect_endpoint: str,
+        mds_endpoint: str,
+        request_interval_s: float = 5.0,
     ) -> None:
         reply_timeout_s = max(1.0, request_interval_s)
         context = zmq.Context.instance()
@@ -330,9 +378,9 @@ class TextStatusInfo(StatusFormatter):
 
                 print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
-                last_wd_status = wd_status
+                last_wd_status = add_sdla_to_mds_status(wd_status, mds_endpoint)
                 self._clear_screen()
-                self._print_watchdog_status(wd_status, update_last_time=True)
+                self._print_watchdog_status(last_wd_status, update_last_time=True)
                 continue
 
             if last_wd_status is not None:
@@ -443,7 +491,11 @@ if QtWidgets is not None:
                     and current_cnt == self._previous_cnt
                 )
                 self._apply_border(
-                    red_border=has_red, yellow_border=cnt_unchanged and not has_red
+                    red_border=has_red,
+                    yellow_border=(
+                        bool(task_block.get("has_yellow")) or cnt_unchanged
+                    )
+                    and not has_red,
                 )
                 # Update previous cnt for next comparison
                 if current_cnt is not None:
@@ -456,10 +508,14 @@ if QtWidgets is not None:
         GRID_COLUMNS = 4
 
         def __init__(
-            self, connect_endpoint: str, request_interval_s: float = 5.0
+            self,
+            connect_endpoint: str,
+            mds_endpoint: str,
+            request_interval_s: float = 5.0,
         ) -> None:
             super().__init__()
             self.connect_endpoint = connect_endpoint
+            self.mds_endpoint = mds_endpoint
             self.request_interval_s = request_interval_s
             self.reply_timeout_s = max(1.0, request_interval_s)
             self.formatter = StatusFormatter()
@@ -648,8 +704,12 @@ if QtWidgets is not None:
 
                 # print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
-                self.last_wd_status = wd_status
-                self._render(wd_status, update_last_time=True, evaluate_progress=True)
+                self.last_wd_status = add_sdla_to_mds_status(
+                    wd_status, self.mds_endpoint
+                )
+                self._render(
+                    self.last_wd_status, update_last_time=True, evaluate_progress=True
+                )
                 return
 
             if self.last_wd_status is not None:
@@ -690,6 +750,11 @@ def main() -> None:
         help="Seconds between status requests (default: 5.0).",
     )
     parser.add_argument(
+        "--mds-endpoint",
+        default="tcp://mimir:5555",
+        help="MDS endpoint used to query the SDLA position.",
+    )
+    parser.add_argument(
         "--gui",
         action="store_true",
         default=True,
@@ -714,12 +779,14 @@ def main() -> None:
             raise ImportError("PyQt5 is required for --gui mode")
 
         app = QtWidgets.QApplication([])
-        window = cast(Any, window_cls)(args.endpoint, args.request_interval)
+        window = cast(Any, window_cls)(
+            args.endpoint, args.mds_endpoint, args.request_interval
+        )
         getattr(window, "show")()
         sys.exit(app.exec_())
 
     sinfo = TextStatusInfo()
-    sinfo.run_server(args.endpoint, args.request_interval)
+    sinfo.run_server(args.endpoint, args.mds_endpoint, args.request_interval)
 
 
 if __name__ == "__main__":
