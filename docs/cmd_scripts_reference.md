@@ -18,7 +18,7 @@ Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlt
 
 | Command | Invocation | Description |
 | --- | --- | --- |
-| `h-guis` | `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [-o {print,heim}]` | Real-time scrolling plots for Heimdallr. |
+| `h-guis` | `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [--server-host SERVER_HOST] [--server-port SERVER_PORT] [-o {print,heim}]` | Real-time scrolling plots for Heimdallr. |
 | `im-search-gui` | `im-search-gui [--debug]` | Spiral Search GUI |
 | `logs-client` | `logs-client [LOG_ROOT]` | Launch the Qt log viewer for Asgard server logs. |
 | `mimir-shutdown` | `mimir-shutdown` | Shut down Mimir and power off its configured PDU outlets. |
@@ -40,7 +40,7 @@ Real-time scrolling plots for Heimdallr.
 
 **Source:** [`asgard_guis/asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py:302`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/Heimdallr_RTC_performance.py#L302)
 
-**Invocation:** `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [-o {print,heim}]`
+**Invocation:** `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [--server-host SERVER_HOST] [--server-port SERVER_PORT] [-o {print,heim}]`
 
 **Arguments**
 
@@ -49,6 +49,8 @@ Real-time scrolling plots for Heimdallr.
 | `--update-time` | `int` | No | `200` | — | Update interval in ms (default: 200) |
 | `--samples` | `int` | No | `100` | — | Number of samples to hold (default: 100) |
 | `--linewidth` | `float` | No | `2.0` | — | Line width for plot curves (default: 2.0) |
+| `--server-host` | `str` | No | `mimir` | — | Heimdallr server host |
+| `--server-port` | `int` | No | `6660` | — | Heimdallr server port |
 | `-o`, `--output` | `str` | No | `heim` | `print, heim` | Output method for offsets (default: heim) |
 
 ---
