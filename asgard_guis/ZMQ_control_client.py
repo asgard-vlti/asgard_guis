@@ -34,8 +34,6 @@ def reconnect(ip=None, port=None):
 
 reconnect()
 
-print(f"ZMQ shell interface to talk to the heimdallr server on port {server_port}")
-
 
 def send(cmd):
     """Send a command to the server and print the reply."""

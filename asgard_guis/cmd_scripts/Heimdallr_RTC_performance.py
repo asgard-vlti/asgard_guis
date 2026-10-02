@@ -374,9 +374,6 @@ def main():
             if self.sm.cur_threshold == "high":
                 self.sm.set_threshold(value)
 
-    # --- Create QApplication instance before any usage ---
-    app = QtWidgets.QApplication([])
-
     # --- Parse arguments before constructing state machine ---
     parser = argparse.ArgumentParser(
         description="Real-time scrolling plots for Heimdallr."
@@ -400,6 +397,17 @@ def main():
         help="Line width for plot curves (default: 2.0)",
     )
     parser.add_argument(
+        "--server-host",
+        default=Z.server_ip,
+        help=f"Heimdallr server host (default: {Z.server_ip})",
+    )
+    parser.add_argument(
+        "--server-port",
+        type=int,
+        default=Z.server_port,
+        help=f"Heimdallr server port (default: {Z.server_port})",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -409,6 +417,11 @@ def main():
         help="Output method for offsets (default: heim)",
     )
     args = parser.parse_args()
+    endpoint = Z.reconnect(ip=args.server_host, port=args.server_port)
+    print(f"Heimdallr server: {endpoint}")
+
+    # --- Create QApplication instance before any usage ---
+    app = QtWidgets.QApplication([])
 
     samples = args.samples
     update_time = args.update_time
@@ -1160,6 +1173,24 @@ def main():
         )
         for i in range(N_BASELINES)
     ]
+
+    # Keep every displayed tick in the units named by its axis label.
+    for plot in (
+        scatter_plot,
+        gd_snr_vs_offset_plot,
+        p_gd_tel,
+        p_pd_tel,
+        p_offload,
+        p_dm,
+        p_v2_K1,
+        p_v2_K2,
+        p_gd_snr,
+        p_pd_snr,
+    ):
+        for side in ("left", "bottom"):
+            axis = plot.getAxis(side)
+            axis.setSIPrefixEnableRanges(())
+            axis.enableAutoSIPrefix(False)
 
     # --- Store curves for update ---
     curves = [
