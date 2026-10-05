@@ -552,7 +552,7 @@ def main():
 
     FADE_DURATION_SECONDS = 60.0
     SCATTER_EDGE_WIDTH = 1.2
-    DEBUG_GD_OFFSET_UPDATES = True
+    DEBUG_GD_OFFSET_UPDATES = False
 
     class GD_SNR_vs_Offset:
         def __init__(self, beam_no):
@@ -582,7 +582,9 @@ def main():
             else:
                 idx = -1
                 for i, o in enumerate(self.offsets):
-                    if np.isclose(offset, o, atol=0.1): # !!! Data bucketing bug? Was 1e-3
+                    if np.isclose(
+                        offset, o, atol=0.1
+                    ):  # !!! Data bucketing bug? Was 1e-3
                         idx = i
                         break
 
@@ -670,7 +672,9 @@ def main():
         return est_opls, best_indices, snrs, median_opds, new_opds
 
     def print_offsets_from_n_best(n):
-        est_opls, best_indices, snrs, median_opds, new_opds = compute_new_opds_from_n_best(n)
+        est_opls, best_indices, snrs, median_opds, new_opds = (
+            compute_new_opds_from_n_best(n)
+        )
 
         if args.output == "print":
             # print with format x1, x2, x3, x4 to 3 decimal places
@@ -1383,13 +1387,13 @@ def main():
         # update gd_snr_vs_offsets
         baselines_of_interest = [1, 3, 5]  # baselines involving telescope 1,2,4 with 3
         # The following lines are commented out because the offsets are now calculated directly from gd_tel
-        #gd_re = np.array(status["gd_phasor_real"])
-        #gd_im = np.array(status["gd_phasor_imag"])
-        #gd_phasor = gd_re + 1j * gd_im
-        #gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
+        # gd_re = np.array(status["gd_phasor_real"])
+        # gd_im = np.array(status["gd_phasor_imag"])
+        # gd_phasor = gd_re + 1j * gd_im
+        # gd_offsets = [np.angle(gd_phasor[i]) for i in baselines_of_interest]
 
-        #gd_offsets now come from gd_tel with respect to telescope 3,
-        #multiplied by a scaling factor of 2 pi radians per 
+        # gd_offsets now come from gd_tel with respect to telescope 3,
+        # multiplied by a scaling factor of 2 pi radians per
         # (2.05)/(2.25-2.05) = 20.5 wavelengths.
         gd_offsets = np.array(status["gd_tel"])[[0, 1, 3]] - status["gd_tel"][2]
         gd_offsets = np.array(gd_offsets) * (2 * np.pi / 20.5)
