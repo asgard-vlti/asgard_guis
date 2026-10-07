@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -9,10 +10,11 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-try:
-    from . import generate_cmd_scripts_reference as reference
-except ImportError:  # Direct execution from the workspace root or repository
-    import generate_cmd_scripts_reference as reference
+repository = Path(__file__).resolve().parents[1]
+if str(repository) not in sys.path:
+    sys.path.insert(0, str(repository))
+
+import generate_cmd_scripts_reference as reference
 
 from asgard_guis.cmd_scripts.status import StatusFormatter
 
@@ -292,7 +294,7 @@ class CommandScriptReferenceTests(unittest.TestCase):
 
 class RealWorkspaceIntegrationTests(unittest.TestCase):
     def test_every_declared_workspace_script_is_included_once(self):
-        workspace = Path(__file__).resolve().parent.parent
+        workspace = Path(__file__).resolve().parents[2]
 
         repositories, warnings = reference.load_repositories(workspace)
 
@@ -346,7 +348,7 @@ class RealWorkspaceIntegrationTests(unittest.TestCase):
         self.assertEqual(document.count("\n---\n"), 37)
 
     def test_command_scripts_do_not_access_sys_argv_directly(self):
-        workspace = Path(__file__).resolve().parent.parent
+        workspace = Path(__file__).resolve().parents[2]
         roots = (
             workspace / "asgard_guis/asgard_guis/cmd_scripts",
             workspace / "asgard-alignment/asgard_alignment/cmd_scripts",

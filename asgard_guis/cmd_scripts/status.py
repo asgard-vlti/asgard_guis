@@ -13,6 +13,7 @@ import json
 import logging
 import math
 import sys
+import time
 from typing import Any, cast
 
 import zmq
@@ -28,6 +29,7 @@ except ImportError:  # pragma: no cover - optional runtime dependency
 class StatusFormatter:
     GREEN = "\033[32m"
     RED = "\033[31m"
+    YELLOW = "\033[33m"
     RESET = "\033[0m"
     STALE_THRESHOLD_SECONDS = 10
     STATE_COLORS = {
@@ -50,6 +52,11 @@ class StatusFormatter:
         "HDLR": ["cnt", "locked"],
         "MDS": ["SDLA"],
         "back_end": [],
+    }
+    DISK_LABELS = {
+        "cred1": "CRED1 saving",
+        "ft_performance": "FT performance saving",
+        "tt_performance": "TT performance saving",
     }
 
     def __init__(self) -> None:
@@ -75,13 +82,103 @@ class StatusFormatter:
         return "default"
 
     @classmethod
-    def _colorize_state(cls, value: str, inverse: bool = False) -> str:
-        color_name = cls._state_color(value, inverse=inverse)
-        if color_name == "green":
-            return f"{cls.GREEN}{value}{cls.RESET}"
-        if color_name == "red":
-            return f"{cls.RED}{value}{cls.RESET}"
-        return value
+    def _colorize_entry(cls, value: str, color: str) -> str:
+        code = {"green": cls.GREEN, "red": cls.RED, "yellow": cls.YELLOW}.get(
+            color
+        )
+        return f"{code}{value}{cls.RESET}" if code else value
+
+    @staticmethod
+    def _valid_disk_check(check: Any) -> bool:
+        if not isinstance(check, dict) or check.get("state") not in ("fresh", "stale"):
+            return False
+        limit = check.get("limit_s")
+        age = check.get("age_s")
+        if not isinstance(limit, (int, float)) or not math.isfinite(limit) or limit <= 0:
+            return False
+        if age is not None and (
+            not isinstance(age, (int, float)) or not math.isfinite(age)
+        ):
+            return False
+        return check["state"] != "fresh" or (age is not None and 0 <= age < limit)
+
+    @classmethod
+    def _build_disk_blocks(
+        cls, disk_status: Any, disk_error: str | None
+    ) -> list[dict[str, Any]]:
+        blocks = []
+        for source, label in cls.DISK_LABELS.items():
+            group = disk_status.get(source) if isinstance(disk_status, dict) else None
+            if disk_error or not isinstance(group, dict):
+                state = "red"
+                summary = "cannot verify"
+                failures = [{"label": "check", "value": disk_error or "no reply"}]
+            else:
+                state = group.get("state")
+                checks = group.get("checks")
+                if state not in ("green", "yellow", "red") or not isinstance(
+                    checks, dict
+                ) or not checks or any(
+                    not cls._valid_disk_check(check) for check in checks.values()
+                ):
+                    state = "red"
+                    summary = "cannot verify"
+                    failures = [{"label": "check", "value": "invalid reply"}]
+                else:
+                    fresh = sum(
+                        isinstance(check, dict) and check.get("state") == "fresh"
+                        for check in checks.values()
+                    )
+                    expected = (
+                        "green" if fresh == len(checks) else "yellow" if fresh else "red"
+                    )
+                    if state != expected:
+                        state = "red"
+                        summary = "cannot verify"
+                        failures = [{"label": "check", "value": "invalid summary"}]
+                    else:
+                        summary = f"{fresh}/{len(checks)} streams saving"
+                        failures = []
+                        for name, check in checks.items():
+                            if not isinstance(check, dict) or check.get("state") == "fresh":
+                                continue
+                            age = check.get("age_s")
+                            limit = check.get("limit_s")
+                            if isinstance(age, (int, float)) and math.isfinite(age):
+                                age_text = (
+                                    f"last write {age:.1f}s ago"
+                                    if age >= 0
+                                    else f"write timestamp {-age:.1f}s in future"
+                                )
+                            else:
+                                age_text = "no write observed"
+                            limit_text = (
+                                f" (limit {limit:.1f}s)"
+                                if isinstance(limit, (int, float)) and math.isfinite(limit)
+                                else ""
+                            )
+                            detail = str(check.get("detail") or "")
+                            failures.append(
+                                {
+                                    "label": str(name),
+                                    "value": f"{age_text}{limit_text}; {detail}".rstrip("; "),
+                                }
+                            )
+            entries = [
+                {"label": "disk", "value": summary, "color": state, "indent": 1}
+            ]
+            entries.extend(
+                {**failure, "color": "red", "indent": 2} for failure in failures
+            )
+            blocks.append(
+                {
+                    "task_name": label,
+                    "entries": entries,
+                    "has_red": state == "red",
+                    "has_yellow": state == "yellow",
+                }
+            )
+        return blocks
 
     @classmethod
     def _decode_status(cls, status_payload: Any) -> Any:
@@ -239,7 +336,11 @@ class StatusFormatter:
         return str(value) == "Error (Standby?)"
 
     def build_render_state(
-        self, wd_status: Any, update_last_time: bool = True
+        self,
+        wd_status: Any,
+        update_last_time: bool = True,
+        disk_status: Any = None,
+        disk_error: str | None = None,
     ) -> dict[str, Any]:
         if not isinstance(wd_status, dict):
             return {
@@ -255,6 +356,7 @@ class StatusFormatter:
             self._build_task_block(task_name, task_status)
             for task_name, task_status in wd_status.items()
         ]
+        tasks.extend(self._build_disk_blocks(disk_status, disk_error))
         return {
             "is_payload_dict": True,
             "elapsed_seconds": elapsed_seconds,
@@ -296,6 +398,81 @@ def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
     return wd_status
 
 
+class DiskStatusClient:
+    INTERVAL_SECONDS = 1.0
+    TIMEOUT_SECONDS = 2.0
+
+    def __init__(self, endpoint: str) -> None:
+        self.context = zmq.Context.instance()
+        self.endpoint = endpoint
+        self.poller = zmq.Poller()
+        self.socket = self._new_socket()
+        self.poller.register(self.socket, zmq.POLLIN)
+        self.last_request_at: float | None = None
+        self.last_reply_at: float | None = None
+        self.awaiting_reply = False
+        self.payload: Any = None
+        self.error: str | None = "waiting for disk status"
+
+    def _new_socket(self) -> zmq.Socket[Any]:
+        socket = self.context.socket(zmq.REQ)
+        socket.setsockopt(zmq.LINGER, 0)
+        socket.connect(self.endpoint)
+        return socket
+
+    def _reconnect(self) -> None:
+        self.poller.unregister(self.socket)
+        self.socket.close(linger=0)
+        self.socket = self._new_socket()
+        self.poller.register(self.socket, zmq.POLLIN)
+        self.awaiting_reply = False
+
+    def tick(self) -> None:
+        now = time.monotonic()
+        if (
+            self.awaiting_reply
+            and self.last_request_at is not None
+            and now - self.last_request_at >= self.TIMEOUT_SECONDS
+        ):
+            self.error = "disk status reply overdue"
+            self._reconnect()
+
+        if not self.awaiting_reply and (
+            self.last_request_at is None
+            or now - self.last_request_at >= self.INTERVAL_SECONDS
+        ):
+            try:
+                self.socket.send_string("disk_status", flags=zmq.NOBLOCK)
+                self.awaiting_reply = True
+                self.last_request_at = now
+            except zmq.ZMQError:
+                self.error = "cannot request disk status"
+                self.last_request_at = now
+                self._reconnect()
+
+        events = dict(self.poller.poll(timeout=0))
+        if events.get(self.socket, 0) & zmq.POLLIN:
+            try:
+                self.payload = json.loads(self.socket.recv_string(flags=zmq.NOBLOCK))
+                self.error = None
+            except (ValueError, zmq.ZMQError):
+                self.payload = None
+                self.error = "invalid disk status reply"
+            self.last_reply_at = now
+            self.awaiting_reply = False
+
+    def result(self) -> tuple[Any, str | None]:
+        if self.last_reply_at is None:
+            return None, self.error
+        if time.monotonic() - self.last_reply_at >= self.TIMEOUT_SECONDS:
+            return None, "disk status reply overdue"
+        return self.payload, self.error
+
+    def close(self) -> None:
+        self.poller.unregister(self.socket)
+        self.socket.close(linger=0)
+
+
 class TextStatusInfo(StatusFormatter):
     CLEAR_SCREEN = "\033[2J\033[H"
 
@@ -303,10 +480,17 @@ class TextStatusInfo(StatusFormatter):
         print(self.CLEAR_SCREEN, end="", flush=True)
 
     def _print_watchdog_status(
-        self, wd_status: Any, update_last_time: bool = True
+        self,
+        wd_status: Any,
+        update_last_time: bool = True,
+        disk_status: Any = None,
+        disk_error: str | None = None,
     ) -> None:
         render_state = self.build_render_state(
-            wd_status, update_last_time=update_last_time
+            wd_status,
+            update_last_time=update_last_time,
+            disk_status=disk_status,
+            disk_error=disk_error,
         )
 
         if not render_state["is_payload_dict"]:
@@ -314,7 +498,11 @@ class TextStatusInfo(StatusFormatter):
             print(render_state["payload"], flush=True)
             return
 
-        header = f"last updated {render_state['elapsed_seconds']:.2f} seconds ago"
+        header = (
+            f"last updated {render_state['elapsed_seconds']:.2f} seconds ago"
+            if self.last_wd_time is not None
+            else "waiting for watchdog status"
+        )
         if render_state["is_stale"]:
             header = f"{self.RED}{header}{self.RESET}"
         print(header, flush=True)
@@ -322,9 +510,8 @@ class TextStatusInfo(StatusFormatter):
         for task in render_state["tasks"]:
             lines = [task["task_name"]]
             for entry in task["entries"]:
-                colorized_value = self._colorize_state(
-                    entry["value"],
-                    inverse=False,
+                colorized_value = self._colorize_entry(
+                    entry["value"], entry["color"]
                 )
                 indent = "  " * int(entry["indent"])
                 if entry["label"]:
@@ -349,15 +536,18 @@ class TextStatusInfo(StatusFormatter):
             return req_socket
 
         socket = _new_socket()
+        disk_client = DiskStatusClient(connect_endpoint)
         poller = zmq.Poller()
         poller.register(socket, zmq.POLLIN)
-        last_wd_status = None
+        last_wd_status: Any = {}
         awaiting_reply = False
         last_request_time: datetime.datetime | None = None
 
         logging.info("Watchdog status REQ endpoint connected to %s", connect_endpoint)
 
         while True:
+            disk_client.tick()
+            disk_status, disk_error = disk_client.result()
             now = datetime.datetime.now(datetime.timezone.utc)
 
             if (
@@ -394,16 +584,28 @@ class TextStatusInfo(StatusFormatter):
                 except json.JSONDecodeError:
                     wd_status = message
 
-                print(f"Received watchdog status update at {datetime.datetime.now()}:")
-
-                last_wd_status = add_sdla_to_mds_status(wd_status, mds_endpoint)
+                valid_status = isinstance(wd_status, dict)
+                if valid_status:
+                    last_wd_status = add_sdla_to_mds_status(wd_status, mds_endpoint)
+                else:
+                    logging.warning("Invalid watchdog status reply")
                 self._clear_screen()
-                self._print_watchdog_status(last_wd_status, update_last_time=True)
+                self._print_watchdog_status(
+                    last_wd_status,
+                    update_last_time=valid_status,
+                    disk_status=disk_status,
+                    disk_error=disk_error,
+                )
                 continue
 
             if last_wd_status is not None:
                 self._clear_screen()
-                self._print_watchdog_status(last_wd_status, update_last_time=False)
+                self._print_watchdog_status(
+                    last_wd_status,
+                    update_last_time=False,
+                    disk_status=disk_status,
+                    disk_error=disk_error,
+                )
 
 
 if QtWidgets is not None:
@@ -566,6 +768,7 @@ if QtWidgets is not None:
 
         def _setup_socket(self) -> None:
             self.context = zmq.Context.instance()
+            self.disk_client = DiskStatusClient(self.connect_endpoint)
 
             def _new_socket() -> zmq.Socket[Any]:
                 req_socket = self.context.socket(zmq.REQ)
@@ -645,16 +848,23 @@ if QtWidgets is not None:
         def _render(
             self, wd_status: Any, update_last_time: bool, evaluate_progress: bool = True
         ) -> None:
+            disk_status, disk_error = self.disk_client.result()
             state = self.formatter.build_render_state(
                 wd_status,
                 update_last_time=update_last_time,
+                disk_status=disk_status,
+                disk_error=disk_error,
             )
 
             if not state["is_payload_dict"]:
                 self.header_label.setText(html.escape(state["payload"]))
                 return
 
-            header = f"last updated {state['elapsed_seconds']:.2f} seconds ago"
+            header = (
+                f"last updated {state['elapsed_seconds']:.2f} seconds ago"
+                if self.formatter.last_wd_time is not None
+                else "waiting for watchdog status"
+            )
             header_color = "#ff7b7b" if state["is_stale"] else "#dbe1ee"
             self.header_label.setText(
                 f"<span style='color:{header_color}'>{html.escape(header)}</span>"
@@ -669,7 +879,13 @@ if QtWidgets is not None:
                 task_name = task["task_name"]
                 seen.add(task_name)
                 box = self._get_or_create_box(task_name)
-                box.update_from_task(task, evaluate_progress=evaluate_progress)
+                box.update_from_task(
+                    task,
+                    evaluate_progress=(
+                        evaluate_progress
+                        or task_name in StatusFormatter.DISK_LABELS.values()
+                    ),
+                )
                 self.grid.removeWidget(box)
                 row, col, row_span, col_span = positions[task_name]
                 self.grid.addWidget(box, row, col, row_span, col_span)
@@ -680,10 +896,13 @@ if QtWidgets is not None:
                     box.hide()
 
             is_stale = bool(state["is_stale"])
-            for box in self._boxes.values():
-                box.set_dimmed(is_stale)
+            for name, box in self._boxes.items():
+                box.set_dimmed(
+                    is_stale and name not in StatusFormatter.DISK_LABELS.values()
+                )
 
         def _poll_once(self) -> None:
+            self.disk_client.tick()
             now = datetime.datetime.now(datetime.timezone.utc)
             if (
                 self._awaiting_reply
@@ -722,16 +941,24 @@ if QtWidgets is not None:
 
                 # print(f"Received watchdog status update at {datetime.datetime.now()}:")
 
-                self.last_wd_status = add_sdla_to_mds_status(
-                    wd_status, self.mds_endpoint
-                )
+                valid_status = isinstance(wd_status, dict)
+                if valid_status:
+                    self.last_wd_status = add_sdla_to_mds_status(
+                        wd_status, self.mds_endpoint
+                    )
+                else:
+                    logging.warning("Invalid watchdog status reply")
                 self._render(
-                    self.last_wd_status, update_last_time=True, evaluate_progress=True
+                    self.last_wd_status or {},
+                    update_last_time=valid_status,
+                    evaluate_progress=valid_status,
                 )
                 return
 
             if self.last_wd_status is not None:
                 self._render(self.last_wd_status, update_last_time=False, evaluate_progress=False)
+            else:
+                self._render({}, update_last_time=False, evaluate_progress=False)
 
         def keyPressEvent(self, event: Any) -> None:
             key = event.key() if hasattr(event, "key") else None
@@ -745,6 +972,7 @@ if QtWidgets is not None:
 
         def closeEvent(self, event: Any) -> None:
             self.timer.stop()
+            self.disk_client.close()
             self.poller.unregister(self.socket)
             self.socket.close()
             super().closeEvent(event)
@@ -777,6 +1005,12 @@ def main() -> None:
         action="store_true",
         default=True,
         help="If the display should be a GUI instead of terminal output",
+    )
+    parser.add_argument(
+        "--no-gui",
+        dest="gui",
+        action="store_false",
+        help="Display watchdog status in the terminal.",
     )
 
     args = parser.parse_args()
