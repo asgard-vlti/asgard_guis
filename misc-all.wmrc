@@ -5,10 +5,10 @@
 # asgard_guis so it is tracked in Git; keep it in sync with the active copy
 # at .pecs/misc-all.wmrc on wvguws.
 #
-# From wvguws, sync the active copy to wag:
-#   rsync -e ssh -artz .pecs/misc-all.wmrc asg@wag:/vltuser/asg/pecs-wmrc/misc-all.wmrc
-# From wvguws, sync changes from wag back to the active copy:
-#   rsync -e ssh -artz asg@wag:/vltuser/asg/pecs-wmrc/misc-all.wmrc .pecs/misc-all.wmrc
+# From wag, pull the active copy from wvguws:
+#   rsync -e ssh -artz asg@wvguws:.pecs/misc-all.wmrc /vltuser/asg/pecs-wmrc/misc-all.wmrc
+# From wag, push changes back to the active copy on wvguws:
+#   rsync -e ssh -artz /vltuser/asg/pecs-wmrc/misc-all.wmrc asg@wvguws:.pecs/misc-all.wmrc
 #
 # who       when        what
 # --------  ----------  ----------------------------------------------
