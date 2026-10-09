@@ -441,7 +441,7 @@ def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
 
 class DiskStatusClient:
     INTERVAL_SECONDS = 1.0
-    TIMEOUT_SECONDS = 2.0
+    TIMEOUT_SECONDS = 10.0
 
     def __init__(self, endpoint: str) -> None:
         self.context = zmq.Context.instance()

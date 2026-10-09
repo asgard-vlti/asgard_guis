@@ -81,11 +81,25 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.addCleanup(client.close)
         with patch("asgard_guis.cmd_scripts.status.time.monotonic", return_value=1.0):
             client.tick()
-        with patch("asgard_guis.cmd_scripts.status.time.monotonic", return_value=3.1):
+        with patch("asgard_guis.cmd_scripts.status.time.monotonic", return_value=6.0):
+            client.tick()
+            self.assertEqual(client.result()[1], "waiting for disk status")
+        with patch("asgard_guis.cmd_scripts.status.time.monotonic", return_value=11.1):
             client.tick()
             payload, error = client.result()
         self.assertIsNone(payload)
         self.assertIn("overdue", error)
+
+    def test_client_keeps_recent_status_during_delayed_reply(self):
+        client = DiskStatusClient("inproc://delayed-disk-status")
+        self.addCleanup(client.close)
+        client.payload = disk_reply()
+        client.error = None
+        client.last_reply_at = 1.0
+        with patch("asgard_guis.cmd_scripts.status.time.monotonic", return_value=6.0):
+            payload, error = client.result()
+        self.assertEqual(payload["tt_performance"]["state"], "yellow")
+        self.assertIsNone(error)
 
     def test_client_receives_disk_status_over_zmq(self):
         endpoint = f"inproc://disk-status-{uuid.uuid4()}"
@@ -125,8 +139,8 @@ class DiskStatusRenderTests(unittest.TestCase):
             evaluate_progress=True,
         )
         box = window._boxes["TT performance saving"]
-        self.assertIn("beam2", box.beam_left.text())
-        self.assertIn("beam4", box.beam_right.text())
+        self.assertIn("beam2", box.beam_labels[1].text())
+        self.assertIn("beam4", box.beam_labels[3].text())
         self.assertIn("#ffd700", box.styleSheet())
         self.assertEqual(box.minimumHeight(), box.maximumHeight())
         self.assertLessEqual(
@@ -143,7 +157,7 @@ class DiskStatusRenderTests(unittest.TestCase):
             },
         }
         window._render({}, update_last_time=False, evaluate_progress=False)
-        beam_text = box.beam_left.text() + box.beam_right.text()
+        beam_text = "".join(beam.text() for beam in box.beam_labels)
         self.assertTrue(all(f"beam{beam}" in beam_text for beam in range(1, 5)))
         self.assertIn("#4f5b73", box.styleSheet())
         window.close()
