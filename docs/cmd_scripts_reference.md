@@ -12,12 +12,14 @@ python asgard_guis/generate_cmd_scripts_reference.py
 
 ## asgard_guis (on wag)
 
-Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 13.
+Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 15.
 
 ### Quick reference
 
 | Command | Invocation | Description |
 | --- | --- | --- |
+| `baldr-faint-alignment` | `baldr-faint-alignment` | No description provided in source. |
+| `baldr-pupil-mask-alignment` | `baldr-pupil-mask-alignment` | No description provided in source. |
 | `h-guis` | `h-guis [--update-time UPDATE_TIME] [--samples SAMPLES] [--linewidth LINEWIDTH] [--server-host SERVER_HOST] [--server-port SERVER_PORT] [-o {print,heim}]` | Real-time scrolling plots for Heimdallr. |
 | `im-search-gui` | `im-search-gui [--debug]` | Spiral Search GUI |
 | `logs-client` | `logs-client [LOG_ROOT]` | Launch the Qt log viewer for Asgard server logs. |
@@ -27,12 +29,40 @@ Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlt
 | `s-labmode` | `s-labmode` | put solarstein in labmode i.e. flippers up, sbb position and sbb on |
 | `s-skymode` | `s-skymode` | put solarstein in skymode i.e. entrance flippers down, SBB off |
 | `shortcuts` | `shortcuts [--host HOST] [--debug]` | ASGARD shortcuts GUI |
-| `status-mimir` | `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--gui]` | Poll watchdog status updates from a ZMQ REQ endpoint. |
+| `status-mimir` | `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--mds-endpoint MDS_ENDPOINT] [--gui] [--no-gui]` | Poll watchdog status updates from a ZMQ REQ endpoint. |
 | `temperature-plotting` | `temperature-plotting [LOGFILE] [--window WINDOW] [--interval INTERVAL] [--lookback LOOKBACK]` | Plot temperature logs from temperature_watchdog. |
 | `temperature-watchdog` | `temperature-watchdog [--duration DURATION] [--sampling SAMPLING]` | Launch temperature watchdog logger |
 | `text-clients` | `text-clients [IP_ADDRESS]` | Launch the Qt command client for the configured Asgard servers. |
 
 ### Script details
+
+#### `baldr-faint-alignment`
+
+No description provided in source.
+
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/baldr_faint_alignment.py:234`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/baldr_faint_alignment.py#L234)
+
+**Invocation:** `baldr-faint-alignment`
+
+**Arguments**
+
+_No command-line arguments._
+
+---
+
+#### `baldr-pupil-mask-alignment`
+
+No description provided in source.
+
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/baldr_pupil_mask_alignment.py:332`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/baldr_pupil_mask_alignment.py#L332)
+
+**Invocation:** `baldr-pupil-mask-alignment`
+
+**Arguments**
+
+_No command-line arguments._
+
+---
 
 #### `h-guis`
 
@@ -49,8 +79,8 @@ Real-time scrolling plots for Heimdallr.
 | `--update-time` | `int` | No | `200` | — | Update interval in ms (default: 200) |
 | `--samples` | `int` | No | `100` | — | Number of samples to hold (default: 100) |
 | `--linewidth` | `float` | No | `2.0` | — | Line width for plot curves (default: 2.0) |
-| `--server-host` | `str` | No | `mimir` | — | Heimdallr server host |
-| `--server-port` | `int` | No | `6660` | — | Heimdallr server port |
+| `--server-host` | `str` | No | `Z.server_ip` | — | f'Heimdallr server host (default: {Z.server_ip})' |
+| `--server-port` | `int` | No | `Z.server_port` | — | f'Heimdallr server port (default: {Z.server_port})' |
 | `-o`, `--output` | `str` | No | `heim` | `print, heim` | Output method for offsets (default: heim) |
 
 ---
@@ -75,7 +105,7 @@ Spiral Search GUI
 
 Launch the Qt log viewer for Asgard server logs.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:620`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L620)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:623`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L623)
 
 **Invocation:** `logs-client [LOG_ROOT]`
 
@@ -135,7 +165,7 @@ Pupil Search GUI
 
 put solarstein in labmode i.e. flippers up, sbb position and sbb on
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_labmode.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_labmode.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_labmode.py:12`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_labmode.py#L12)
 
 **Invocation:** `s-labmode`
 
@@ -149,7 +179,7 @@ _No command-line arguments._
 
 put solarstein in skymode i.e. entrance flippers down, SBB off
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_skymode.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_skymode.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/s_skymode.py:12`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/s_skymode.py#L12)
 
 **Invocation:** `s-skymode`
 
@@ -163,7 +193,7 @@ _No command-line arguments._
 
 ASGARD shortcuts GUI
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:455`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shortcuts.py#L455)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:531`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shortcuts.py#L531)
 
 **Invocation:** `shortcuts [--host HOST] [--debug]`
 
@@ -180,9 +210,9 @@ ASGARD shortcuts GUI
 
 Poll watchdog status updates from a ZMQ REQ endpoint.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:668`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L668)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:981`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L981)
 
-**Invocation:** `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--gui]`
+**Invocation:** `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--mds-endpoint MDS_ENDPOINT] [--gui] [--no-gui]`
 
 **Arguments**
 
@@ -190,7 +220,9 @@ Poll watchdog status updates from a ZMQ REQ endpoint.
 | --- | --- | --- | --- | --- | --- |
 | `--endpoint`, `--bind-endpoint` | `str` | No | `tcp://mimir:7019` | — | ZMQ endpoint to connect the REQ socket to. |
 | `--request-interval` | `float` | No | `5.0` | — | Seconds between status requests (default: 5.0). |
+| `--mds-endpoint` | `str` | No | `tcp://mimir:5555` | — | MDS endpoint used to query the SDLA position. |
 | `--gui` | `bool` | No | `True` | — | If the display should be a GUI instead of terminal output |
+| `--no-gui` | `bool` | No | `True` | — | Display watchdog status in the terminal. |
 
 ---
 
@@ -333,7 +365,7 @@ _No command-line arguments._
 
 Switch the Baldr beams to FAINT or STANDARD mode and restore their state.
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_mode.py:68`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_mode.py#L68)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_mode.py:111`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_mode.py#L111)
 
 **Invocation:** `b-mode {FAINT,STANDARD}`
 
@@ -349,7 +381,7 @@ Switch the Baldr beams to FAINT or STANDARD mode and restore their state.
 
 Archive and save the current Baldr state for FAINT or STANDARD mode.
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:62`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_savemode.py#L62)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/b_savemode.py:72`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/b_savemode.py#L72)
 
 **Invocation:** `b-savemode {FAINT,STANDARD}`
 
@@ -423,7 +455,7 @@ Run the instrument shutdown sequence, optionally including C-RED.
 
 A full system startup, starting from the case where only mimir is on
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:165`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/startup_instrument.py#L165)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:116`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/startup_instrument.py#L116)
 
 **Invocation:** `instrument-startup`
 
@@ -481,23 +513,26 @@ Autoalign Heimdallr beams.
 
 ## dcs (on mimir)
 
-Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 21.
+Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 24.
 
 ### Quick reference
 
 | Command | Invocation | Description |
 | --- | --- | --- |
+| `b-faint-tweak-botx` | `b-faint-tweak-botx BEAM` | Adjust BOTT/BOTP from baldr_tt peak for faint-source alignment. |
+| `b-movebox` | `b-movebox BEAM` | Move baldrN ROI to center using baldr_tt peak. |
 | `back-end-server` | `back-end-server` | Acquire the singleton lock and run the Asgard back-end server. |
 | `baldr-server` | `baldr-server --beam {1,2,3,4} [--phasemask PHASEMASK] [--socket SOCKET] --config CONFIG [--telem-dir TELEM_DIR] [--telem-capacity TELEM_CAPACITY] [--flush-hz FLUSH_HZ] [--chunk-seconds CHUNK_SECONDS] [--debug]` | Baldr RTC Python server (per-beam instance). |
 | `baldr-start-all` | `baldr-start-all [--phasemask PHASEMASK] [--config-template CONFIG_TEMPLATE] [--telem-root TELEM_ROOT]` | Launch one Baldr RTC server per beam in separate xterm windows. |
-| `baldrtt-recon` | `baldrtt-recon --beam {-1,1,2,3,4} [--n-iter N_ITER] [--amp AMP] [--n-modes N_MODES] [--settle-sec SETTLE_SEC] [--overwrite OVERWRITE]` | Save Baldr TT interaction matrix data |
+| `baldrtt-recon` | `baldrtt-recon [--beam {-1,1,2,3,4}] [--n-iter N_ITER] [--amp AMP] [--n-modes N_MODES] [--settle-sec SETTLE_SEC] [--overwrite OVERWRITE]` | Save Baldr TT interaction matrix data |
 | `baldrtt-start-all` | `baldrtt-start-all` | Launch one Baldr tip-tilt process per beam in separate xterm windows. |
 | `dcs-run-scripts` | `dcs-run-scripts` | Install run_* commands for DCS. |
+| `dm-zernike` | `dm-zernike DM MODE AMPLITUDE` | Set one DM Zernike map on shms[3] and trigger update. |
 | `dmview` | `dmview BEAM [BEAM ...]` | Low-bandwidth DM SHM viewer |
 | `find-fringes` | `find-fringes BAND SRANGE STEP [-b BID]` | Find fringes on all baselines |
-| `flat-load` | `flat-load {-1,1,2,3,4} {lab,night-standard,night-faint,factory,test} [--file FILE]` | Load a factory flat file to the DM. |
+| `flat-load` | `flat-load {-1,1,2,3,4} {lab,night-standard,night-faint,factory,test} [--file FILE]` | Load a flat into DM channel 0. |
 | `flat-save` | `flat-save {-1,1,2,3,4} {lab,night-standard,night-faint,test}` | Save the current DM shape to a flat file. |
-| `flatten-beam` | `flatten-beam BEAM [--target {stddev,model}] [--show-plots]` | Flatten beam wavefront using hardware in the loop optimization. |
+| `flatten-beam` | `flatten-beam BEAM [--target {stddev,model,amp-model}] [--no-plots] [--pupil {Lab,AT,UT}] [--mask MASK] [--source {live,saved-pupil,saved-ref}]` | Flatten beam wavefront using hardware in the loop optimization. |
 | `fringe-monitor` | `fringe-monitor` | Launch the Qt Heimdallr fringe-monitoring GUI. |
 | `h-autoalign` | `h-autoalign [--shutter_pause_time SHUTTER_PAUSE_TIME] -a {cp,coarseparallel,ia,imageall,p3,p1,pupil3,pa,pupilall,test_mcs} [-b {K1,K2}] [-s SAVE_PATH] [-p] [-o {internal,mcs,none}] [-n NCUBES] [-t T_PAUSE]` | Autoalign Heimdallr beams. |
 | `h-pupil-track` | `h-pupil-track` | No description provided in source. |
@@ -505,11 +540,43 @@ Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/bl
 | `h-tilts` | `h-tilts` | Run Heimdallr's internal tip/tilt offload method. |
 | `mcs-client` | `mcs-client [--log-location LOG_LOCATION] [--script-only]` | Run the MDS server. |
 | `move-hpol` | `move-hpol BID POS` | Combined HPOL-HFO control |
-| `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE]` | Start logging the fringe tracker performance and settings. |
+| `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE] [--is-sim]` | Start logging the fringe tracker performance and settings. |
 | `save-tt-performance` | `save-tt-performance` | Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file. |
 | `text-clients` | `text-clients IP_ADDRESS` | Launch the Qt command client for the configured DCS servers. |
 
 ### Script details
+
+#### `b-faint-tweak-botx`
+
+Adjust BOTT/BOTP from baldr_tt peak for faint-source alignment.
+
+**Source:** [`dcs/dcs/cmd_scripts/b_faint_tweak_botx.py:28`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/b_faint_tweak_botx.py#L28)
+
+**Invocation:** `b-faint-tweak-botx BEAM`
+
+**Arguments**
+
+| Argument | Type | Required | Default | Choices | Description |
+| --- | --- | --- | --- | --- | --- |
+| `beam` | `int` | Yes | — | — | Beam number (valid: 2..4) |
+
+---
+
+#### `b-movebox`
+
+Move baldrN ROI to center using baldr_tt peak.
+
+**Source:** [`dcs/dcs/cmd_scripts/b_movebox.py:11`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/b_movebox.py#L11)
+
+**Invocation:** `b-movebox BEAM`
+
+**Arguments**
+
+| Argument | Type | Required | Default | Choices | Description |
+| --- | --- | --- | --- | --- | --- |
+| `beam` | `int` | Yes | — | — | Beam number (e.g. 1..4) |
+
+---
 
 #### `back-end-server`
 
@@ -573,13 +640,13 @@ Save Baldr TT interaction matrix data
 
 **Source:** [`dcs/baldr_tt/save_recon.py:161`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_recon.py#L161)
 
-**Invocation:** `baldrtt-recon --beam {-1,1,2,3,4} [--n-iter N_ITER] [--amp AMP] [--n-modes N_MODES] [--settle-sec SETTLE_SEC] [--overwrite OVERWRITE]`
+**Invocation:** `baldrtt-recon [--beam {-1,1,2,3,4}] [--n-iter N_ITER] [--amp AMP] [--n-modes N_MODES] [--settle-sec SETTLE_SEC] [--overwrite OVERWRITE]`
 
 **Arguments**
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--beam` | `int` | Yes | — | `-1, 1, 2, 3, 4` | — |
+| `--beam` | `int` | No | `-1` | `-1, 1, 2, 3, 4` | — |
 | `--n-iter` | `int` | No | `1` | — | — |
 | `--amp` | `float` | No | `0.04` | — | — |
 | `--n-modes` | `int` | No | `11` | — | — |
@@ -613,6 +680,24 @@ Install run_* commands for DCS.
 **Arguments**
 
 _No command-line arguments._
+
+---
+
+#### `dm-zernike`
+
+Set one DM Zernike map on shms[3] and trigger update.
+
+**Source:** [`dcs/dcs/cmd_scripts/dm_zernike.py:52`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dm_zernike.py#L52)
+
+**Invocation:** `dm-zernike DM MODE AMPLITUDE`
+
+**Arguments**
+
+| Argument | Type | Required | Default | Choices | Description |
+| --- | --- | --- | --- | --- | --- |
+| `dm` | `int` | Yes | — | — | DM number, e.g. 1..4 |
+| `mode` | `int` | Yes | — | — | Noll index, e.g. 10 |
+| `amplitude` | `float` | Yes | — | — | Mode amplitude, e.g. 0.1 |
 
 ---
 
@@ -653,7 +738,9 @@ Find fringes on all baselines
 
 #### `flat-load`
 
-Load a factory flat file to the DM.
+Load a flat into DM channel 0.
+
+flat-save records the combined DM command. Loading that shape into channel 0 makes it the persistent flat. Other channels are unchanged and remain additive; clear temporary channels first if you want the saved shape alone.
 
 **Source:** [`dcs/dcs/cmd_scripts/flat_load.py:77`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/flat_load.py#L77)
 
@@ -665,7 +752,7 @@ Load a factory flat file to the DM.
 | --- | --- | --- | --- | --- | --- |
 | `beam_id` | `int` | Yes | — | `-1, 1, 2, 3, 4` | The beam ID of the DM to load (1-4), or -1 to load all beams. |
 | `category` | `str` | Yes | — | `lab, night-standard, night-faint, factory, test` | The category of the flat to load. |
-| `--file` | `pathlib.Path` | No | `None` | — | The path to the flat file to load. Overrides category and beam if specified. |
+| `--file` | `pathlib.Path` | No | `None` | — | Load this file instead of the selected category for each selected beam. |
 
 ---
 
@@ -690,17 +777,20 @@ Save the current DM shape to a flat file.
 
 Flatten beam wavefront using hardware in the loop optimization.
 
-**Source:** [`dcs/dcs/cmd_scripts/flatten_beam.py:189`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/flatten_beam.py#L189)
+**Source:** [`dcs/dcs/cmd_scripts/flatten_beam.py:666`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/flatten_beam.py#L666)
 
-**Invocation:** `flatten-beam BEAM [--target {stddev,model}] [--show-plots]`
+**Invocation:** `flatten-beam BEAM [--target {stddev,model,amp-model}] [--no-plots] [--pupil {Lab,AT,UT}] [--mask MASK] [--source {live,saved-pupil,saved-ref}]`
 
 **Arguments**
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
 | `beam` | `int` | Yes | — | — | Beam number |
-| `--target` | `str` | No | `False` | `stddev, model` | Whether the target should be visual flatness or a model based reference. Each is saved into its own flat file at the end |
-| `--show-plots` | `bool` | No | `False` | — | Show plots at the end of optimization |
+| `--target` | `str` | No | `model` | `stddev, model, amp-model` | Whether the target should be visual flatness or a model based reference. The model is generated using the pupil only image and the propagation system. With saved-ref, model and amp-model both use the saved ZWFS image directly. |
+| `--no-plots` | `bool` | No | `False` | — | Suppress plots at the end of optimization |
+| `--pupil` | `str` | No | `Lab` | `Lab, AT, UT` | Which pupil to use for the model image generation. Only used if target is 'model' or 'amp-model'. |
+| `--mask` | `str` | No | `H3` | `[*(f'J{i}' for i in range(1, 6)), *(f'H{i}' for i in range(1, 6))]` | Which ZWFS mask to use for the model image generation. Only used if target is 'model' or 'amp-model'. |
+| `--source` | `str` | No | `live` | `live, saved-pupil, saved-ref` | Use a live clear pupil (default), a saved clear pupil from ~/etc/b-pupils/beam{beam}.fits, or a saved ZWFS reference from ~/etc/b-references/beam{beam}.fits. FITS images use CLEAR_PUPIL or PHASE_MASK respectively. Set USE_FITS=False in the script to load .npy instead. All sources acquire a fresh dark and optimize against live frames. |
 
 ---
 
@@ -830,7 +920,7 @@ Start logging the fringe tracker performance and settings.
 
 **Source:** [`dcs/heimdallr/save_ft_performance.py:175`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/save_ft_performance.py#L175)
 
-**Invocation:** `save-ft-performance [--gdrate GDRATE] [--rate RATE]`
+**Invocation:** `save-ft-performance [--gdrate GDRATE] [--rate RATE] [--is-sim]`
 
 **Arguments**
 
@@ -838,6 +928,7 @@ Start logging the fringe tracker performance and settings.
 | --- | --- | --- | --- | --- | --- |
 | `--gdrate` | `int` | No | `10` | — | Sample rate when group delay tracking in Hz |
 | `--rate` | `int` | No | `1000` | — | Sample rate in Hz |
+| `--is-sim` | `bool` | No | `False` | — | Connect to the local simulator and save logs under sim-data |
 
 ---
 
