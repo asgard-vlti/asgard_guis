@@ -27,7 +27,10 @@ def disk_reply():
         }
 
     return {
-        "cred1": {"state": "green", "checks": {"baldr1": check("fresh", 1.0)}},
+        "cred1": {
+            "state": "green",
+            "checks": {name: check("fresh", 1.0) for name in StatusFormatter.CRED1_STREAMS},
+        },
         "ft_performance": {"state": "red", "checks": {"FT": check("stale", 3.0)}},
         "tt_performance": {
             "state": "yellow",
@@ -63,6 +66,43 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertIn(StatusFormatter.YELLOW, output.getvalue())
         self.assertIn("beam2", output.getvalue())
 
+    def test_cred1_summary_and_six_streams_stay_visible(self):
+        payload = disk_reply()
+        formatter = StatusFormatter()
+        for state, stale_names, count in (
+            ("green", (), 6),
+            ("yellow", ("baldr2",), 5),
+            ("red", StatusFormatter.CRED1_STREAMS, 0),
+        ):
+            payload["cred1"]["state"] = state
+            for name, check in payload["cred1"]["checks"].items():
+                check["state"] = "stale" if name in stale_names else "fresh"
+            block = formatter.build_render_state({}, disk_status=payload)["tasks"][0]
+            self.assertEqual(block["entries"][0]["value"], f"{count}/6 streams saving")
+            self.assertEqual(
+                [entry["label"] for entry in block["entries"][1:]],
+                list(StatusFormatter.CRED1_STREAMS),
+            )
+            self.assertEqual(
+                [
+                    entry.get("short_value", entry["value"])
+                    for entry in block["entries"][1:]
+                ],
+                [
+                    "stale" if name in stale_names else "saving"
+                    for name in StatusFormatter.CRED1_STREAMS
+                ],
+            )
+            self.assertNotIn("limit", str(block["entries"]))
+            self.assertNotIn("no recent write", str(block["entries"]))
+
+        unavailable = formatter.build_render_state({}, disk_status={})["tasks"][0]
+        self.assertEqual(unavailable["entries"][0]["value"], "?/6 streams saving")
+        self.assertEqual(
+            [entry["label"] for entry in unavailable["entries"][1:]],
+            list(StatusFormatter.CRED1_STREAMS),
+        )
+
     def test_overdue_or_invalid_reply_turns_all_summaries_red(self):
         formatter = StatusFormatter()
         for payload, error in ((disk_reply(), "disk status reply overdue"), ({}, None)):
@@ -70,7 +110,10 @@ class DiskStatusRenderTests(unittest.TestCase):
                 {}, disk_status=payload, disk_error=error
             )["tasks"]
             self.assertTrue(all(task["has_red"] for task in tasks))
-            self.assertTrue(all("cannot verify" in task["entries"][0]["value"] for task in tasks))
+            self.assertEqual(tasks[0]["entries"][0]["value"], "?/6 streams saving")
+            self.assertTrue(
+                all("cannot verify" in task["entries"][0]["value"] for task in tasks[1:])
+            )
             self.assertEqual(
                 [entry["label"] for entry in tasks[2]["entries"][1:]],
                 ["beam1", "beam2", "beam3", "beam4"],
@@ -160,6 +203,16 @@ class DiskStatusRenderTests(unittest.TestCase):
         beam_text = "".join(beam.text() for beam in box.beam_labels)
         self.assertTrue(all(f"beam{beam}" in beam_text for beam in range(1, 5)))
         self.assertIn("#4f5b73", box.styleSheet())
+        cred1_box = window._boxes["CRED1 saving"]
+        self.assertEqual(cred1_box.details.text().count("<br/>"), 6)
+        for check in window.disk_client.payload["cred1"]["checks"].values():
+            check["state"] = "stale"
+        window.disk_client.payload["cred1"]["state"] = "red"
+        window._render({}, update_last_time=False, evaluate_progress=False)
+        self.assertEqual(cred1_box.details.text().count("<br/>"), 6)
+        self.assertTrue(
+            all(name in cred1_box.details.text() for name in StatusFormatter.CRED1_STREAMS)
+        )
         window.close()
         self.assertIsNotNone(app)
 

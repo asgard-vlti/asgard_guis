@@ -59,6 +59,10 @@ class StatusFormatter:
         "tt_performance": "TT performance saving",
     }
     TT_BEAMS = tuple(f"beam{beam}" for beam in range(1, 5))
+    CRED1_STREAMS = tuple(f"baldr{beam}" for beam in range(1, 5)) + (
+        "hei_k1",
+        "hei_k2",
+    )
 
     def __init__(self) -> None:
         self.last_wd_time: datetime.datetime | None = None
@@ -123,6 +127,8 @@ class StatusFormatter:
                     not cls._valid_disk_check(check) for check in checks.values()
                 ) or (
                     source == "tt_performance" and set(checks) != set(cls.TT_BEAMS)
+                ) or (
+                    source == "cred1" and set(checks) != set(cls.CRED1_STREAMS)
                 ):
                     state = "red"
                     summary = "cannot verify"
@@ -142,11 +148,20 @@ class StatusFormatter:
                     else:
                         summary = f"{fresh}/{len(checks)} streams saving"
                         failures = []
-                        names = cls.TT_BEAMS if source == "tt_performance" else checks
+                        if source == "tt_performance":
+                            names = cls.TT_BEAMS
+                        elif source == "cred1":
+                            names = cls.CRED1_STREAMS
+                        else:
+                            names = checks
                         for name in names:
                             check = checks.get(name)
                             if check.get("state") == "fresh":
-                                if source == "tt_performance":
+                                if source == "cred1":
+                                    failures.append(
+                                        {"label": name, "value": "saving", "color": "green"}
+                                    )
+                                elif source == "tt_performance":
                                     failures.append(
                                         {
                                             "label": name,
@@ -155,6 +170,20 @@ class StatusFormatter:
                                             "color": "green",
                                         }
                                     )
+                                continue
+                            if source == "cred1":
+                                detail = str(check.get("detail") or "")
+                                value = "stale"
+                                if detail and detail != "no recent write":
+                                    value += f"; {detail}"
+                                failures.append(
+                                    {
+                                        "label": name,
+                                        "value": value,
+                                        "short_value": "stale",
+                                        "color": "red",
+                                    }
+                                )
                                 continue
                             age = check.get("age_s")
                             limit = check.get("limit_s")
@@ -204,6 +233,12 @@ class StatusFormatter:
                 failures = [
                     {"label": name, "value": "unknown", "color": "red"}
                     for name in cls.TT_BEAMS
+                ]
+            if source == "cred1" and summary == "cannot verify":
+                summary = f"?/{len(cls.CRED1_STREAMS)} streams saving"
+                failures = [
+                    {"label": name, "value": "unknown", "color": "red"}
+                    for name in cls.CRED1_STREAMS
                 ]
             entries = [
                 {"label": "disk", "value": summary, "color": state, "indent": 1}
