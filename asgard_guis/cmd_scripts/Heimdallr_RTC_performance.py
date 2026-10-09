@@ -1193,7 +1193,8 @@ def main():
     ):
         for side in ("left", "bottom"):
             axis = plot.getAxis(side)
-            axis.setSIPrefixEnableRanges(())
+            if hasattr(axis, "setSIPrefixEnableRanges"):
+                axis.setSIPrefixEnableRanges(())
             axis.enableAutoSIPrefix(False)
 
     # --- Store curves for update ---
