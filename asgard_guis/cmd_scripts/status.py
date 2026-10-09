@@ -58,6 +58,7 @@ class StatusFormatter:
         "ft_performance": "FT performance saving",
         "tt_performance": "TT performance saving",
     }
+    TT_BEAMS = tuple(f"beam{beam}" for beam in range(1, 5))
 
     def __init__(self) -> None:
         self.last_wd_time: datetime.datetime | None = None
@@ -120,6 +121,8 @@ class StatusFormatter:
                     checks, dict
                 ) or not checks or any(
                     not cls._valid_disk_check(check) for check in checks.values()
+                ) or (
+                    source == "tt_performance" and set(checks) != set(cls.TT_BEAMS)
                 ):
                     state = "red"
                     summary = "cannot verify"
@@ -139,8 +142,18 @@ class StatusFormatter:
                     else:
                         summary = f"{fresh}/{len(checks)} streams saving"
                         failures = []
-                        for name, check in checks.items():
-                            if not isinstance(check, dict) or check.get("state") == "fresh":
+                        names = cls.TT_BEAMS if source == "tt_performance" else checks
+                        for name in names:
+                            check = checks.get(name)
+                            if check.get("state") == "fresh":
+                                if source == "tt_performance":
+                                    failures.append(
+                                        {
+                                            "label": name,
+                                            "value": f"saving; last write {check['age_s']:.1f}s ago",
+                                            "color": "green",
+                                        }
+                                    )
                                 continue
                             age = check.get("age_s")
                             limit = check.get("limit_s")
@@ -158,17 +171,33 @@ class StatusFormatter:
                                 else ""
                             )
                             detail = str(check.get("detail") or "")
+                            if source == "tt_performance":
+                                if age is None:
+                                    value = f"stale; {detail or 'no write observed'}"
+                                else:
+                                    value = f"stale; {age_text}{limit_text}"
+                                    if detail and detail != "no recent write":
+                                        value += f"; {detail}"
+                            else:
+                                value = f"{age_text}{limit_text}; {detail}".rstrip("; ")
                             failures.append(
                                 {
                                     "label": str(name),
-                                    "value": f"{age_text}{limit_text}; {detail}".rstrip("; "),
+                                    "value": value,
+                                    "color": "red",
                                 }
                             )
+            if source == "tt_performance" and summary == "cannot verify":
+                summary = f"cannot verify: {failures[0]['value']}"
+                failures = [
+                    {"label": name, "value": "unknown", "color": "red"}
+                    for name in cls.TT_BEAMS
+                ]
             entries = [
                 {"label": "disk", "value": summary, "color": state, "indent": 1}
             ]
             entries.extend(
-                {**failure, "color": "red", "indent": 2} for failure in failures
+                {"color": "red", **failure, "indent": 2} for failure in failures
             )
             blocks.append(
                 {
@@ -621,6 +650,8 @@ if QtWidgets is not None:
         def _setup_ui(self) -> None:
             self.setObjectName("processBox")
             self.setMinimumHeight(75)
+            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+                self.setFixedHeight(220)
 
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
@@ -750,7 +781,7 @@ if QtWidgets is not None:
 
         def _setup_ui(self) -> None:
             self.setWindowTitle("Watchdog Status")
-            self.resize(620, 460)
+            self.resize(950, 650)
             self.setStyleSheet("QWidget { background-color: #141925; color: #dbe1ee; }")
 
             root = QtWidgets.QVBoxLayout(self)
@@ -830,10 +861,22 @@ if QtWidgets is not None:
 
             bao_rows = math.ceil(len(bao_tasks) / self.GRID_COLUMNS) if bao_tasks else 0
             others_start_row = btt_rows + bao_rows
-            for idx, name in enumerate(other_tasks):
-                row = others_start_row + (idx // self.GRID_COLUMNS)
-                col = idx % self.GRID_COLUMNS
-                positions[name] = (row, col, 1, 1)
+            row = others_start_row
+            col = 0
+            for name in other_tasks:
+                col_span = (
+                    2
+                    if name == StatusFormatter.DISK_LABELS["tt_performance"]
+                    else 1
+                )
+                if col + col_span > self.GRID_COLUMNS:
+                    row += 1
+                    col = 0
+                positions[name] = (row, col, 1, col_span)
+                col += col_span
+                if col == self.GRID_COLUMNS:
+                    row += 1
+                    col = 0
 
             return positions
 

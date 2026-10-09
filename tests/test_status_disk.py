@@ -31,7 +31,12 @@ def disk_reply():
         "ft_performance": {"state": "red", "checks": {"FT": check("stale", 3.0)}},
         "tt_performance": {
             "state": "yellow",
-            "checks": {"beam1": check("fresh", 0.5), "beam2": check("stale", 4.0)},
+            "checks": {
+                "beam1": check("fresh", 0.5),
+                "beam2": check("stale", 4.0),
+                "beam3": check("fresh", 0.6),
+                "beam4": check("fresh", 0.7),
+            },
         },
     }
 
@@ -44,7 +49,12 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertEqual([task["task_name"] for task in tasks], list(StatusFormatter.DISK_LABELS.values()))
         self.assertEqual([task["entries"][0]["color"] for task in tasks], ["green", "red", "yellow"])
         self.assertTrue(tasks[2]["has_yellow"])
-        self.assertIn("last write 4.0s ago", tasks[2]["entries"][1]["value"])
+        self.assertEqual(
+            [entry["label"] for entry in tasks[2]["entries"][1:]],
+            ["beam1", "beam2", "beam3", "beam4"],
+        )
+        self.assertEqual(tasks[2]["entries"][1]["color"], "green")
+        self.assertIn("last write 4.0s ago", tasks[2]["entries"][2]["value"])
 
     def test_terminal_uses_explicit_colors(self):
         output = io.StringIO()
@@ -61,6 +71,10 @@ class DiskStatusRenderTests(unittest.TestCase):
             )["tasks"]
             self.assertTrue(all(task["has_red"] for task in tasks))
             self.assertTrue(all("cannot verify" in task["entries"][0]["value"] for task in tasks))
+            self.assertEqual(
+                [entry["label"] for entry in tasks[2]["entries"][1:]],
+                ["beam1", "beam2", "beam3", "beam4"],
+            )
 
     def test_client_marks_missing_reply_overdue(self):
         client = DiskStatusClient("inproc://missing-disk-status")
@@ -109,14 +123,19 @@ class DiskStatusRenderTests(unittest.TestCase):
         box = window._boxes["TT performance saving"]
         self.assertIn("beam2", box.details.text())
         self.assertIn("#ffd700", box.styleSheet())
+        self.assertEqual(box.minimumHeight(), box.maximumHeight())
+        self.assertEqual(window.grid.getItemPosition(window.grid.indexOf(box))[3], 2)
         window.disk_client.payload["tt_performance"] = {
             "state": "green",
             "checks": {
                 "beam1": {"state": "fresh", "age_s": 0.5, "limit_s": 2.0},
                 "beam2": {"state": "fresh", "age_s": 0.5, "limit_s": 2.0},
+                "beam3": {"state": "fresh", "age_s": 0.5, "limit_s": 2.0},
+                "beam4": {"state": "fresh", "age_s": 0.5, "limit_s": 2.0},
             },
         }
         window._render({}, update_last_time=False, evaluate_progress=False)
+        self.assertTrue(all(f"beam{beam}" in box.details.text() for beam in range(1, 5)))
         self.assertIn("#4f5b73", box.styleSheet())
         window.close()
         self.assertIsNotNone(app)
