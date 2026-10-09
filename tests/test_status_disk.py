@@ -119,11 +119,19 @@ class DiskStatusRenderTests(unittest.TestCase):
         window.disk_client.payload = disk_reply()
         window.disk_client.error = None
         window.disk_client.last_reply_at = time.monotonic()
-        window._render({}, update_last_time=False, evaluate_progress=True)
+        window._render(
+            {"MDS": {"process": "running", "zmq": "open", "status": '{"SDLA": 2.4}'}},
+            update_last_time=False,
+            evaluate_progress=True,
+        )
         box = window._boxes["TT performance saving"]
-        self.assertIn("beam2", box.details.text())
+        self.assertIn("beam2", box.beam_left.text())
+        self.assertIn("beam4", box.beam_right.text())
         self.assertIn("#ffd700", box.styleSheet())
         self.assertEqual(box.minimumHeight(), box.maximumHeight())
+        self.assertLessEqual(
+            abs(box.maximumHeight() - window._boxes["MDS"].sizeHint().height()), 5
+        )
         self.assertEqual(window.grid.getItemPosition(window.grid.indexOf(box))[3], 2)
         window.disk_client.payload["tt_performance"] = {
             "state": "green",
@@ -135,7 +143,8 @@ class DiskStatusRenderTests(unittest.TestCase):
             },
         }
         window._render({}, update_last_time=False, evaluate_progress=False)
-        self.assertTrue(all(f"beam{beam}" in box.details.text() for beam in range(1, 5)))
+        beam_text = box.beam_left.text() + box.beam_right.text()
+        self.assertTrue(all(f"beam{beam}" in beam_text for beam in range(1, 5)))
         self.assertIn("#4f5b73", box.styleSheet())
         window.close()
         self.assertIsNotNone(app)

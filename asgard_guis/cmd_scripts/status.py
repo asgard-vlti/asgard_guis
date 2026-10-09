@@ -151,6 +151,7 @@ class StatusFormatter:
                                         {
                                             "label": name,
                                             "value": f"saving; last write {check['age_s']:.1f}s ago",
+                                            "short_value": f"{check['age_s']:.1f}s ago",
                                             "color": "green",
                                         }
                                     )
@@ -174,16 +175,27 @@ class StatusFormatter:
                             if source == "tt_performance":
                                 if age is None:
                                     value = f"stale; {detail or 'no write observed'}"
+                                    short_value = detail or "no write"
                                 else:
                                     value = f"stale; {age_text}{limit_text}"
                                     if detail and detail != "no recent write":
                                         value += f"; {detail}"
+                                    short_value = (
+                                        f"stale {age:.1f}s / {limit:.1f}s"
+                                        if age >= 0
+                                        else "future write time"
+                                    )
                             else:
                                 value = f"{age_text}{limit_text}; {detail}".rstrip("; ")
                             failures.append(
                                 {
                                     "label": str(name),
                                     "value": value,
+                                    **(
+                                        {"short_value": short_value}
+                                        if source == "tt_performance"
+                                        else {}
+                                    ),
                                     "color": "red",
                                 }
                             )
@@ -651,11 +663,14 @@ if QtWidgets is not None:
             self.setObjectName("processBox")
             self.setMinimumHeight(75)
             if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
-                self.setFixedHeight(220)
+                self.setFixedHeight(114)
 
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
             layout.setSpacing(6)
+            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+                layout.setContentsMargins(10, 4, 10, 4)
+                layout.setSpacing(5)
 
             self.title = QtWidgets.QLabel(self._process_name)
             self.title.setStyleSheet("font-weight: 700; color: #f2f4f8;")
@@ -666,7 +681,30 @@ if QtWidgets is not None:
             self.details.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
 
             layout.addWidget(self.title)
-            layout.addWidget(self.details, 1)
+            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+                self.details.setTextFormat(QtCore.Qt.PlainText)
+                self.title.setSizePolicy(
+                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+                )
+                self.details.setSizePolicy(
+                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+                )
+                layout.addWidget(self.details)
+                beams = QtWidgets.QGridLayout()
+                beams.setHorizontalSpacing(8)
+                beams.setVerticalSpacing(0)
+                self.beam_labels = []
+                for index in range(4):
+                    beam = QtWidgets.QLabel()
+                    beam.setSizePolicy(
+                        QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+                    )
+                    beams.addWidget(beam, index % 2, index // 2)
+                    self.beam_labels.append(beam)
+                layout.addLayout(beams)
+                layout.addStretch(1)
+            else:
+                layout.addWidget(self.details, 1)
 
             self._apply_border(red_border=False)
             self._opacity_effect = QtWidgets.QGraphicsOpacityEffect(self)
@@ -703,14 +741,15 @@ if QtWidgets is not None:
         ) -> None:
             html_lines: list[str] = []
             current_cnt: int | None = None
+            is_tt = self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]
 
             for entry in task_block["entries"]:
                 indent_level = max(int(entry["indent"]) - 1, 0)
-                indent = "&nbsp;" * (indent_level * 2)
+                indent = "" if is_tt else "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
                     entry["color"], "#d4d8e2"
                 )
-                escaped_value = html.escape(str(entry["value"]))
+                escaped_value = html.escape(str(entry.get("short_value", entry["value"])))
                 escaped_label = html.escape(str(entry["label"]))
 
                 # Track cnt value if present
@@ -730,7 +769,22 @@ if QtWidgets is not None:
                         f"{indent}<span style='color:{value_color}'>{escaped_value}</span>"
                     )
 
-            self.details.setText("<br/>".join(html_lines))
+            if is_tt and len(html_lines) == 5:
+                summary = task_block["entries"][0]
+                self.details.setText(f"{summary['label']}: {summary['value']}")
+                self.details.setStyleSheet(
+                    f"color: {StatusFormatter.STATE_COLORS[summary['color']]};"
+                )
+                for beam, entry in zip(self.beam_labels, task_block["entries"][1:]):
+                    beam.setText(
+                        f"{entry['label']}: {entry.get('short_value', entry['value'])}"
+                    )
+                    beam.setStyleSheet(
+                        f"color: {StatusFormatter.STATE_COLORS[entry['color']]};"
+                    )
+                    beam.setToolTip(f"{entry['label']}: {entry['value']}")
+            else:
+                self.details.setText("<br/>".join(html_lines))
 
             has_red = bool(task_block.get("has_red"))
             if evaluate_progress:
