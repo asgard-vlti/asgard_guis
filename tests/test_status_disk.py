@@ -189,7 +189,37 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertLessEqual(
             abs(box.maximumHeight() - window._boxes["MDS"].sizeHint().height()), 5
         )
-        self.assertEqual(window.grid.getItemPosition(window.grid.indexOf(box))[3], 2)
+        saving_boxes = [
+            window._boxes[label] for label in StatusFormatter.DISK_LABELS.values()
+        ]
+        saving_positions = [
+            window.grid.getItemPosition(window.grid.indexOf(saving_box))
+            for saving_box in saving_boxes
+        ]
+        self.assertEqual([position[1] for position in saving_positions], [0, 4, 8])
+        self.assertEqual([position[3] for position in saving_positions], [4, 4, 4])
+        self.assertEqual(len({position[0] for position in saving_positions}), 1)
+        positions = window._layout_positions(
+            [
+                *(f"BTT{beam}" for beam in range(1, 5)),
+                *(f"BAO{beam}" for beam in range(1, 5)),
+                "MDS",
+                *StatusFormatter.DISK_LABELS.values(),
+            ]
+        )
+        self.assertEqual(
+            [positions[f"BTT{beam}"] for beam in range(1, 5)],
+            [(0, 0, 1, 3), (0, 3, 1, 3), (0, 6, 1, 3), (0, 9, 1, 3)],
+        )
+        self.assertEqual(positions["BAO1"], (1, 0, 1, 3))
+        self.assertEqual(positions["CRED1 saving"], (3, 0, 1, 4))
+        self.assertEqual(
+            [saving_box.minimumHeight() for saving_box in saving_boxes],
+            [114, 114, 114],
+        )
+        self.assertTrue(
+            all(saving_box.maximumHeight() == 114 for saving_box in saving_boxes)
+        )
         window.disk_client.payload["tt_performance"] = {
             "state": "green",
             "checks": {
@@ -204,14 +234,27 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertTrue(all(f"beam{beam}" in beam_text for beam in range(1, 5)))
         self.assertIn("#4f5b73", box.styleSheet())
         cred1_box = window._boxes["CRED1 saving"]
-        self.assertEqual(cred1_box.details.text().count("<br/>"), 6)
+        self.assertEqual(cred1_box.details.text(), "disk: 6/6 streams saving")
+        self.assertEqual(
+            [cred1_box.stream_grid.getItemPosition(index)[:2] for index in range(6)],
+            [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)],
+        )
+        self.assertEqual(
+            [label.text().split(":", 1)[0] for label in cred1_box.stream_labels],
+            list(StatusFormatter.CRED1_STREAMS),
+        )
         for check in window.disk_client.payload["cred1"]["checks"].values():
             check["state"] = "stale"
         window.disk_client.payload["cred1"]["state"] = "red"
         window._render({}, update_last_time=False, evaluate_progress=False)
-        self.assertEqual(cred1_box.details.text().count("<br/>"), 6)
+        self.assertEqual(cred1_box.details.text(), "disk: 0/6 streams saving")
         self.assertTrue(
-            all(name in cred1_box.details.text() for name in StatusFormatter.CRED1_STREAMS)
+            all(
+                name in label.text()
+                for name, label in zip(
+                    StatusFormatter.CRED1_STREAMS, cred1_box.stream_labels
+                )
+            )
         )
         window.close()
         self.assertIsNotNone(app)

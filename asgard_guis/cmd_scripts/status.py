@@ -697,13 +697,15 @@ if QtWidgets is not None:
         def _setup_ui(self) -> None:
             self.setObjectName("processBox")
             self.setMinimumHeight(75)
-            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+            is_tt = self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]
+            is_cred1 = self._process_name == StatusFormatter.DISK_LABELS["cred1"]
+            if self._process_name in StatusFormatter.DISK_LABELS.values():
                 self.setFixedHeight(114)
 
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
             layout.setSpacing(6)
-            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+            if self._process_name in StatusFormatter.DISK_LABELS.values():
                 layout.setContentsMargins(10, 4, 10, 4)
                 layout.setSpacing(5)
 
@@ -716,7 +718,7 @@ if QtWidgets is not None:
             self.details.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
 
             layout.addWidget(self.title)
-            if self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]:
+            if is_tt or is_cred1:
                 self.details.setTextFormat(QtCore.Qt.PlainText)
                 self.title.setSizePolicy(
                     QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
@@ -725,18 +727,23 @@ if QtWidgets is not None:
                     QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
                 )
                 layout.addWidget(self.details)
-                beams = QtWidgets.QGridLayout()
-                beams.setHorizontalSpacing(8)
-                beams.setVerticalSpacing(0)
-                self.beam_labels = []
-                for index in range(4):
-                    beam = QtWidgets.QLabel()
-                    beam.setSizePolicy(
+                self.stream_grid = QtWidgets.QGridLayout()
+                self.stream_grid.setHorizontalSpacing(8)
+                self.stream_grid.setVerticalSpacing(0)
+                self.stream_labels = []
+                row_count = 3 if is_cred1 else 2
+                for index in range(6 if is_cred1 else 4):
+                    stream = QtWidgets.QLabel()
+                    stream.setSizePolicy(
                         QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
                     )
-                    beams.addWidget(beam, index % 2, index // 2)
-                    self.beam_labels.append(beam)
-                layout.addLayout(beams)
+                    self.stream_grid.addWidget(
+                        stream, index % row_count, index // row_count
+                    )
+                    self.stream_labels.append(stream)
+                if is_tt:
+                    self.beam_labels = self.stream_labels
+                layout.addLayout(self.stream_grid)
                 layout.addStretch(1)
             else:
                 layout.addWidget(self.details, 1)
@@ -777,10 +784,11 @@ if QtWidgets is not None:
             html_lines: list[str] = []
             current_cnt: int | None = None
             is_tt = self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]
+            is_cred1 = self._process_name == StatusFormatter.DISK_LABELS["cred1"]
 
             for entry in task_block["entries"]:
                 indent_level = max(int(entry["indent"]) - 1, 0)
-                indent = "" if is_tt else "&nbsp;" * (indent_level * 2)
+                indent = "" if is_tt or is_cred1 else "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
                     entry["color"], "#d4d8e2"
                 )
@@ -804,20 +812,20 @@ if QtWidgets is not None:
                         f"{indent}<span style='color:{value_color}'>{escaped_value}</span>"
                     )
 
-            if is_tt and len(html_lines) == 5:
+            if (is_tt and len(html_lines) == 5) or (is_cred1 and len(html_lines) == 7):
                 summary = task_block["entries"][0]
                 self.details.setText(f"{summary['label']}: {summary['value']}")
                 self.details.setStyleSheet(
                     f"color: {StatusFormatter.STATE_COLORS[summary['color']]};"
                 )
-                for beam, entry in zip(self.beam_labels, task_block["entries"][1:]):
-                    beam.setText(
+                for stream, entry in zip(self.stream_labels, task_block["entries"][1:]):
+                    stream.setText(
                         f"{entry['label']}: {entry.get('short_value', entry['value'])}"
                     )
-                    beam.setStyleSheet(
+                    stream.setStyleSheet(
                         f"color: {StatusFormatter.STATE_COLORS[entry['color']]};"
                     )
-                    beam.setToolTip(f"{entry['label']}: {entry['value']}")
+                    stream.setToolTip(f"{entry['label']}: {entry['value']}")
             else:
                 self.details.setText("<br/>".join(html_lines))
 
@@ -845,7 +853,9 @@ if QtWidgets is not None:
                 self._apply_border(red_border=True)
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
-        GRID_COLUMNS = 4
+        GRID_COLUMNS = 12
+        REGULAR_SPAN = 3
+        SAVING_SPAN = 4
 
         def __init__(
             self,
@@ -884,6 +894,8 @@ if QtWidgets is not None:
             self.grid = QtWidgets.QGridLayout()
             self.grid.setHorizontalSpacing(10)
             self.grid.setVerticalSpacing(10)
+            for column in range(self.GRID_COLUMNS):
+                self.grid.setColumnStretch(column, 1)
             root.addLayout(self.grid, 1)
 
         def _setup_socket(self) -> None:
@@ -926,46 +938,49 @@ if QtWidgets is not None:
         ) -> dict[str, tuple[int, int, int, int]]:
             btt_tasks = [name for name in task_names if name.upper().startswith("BTT")]
             bao_tasks = [name for name in task_names if name.upper().startswith("BAO")]
+            saving_tasks = [
+                name for name in StatusFormatter.DISK_LABELS.values() if name in task_names
+            ]
             other_tasks = [
                 name
                 for name in task_names
-                if name not in btt_tasks and name not in bao_tasks
+                if name not in btt_tasks
+                and name not in bao_tasks
+                and name not in saving_tasks
             ]
 
             btt_tasks.sort(key=self._numeric_suffix)
             bao_tasks.sort(key=self._numeric_suffix)
 
             positions: dict[str, tuple[int, int, int, int]] = {}
+            regular_columns = self.GRID_COLUMNS // self.REGULAR_SPAN
 
             for idx, name in enumerate(btt_tasks):
-                row = idx // self.GRID_COLUMNS
-                col = idx % self.GRID_COLUMNS
-                positions[name] = (row, col, 1, 1)
+                row = idx // regular_columns
+                col = (idx % regular_columns) * self.REGULAR_SPAN
+                positions[name] = (row, col, 1, self.REGULAR_SPAN)
 
-            btt_rows = math.ceil(len(btt_tasks) / self.GRID_COLUMNS) if btt_tasks else 0
+            btt_rows = math.ceil(len(btt_tasks) / regular_columns) if btt_tasks else 0
             for idx, name in enumerate(bao_tasks):
-                row = btt_rows + (idx // self.GRID_COLUMNS)
-                col = idx % self.GRID_COLUMNS
-                positions[name] = (row, col, 1, 1)
+                row = btt_rows + (idx // regular_columns)
+                col = (idx % regular_columns) * self.REGULAR_SPAN
+                positions[name] = (row, col, 1, self.REGULAR_SPAN)
 
-            bao_rows = math.ceil(len(bao_tasks) / self.GRID_COLUMNS) if bao_tasks else 0
+            bao_rows = math.ceil(len(bao_tasks) / regular_columns) if bao_tasks else 0
             others_start_row = btt_rows + bao_rows
-            row = others_start_row
-            col = 0
-            for name in other_tasks:
-                col_span = (
-                    2
-                    if name == StatusFormatter.DISK_LABELS["tt_performance"]
-                    else 1
+            for idx, name in enumerate(other_tasks):
+                row = others_start_row + idx // regular_columns
+                col = (idx % regular_columns) * self.REGULAR_SPAN
+                positions[name] = (row, col, 1, self.REGULAR_SPAN)
+
+            saving_row = others_start_row + math.ceil(len(other_tasks) / regular_columns)
+            for idx, name in enumerate(saving_tasks):
+                positions[name] = (
+                    saving_row,
+                    idx * self.SAVING_SPAN,
+                    1,
+                    self.SAVING_SPAN,
                 )
-                if col + col_span > self.GRID_COLUMNS:
-                    row += 1
-                    col = 0
-                positions[name] = (row, col, 1, col_span)
-                col += col_span
-                if col == self.GRID_COLUMNS:
-                    row += 1
-                    col = 0
 
             return positions
 
