@@ -1,0 +1,101 @@
+# ****************************************************************************
+# E.S.O. - VLT project
+#
+# who       when        what
+# --------  ----------  ----------------------------------------------
+# rschmutz  2026-02-08  ER-185810: SCUBA entry updated
+# rschmutz  2026-01-28  ER-185810: SCUBA menu entry added
+# rschmutz  2019-09-22  CCB-1400: mtinsDataXferGui added
+# gzins     2017-09-13  created
+#
+
+Menu VltMenu1
+{
+    "ASGARD"            f.title
+    "Xterm on mimir"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e mimir 1>&- 2>&- &\""
+    "Xterm on munnin"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e munnin 1>&- 2>&- &\""
+    no-label             f.separator
+    "Operations ..."     f.menu Operations
+    no-label             f.separator
+    "Configurations ..." f.menu Configurations
+    no-label             f.separator
+    "Startup/Stop ..."   f.menu Startup
+    no-label             f.separator
+    "Wag Panels ..."         f.menu WagPanels
+    "Heimdallr/Baldr Panels ... " f.menu HdlrBaldrPanels
+    "Bifrost Panels ..." f.menu BifrostPanels
+    "RTDs ..."           f.menu Rtds
+}
+
+Menu Operations
+{
+    "Operations Tools"   f.title
+    "Im. Search Gui"     f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY im-search-gui 1>&- 2>&- &\""
+    "Pup. Search Gui"    f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY pu-search-gui 1>&- 2>&- &\""
+    "Bandwidth Monitor"  f.exec  "/vltuser/asg/network_bw"
+}
+
+Menu Configurations
+{
+    "Configurations"     f.title
+}
+
+Menu Startup
+{
+    "Asgard computer startup"    f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm -hold $XTERM_OPTS -e /vltuser/asg/.local/bin/mimir-startup 1>&- 2>&- &\""
+    "Mimir instrument startup"    f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm -hold $XTERM_OPTS -e ssh -tXC mimir /home/asg/.conda/envs/asgard/bin/instrument-startup 1>&- 2>&- &\""
+    "Munnin (BIFROST LR) inst. startup"		f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e ssh -XCt odin@munnin /home/odin/bin/instrument-startup 1>&- 2>&- &\""
+    "Wag nightly startup"               f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY aginsStartup 1>&- 2>&- &\""
+    -label                    f.separator
+    "Wag nightly shutdown"              f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY aginsStop 1>&- 2>&- &\""
+    "Munnin (BIFROST LR) endnight"	f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -hold -e ssh -t odin@munnin /home/odin/bin/bifrost_endnight 1>&- 2>&- &\""
+    "Mimir instrument shutdown"   f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm -hold $XTERM_OPTS -e ssh -XC mimir /home/asg/.conda/envs/asgard/bin/instrument-shutdown 1>&- 2>&- &\""    
+    "Asgard computer shutdown"   f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm -hold $XTERM_OPTS -e /vltuser/asg/.local/bin/mimir-shutdown 1>&- 2>&- &\""
+}
+
+Menu WagPanels
+{
+    "BOB"                f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY aginsStart -panel BOB -pos default 1>&- 2>&- &\""
+    "OS Control"         f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY aginsStart -panel OS_CONTROL 1>&- 2>&- &\""
+    "Status"             f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY agopanStatus 1>&- 2>&- &\""
+    "ICS"		 f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY agipanControl 1>&- 2>&- &\""
+    "ESO Log Monitor"    f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY logMonitor 1>&- 2>&- &\""
+    "Database Viewer"    f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ccseiDb 1>&- 2>&- &\""
+}
+
+Menu HdlrBaldrPanels
+{
+    "Engineering Gui"   f.exec "ssh -XY -t $OP_USER@wgsgb1 google-chrome --user-data-dir=/home/$OP_USER/chrome-conf/ITS/$DISPLAY --profile-directory=ITS --new-window http://wag.pl.eso.org:8501 --window-name=Heimdallr/Baldr/Solarstein"
+    "Text Clients"	 f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY text-clients 1>&- 2>&- &\""
+    "Hdlr Guis"		 f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY h-guis 1>&- 2>&- &\""
+    "Status"       f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY status-mimir 1>&- 2>&- &\""
+    "Shortcuts"    f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/shortcuts  1>&- 2>&- &\""
+    "Faint Alignment" f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/baldr-faint-alignment 1>&- 2>&- &\""
+    "Mask Alignment" f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/baldr-pupil-mask-alignment 1>&- 2>&- &\""
+    "Fringe Monitor"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/fringe-monitor  1>&- 2>&- &\""
+    "DM Gui"             f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir  /home/asg/.conda/envs/asgard/bin/lab-MDM-control 1>&- 2>&- &\""
+    "Mimir Logs and Restarts"  f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/logs-client  1>&- 2>&- &\""
+}
+
+Menu BifrostPanels
+{
+    "All servers and Guis"	f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e ssh -XCt odin@munnin '/home/odin/bin/bifrost_bootLaunch; /bin/bash' 1>&- 2>&- &\""
+}
+
+Menu Rtds
+{
+    "Hdlr/Baldr"         f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY cred1view 1>&- 2>&- &\""
+    "Bifrost LR"	 f.exec  "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC odin@munnin /home/odin/bin/bifrost_rtd_gtk 1>&- 2>&- &\""
+}
+
+
+
+
+
+
+
+
+
+
+
+
