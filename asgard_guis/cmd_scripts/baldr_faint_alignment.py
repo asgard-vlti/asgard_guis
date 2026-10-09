@@ -66,7 +66,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 
 		self.save_btn = QtWidgets.QPushButton("Save")
 		self.save_btn.clicked.connect(self._save)
-		layout.addWidget(self.save_btn, 5, 3, 1, 3)
+		layout.addWidget(self.save_btn, 6, 0, 1, 3)
 		root_layout.addLayout(layout)
 
 	def _add_direction_controls(self, layout, label, row, column, handler=None):
