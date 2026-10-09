@@ -15,6 +15,31 @@ sockets = [
     ("baldr_tt", [6671, 6672, 6673, 6674]),
 ]
 
+
+def apply_dark_theme(app):
+    app.setStyle("Fusion")
+    palette = app.palette()
+    colors = {
+        QtGui.QPalette.Window: "#1e1f22",
+        QtGui.QPalette.WindowText: "#e6e6e6",
+        QtGui.QPalette.Base: "#272a30",
+        QtGui.QPalette.AlternateBase: "#2d3138",
+        QtGui.QPalette.ToolTipBase: "#272a30",
+        QtGui.QPalette.ToolTipText: "#e6e6e6",
+        QtGui.QPalette.Text: "#e6e6e6",
+        QtGui.QPalette.Button: "#2d3138",
+        QtGui.QPalette.ButtonText: "#e6e6e6",
+        QtGui.QPalette.Link: "#7db3ff",
+        QtGui.QPalette.Highlight: "#3f6db3",
+        QtGui.QPalette.HighlightedText: "#ffffff",
+    }
+    for role, color in colors.items():
+        palette.setColor(role, QtGui.QColor(color))
+    for role in (QtGui.QPalette.WindowText, QtGui.QPalette.Text, QtGui.QPalette.ButtonText):
+        palette.setColor(QtGui.QPalette.Disabled, role, QtGui.QColor("#858b94"))
+    app.setPalette(palette)
+
+
 class HistoryLineEdit(QtWidgets.QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -495,6 +520,7 @@ def main():
     args = parser.parse_args()
     servers = sockets
     app = QtWidgets.QApplication([])
+    apply_dark_theme(app)
     client = UniversalClient(args.ip_address, servers)
     client.show()
     sys.exit(app.exec_())

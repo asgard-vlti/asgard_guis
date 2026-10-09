@@ -32,6 +32,13 @@ TELEM_LOCK_KEYS = {
 
 ANSI_PATTERN = re.compile(r"\x1b\[([0-9;]*)m")
 ANSI_STRIP_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
+SEVERITY_PATTERN = re.compile(
+    r"^\s*(?:(?:\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?|\[[^\]\n]+\])\s+)?"
+    r"(?:\[(?P<bracket>ERROR|WARN(?:ING)?)\]|(?P<plain>ERROR|WARN(?:ING)?)(?=\s|:|$))",
+    re.IGNORECASE,
+)
+ERROR_COLOR = "#ff6b6b"
+WARNING_COLOR = "#ffca6a"
 
 FG_COLORS = {
     30: "#000000",
@@ -139,10 +146,11 @@ def _apply_ansi_code(state, code):
         state["bg"] = BG_COLORS[code]
 
 
-def _style_for_state(state):
+def _style_for_state(state, foreground=None):
     styles = []
-    if state["fg"]:
-        styles.append(f"color: {state['fg']}")
+    color = foreground or state["fg"]
+    if color:
+        styles.append(f"color: {color}")
     if state["bg"]:
         styles.append(f"background-color: {state['bg']}")
     if state["bold"]:
@@ -152,19 +160,60 @@ def _style_for_state(state):
     return "; ".join(styles)
 
 
-def ansi_to_html(text):
+def severity_ranges(text):
+    ranges = []
+    offset = 0
+    for line in strip_ansi(text).splitlines(keepends=True):
+        match = SEVERITY_PATTERN.match(line)
+        if match:
+            group = "bracket" if match.group("bracket") else "plain"
+            severity = match.group(group).upper()
+            color = ERROR_COLOR if severity == "ERROR" else WARNING_COLOR
+            start, end = match.span(group)
+            ranges.append((offset + start, offset + end, color))
+        offset += len(line)
+    return ranges
+
+
+def _append_html_chunk(output, chunk, state, visible_start, highlights):
+    chunk_end = visible_start + len(chunk)
+    position = visible_start
+
+    def append_segment(start, end, foreground=None):
+        escaped = html.escape(chunk[start - visible_start : end - visible_start])
+        style = _style_for_state(state, foreground)
+        output.append(f'<span style="{style}">{escaped}</span>' if style else escaped)
+
+    for start, end, color in highlights:
+        if end <= position:
+            continue
+        if start >= chunk_end:
+            break
+        if position < start:
+            append_segment(position, start)
+            position = start
+        highlighted_end = min(end, chunk_end)
+        append_segment(position, highlighted_end, color)
+        position = highlighted_end
+        if position >= chunk_end:
+            break
+
+    if position < chunk_end:
+        append_segment(position, chunk_end)
+    return chunk_end
+
+
+def ansi_to_html(text, highlights=()):
     state = {"bold": False, "underline": False, "fg": None, "bg": None}
     output = []
     last = 0
+    visible_offset = 0
 
     for match in ANSI_PATTERN.finditer(text):
         if match.start() > last:
-            chunk = html.escape(text[last:match.start()])
-            style = _style_for_state(state)
-            if style:
-                output.append(f'<span style="{style}">{chunk}</span>')
-            else:
-                output.append(chunk)
+            visible_offset = _append_html_chunk(
+                output, text[last : match.start()], state, visible_offset, highlights
+            )
 
         code_text = match.group(1)
         if code_text == "":
@@ -187,12 +236,7 @@ def ansi_to_html(text):
         last = match.end()
 
     if last < len(text):
-        chunk = html.escape(text[last:])
-        style = _style_for_state(state)
-        if style:
-            output.append(f'<span style="{style}">{chunk}</span>')
-        else:
-            output.append(chunk)
+        _append_html_chunk(output, text[last:], state, visible_offset, highlights)
 
     return "".join(output)
 
@@ -561,9 +605,9 @@ class LogTab(QtWidgets.QWidget):
         if not force and render_key == self.last_rendered_key:
             return
 
-        html_text = ansi_to_html(joined_text)
+        html_text = ansi_to_html(joined_text, severity_ranges(joined_text))
         wrapped = (
-            "<div style=\"font-family: monospace; white-space: pre;\">"
+            '<div style="font-family: monospace; white-space: pre; color: #e6e6e6;">'
             f"{html_text}"
             "</div>"
         )
@@ -585,6 +629,62 @@ class UniversalLogClient(QtWidgets.QMainWindow):
         self.log_root = log_root
         self.setWindowTitle(f"Asgard log viewer: {self.log_root}")
         self.resize(1000, 700)
+        self.setStyleSheet(
+            """
+            QWidget {
+                background-color: #1e1f22;
+                color: #e6e6e6;
+            }
+            QTabWidget::pane {
+                border: 1px solid #4a4f57;
+                background-color: #1e1f22;
+            }
+            QTabBar::tab {
+                background-color: #2d3138;
+                border: 1px solid #4a4f57;
+                padding: 6px 10px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3a3f47;
+                border-bottom-color: #3a3f47;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #383d45;
+            }
+            QPushButton {
+                background-color: #2d3138;
+                border: 1px solid #4a4f57;
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: #383d45;
+            }
+            QPushButton:pressed {
+                background-color: #24282e;
+            }
+            QLineEdit, QComboBox, QTextEdit {
+                background-color: #272a30;
+                color: #e6e6e6;
+                border: 1px solid #4a4f57;
+                border-radius: 4px;
+                padding: 4px;
+                selection-background-color: #3f6db3;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #272a30;
+                color: #e6e6e6;
+                selection-background-color: #3f6db3;
+            }
+            QScrollBar {
+                background-color: #272a30;
+            }
+            QScrollBar::handle {
+                background-color: #4a4f57;
+                border-radius: 4px;
+            }
+            """
+        )
 
         self.tabs = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tabs)
