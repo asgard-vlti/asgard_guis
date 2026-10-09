@@ -1,6 +1,15 @@
 # ****************************************************************************
 # E.S.O. - VLT project
 #
+# Configures the dropdown menus on the wvguws desktop. This copy lives in
+# asgard_guis so it is tracked in Git; keep it in sync with the active copy
+# at .pecs/misc-all.wmrc on wvguws.
+#
+# From wvguws, sync the active copy to wag:
+#   rsync -e ssh -artz .pecs/misc-all.wmrc asg@wag:/vltuser/asg/pecs-wmrc/misc-all.wmrc
+# From wvguws, sync changes from wag back to the active copy:
+#   rsync -e ssh -artz asg@wag:/vltuser/asg/pecs-wmrc/misc-all.wmrc .pecs/misc-all.wmrc
+#
 # who       when        what
 # --------  ----------  ----------------------------------------------
 # rschmutz  2026-02-08  ER-185810: SCUBA entry updated
@@ -74,6 +83,7 @@ Menu HdlrBaldrPanels
     "Mask Alignment" f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/baldr-pupil-mask-alignment 1>&- 2>&- &\""
     "Fringe Monitor"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/fringe-monitor  1>&- 2>&- &\""
     "DM Gui"             f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir  /home/asg/.conda/envs/asgard/bin/lab-MDM-control 1>&- 2>&- &\""
+    "DMview"             f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/dmview -1 1>&- 2>&- &\""
     "Mimir Logs and Restarts"  f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY ssh -XC mimir /home/asg/.conda/envs/asgard/bin/logs-client  1>&- 2>&- &\""
 }
 
