@@ -41,19 +41,19 @@ class BdsStatusTests(unittest.TestCase):
                 task = mds_task(readings(position + 0.09))
                 bds = next(entry for entry in task["entries"] if entry["label"] == "BDS")
                 self.assertEqual(bds["value"], label)
+                self.assertEqual(len(bds["tooltip"].splitlines()), 4)
                 self.assertFalse(task["has_red"])
 
-    def test_mixed_beams_show_each_reading_and_red_border(self):
+    def test_mixed_beams_show_readings_in_tooltip_and_red_border(self):
         raw = readings(133.07)
         raw["BDS3"] = "63.07"
         task = mds_task(raw)
         self.assertTrue(task["has_red"])
-        self.assertEqual(
-            [entry["label"] for entry in task["entries"][-5:]],
-            ["BDS", "BDS1", "BDS2", "BDS3", "BDS4"],
-        )
-        self.assertIn("mixed", task["entries"][-5]["value"])
-        self.assertIn("BIF_YJ", task["entries"][-2]["value"])
+        self.assertEqual([entry["label"] for entry in task["entries"]], [
+            "process", "zmq", "SDLA", "BDS"
+        ])
+        self.assertIn("mixed", task["entries"][-1]["value"])
+        self.assertIn("BDS3: BIF_YJ", task["entries"][-1]["tooltip"])
 
     def test_align_and_empty_are_named_but_red(self):
         align = readings(133.07)
@@ -66,11 +66,11 @@ class BdsStatusTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 task = mds_task(raw)
                 self.assertTrue(task["has_red"])
-                self.assertEqual(task["entries"][-5]["value"], expected)
+                self.assertEqual(task["entries"][-1]["value"], expected)
 
     def test_unnamed_invalid_and_missing_readings_are_red(self):
         unnamed = mds_task(readings(20.0))
-        self.assertEqual(unnamed["entries"][-5]["value"], "unnamed")
+        self.assertEqual(unnamed["entries"][-1]["value"], "unnamed")
         for value, expected in (
             ("20.0", "unnamed"),
             ("nan", "unknown"),
@@ -82,7 +82,7 @@ class BdsStatusTests(unittest.TestCase):
                 raw["BDS4"] = value
                 task = mds_task(raw)
                 self.assertTrue(task["has_red"])
-                self.assertIn(expected, task["entries"][-1]["value"])
+                self.assertIn(expected, task["entries"][-1]["tooltip"])
 
     def test_sdla_yellow_and_process_red_are_preserved(self):
         task = mds_task(readings(133.07, sdla="0.0"))
@@ -149,11 +149,15 @@ class BdsStatusTests(unittest.TestCase):
         window._render(watchdog_status(), update_last_time=True)
         box = window._boxes["MDS"]
         self.assertIn("BIF H", box.details.text())
+        self.assertIn("BDS1: BIF_H", box.toolTip())
         self.assertIn("#4f5b73", box.styleSheet())
+        line_count = box.details.text().count("<br/>")
 
         window.mds_client.readings["BDS2"] = "63.07"
         window._render(watchdog_status(), update_last_time=False)
-        self.assertIn("BDS2", box.details.text())
+        self.assertNotIn("BDS2", box.details.text())
+        self.assertIn("BDS2: BIF_YJ", box.toolTip())
+        self.assertEqual(box.details.text().count("<br/>"), line_count)
         self.assertIn("#ff7b7b", box.styleSheet())
 
         window.mds_client.readings = readings(63.07, sdla="0.0")

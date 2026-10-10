@@ -426,7 +426,7 @@ class StatusFormatter:
     def _build_bds_entries(cls, readings: Any) -> list[dict[str, Any]]:
         names: list[str | None] = []
         valid_positions: list[bool] = []
-        details = []
+        details: list[str] = []
         for beam, axis in enumerate(cls.BDS_BEAMS):
             raw = readings.get(axis) if isinstance(readings, dict) else None
             try:
@@ -462,23 +462,29 @@ class StatusFormatter:
             else:
                 detail = f"unknown ({raw})" if raw else "unknown (no reply)"
             names.append(name)
-            details.append(
-                {"label": axis, "value": detail, "color": "red", "indent": 2}
-            )
+            details.append(f"{axis}: {detail}")
 
         if len(set(names)) == 1 and names[0] in ("BIF_H", "BIF_YJ"):
             display = "BIF H" if names[0] == "BIF_H" else "BIF Y/J"
-            return [{"label": "BDS", "value": display, "color": "default", "indent": 1}]
-
-        if len(set(names)) == 1 and names[0] is not None:
-            summary = names[0]
+            color = "default"
+        elif len(set(names)) == 1 and names[0] is not None:
+            display = names[0]
+            color = "red"
         elif all(name is None for name in names):
-            summary = "unnamed" if all(valid_positions) else "unknown"
+            display = "unnamed" if all(valid_positions) else "unknown"
+            color = "red"
         else:
-            summary = "mixed / unknown"
+            display = "mixed / unknown"
+            color = "red"
+
         return [
-            {"label": "BDS", "value": summary, "color": "red", "indent": 1},
-            *details,
+            {
+                "label": "BDS",
+                "value": display,
+                "color": color,
+                "indent": 1,
+                "tooltip": "\n".join(details),
+            }
         ]
 
     def build_render_state(
@@ -914,9 +920,12 @@ if QtWidgets is not None:
             saving_status: dict[str, Any] | None = None,
         ) -> None:
             html_lines: list[str] = []
+            tooltips: list[str] = []
             current_cnt: int | None = None
 
             for entry in task_block["entries"]:
+                if entry.get("tooltip"):
+                    tooltips.append(str(entry["tooltip"]))
                 indent_level = max(int(entry["indent"]) - 1, 0)
                 indent = "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
@@ -943,6 +952,11 @@ if QtWidgets is not None:
                     )
 
             self.details.setText("<br/>".join(html_lines))
+            tooltip_text = "\n".join(tooltips)
+            tooltip = f"<pre>{html.escape(tooltip_text)}</pre>" if tooltip_text else ""
+            self.setToolTip(tooltip)
+            self.title.setToolTip(tooltip)
+            self.details.setToolTip(tooltip)
             if saving_status is not None:
                 self.saving_label.setText(saving_status["text"])
                 self.saving_label.setToolTip(saving_status["tooltip"])
