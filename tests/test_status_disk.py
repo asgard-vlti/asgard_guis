@@ -337,6 +337,7 @@ class DiskStatusRenderTests(unittest.TestCase):
         window._render(watchdog, update_last_time=False, evaluate_progress=False)
         self.assertEqual(heim.saving_label.text(), "disk: ?/2 streams saved")
         self.assertIn("FT: saved", heim.saving_label.toolTip())
+        self.assertIn("ft_settings missing from disk status reply", heim.saving_label.toolTip())
         self.assertIn("ft_settings: unknown", heim.saving_label.toolTip())
         payload["tt_settings"]["state"] = "green"
         window._render(watchdog, update_last_time=False, evaluate_progress=False)

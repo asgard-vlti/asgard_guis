@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     QtCore = cast(Any, None)
     QtWidgets = cast(Any, None)
 
-# TODO: add BDS and SSF check and make into a nicer GUI that shows the layout of the instr
+# TODO: add SSF check and make into a nicer GUI that shows the layout of the instr
 
 class StatusFormatter:
     GREEN = "\033[32m"
@@ -63,6 +63,10 @@ class StatusFormatter:
         "hei_k1",
         "hei_k2",
     )
+    BDS_BEAMS = tuple(f"BDS{beam}" for beam in range(1, 5))
+    BDS_ALIGN_POSITIONS = (33.5, 35.0, 32.0, 32.25)
+    BDS_TOLERANCE_MM = 0.1
+    BDS_REL_TOLERANCE = 1e-5
 
     def __init__(self) -> None:
         self.last_wd_time: datetime.datetime | None = None
@@ -381,6 +385,13 @@ class StatusFormatter:
             status = str(task_status.get("status", "unknown"))
             add_entry("status", status, self._state_color(status), indent=1)
 
+        if task_name == "MDS":
+            decoded_status = self._decode_status(task_status.get("status"))
+            bds_readings = (
+                decoded_status.get("BDS") if isinstance(decoded_status, dict) else None
+            )
+            entries.extend(self._build_bds_entries(bds_readings))
+
         has_red = any(entry["color"] == "red" for entry in entries)
         has_yellow = (
             task_name == "MDS"
@@ -410,6 +421,65 @@ class StatusFormatter:
     @staticmethod
     def _is_sdla_error(value: Any) -> bool:
         return str(value) == "Error (Standby?)"
+
+    @classmethod
+    def _build_bds_entries(cls, readings: Any) -> list[dict[str, Any]]:
+        names: list[str | None] = []
+        valid_positions: list[bool] = []
+        details = []
+        for beam, axis in enumerate(cls.BDS_BEAMS):
+            raw = readings.get(axis) if isinstance(readings, dict) else None
+            try:
+                position = float(raw) if raw is not None else float("nan")
+            except (TypeError, ValueError):
+                position = float("nan")
+
+            name = None
+            is_valid_position = math.isfinite(position)
+            valid_positions.append(is_valid_position)
+            if is_valid_position:
+                positions = {
+                    "BIF_H": 133.07,
+                    "BIF_YJ": 63.07,
+                    "align": cls.BDS_ALIGN_POSITIONS[beam],
+                    "empty": 0.0,
+                }
+                name = next(
+                    (
+                        label
+                        for label, target in positions.items()
+                        if abs(position - target)
+                        <= cls.BDS_TOLERANCE_MM
+                        + cls.BDS_REL_TOLERANCE * abs(target)
+                    ),
+                    None,
+                )
+                detail = (
+                    f"{name} ({position:.2f} mm)"
+                    if name is not None
+                    else f"unnamed ({position:.2f} mm)"
+                )
+            else:
+                detail = f"unknown ({raw})" if raw else "unknown (no reply)"
+            names.append(name)
+            details.append(
+                {"label": axis, "value": detail, "color": "red", "indent": 2}
+            )
+
+        if len(set(names)) == 1 and names[0] in ("BIF_H", "BIF_YJ"):
+            display = "BIF H" if names[0] == "BIF_H" else "BIF Y/J"
+            return [{"label": "BDS", "value": display, "color": "default", "indent": 1}]
+
+        if len(set(names)) == 1 and names[0] is not None:
+            summary = names[0]
+        elif all(name is None for name in names):
+            summary = "unnamed" if all(valid_positions) else "unknown"
+        else:
+            summary = "mixed / unknown"
+        return [
+            {"label": "BDS", "value": summary, "color": "red", "indent": 1},
+            *details,
+        ]
 
     def build_render_state(
         self,
@@ -441,37 +511,121 @@ class StatusFormatter:
         }
 
 
-def add_sdla_to_mds_status(wd_status: Any, mds_endpoint: str) -> Any:
+def add_mds_to_status(wd_status: Any, readings: dict[str, str | None]) -> Any:
     if not isinstance(wd_status, dict) or not isinstance(wd_status.get("MDS"), dict):
         return wd_status
 
-    context = zmq.Context.instance()
-    socket = context.socket(zmq.REQ)
-    socket.setsockopt(zmq.LINGER, 0)
-    socket.setsockopt(zmq.RCVTIMEO, 1000)
-    socket.setsockopt(zmq.SNDTIMEO, 1000)
-    socket.connect(mds_endpoint)
-    try:
-        socket.send_string("read SDLA")
-        sdla_response = socket.recv_string().strip()
-    except zmq.ZMQError as error:
-        logging.warning("Could not read SDLA from MDS: %s", error)
-        return wd_status
-    finally:
-        socket.close()
-
-    mds_status = wd_status["MDS"]
+    mds_status = wd_status["MDS"].copy()
     decoded_status = StatusFormatter._decode_status(mds_status.get("status"))
     if not isinstance(decoded_status, dict):
         decoded_status = {"status": decoded_status}
     try:
-        sdla_value = float(sdla_response)
+        sdla_value = float(readings.get("SDLA"))
         sdla = f"{sdla_value:.1f}" if math.isfinite(sdla_value) else "Error (Standby?)"
-    except ValueError:
+    except (TypeError, ValueError):
         sdla = "Error (Standby?)"
     decoded_status["SDLA"] = sdla
+    decoded_status["BDS"] = {
+        axis: readings.get(axis) for axis in StatusFormatter.BDS_BEAMS
+    }
     mds_status["status"] = json.dumps(decoded_status)
-    return wd_status
+    return {**wd_status, "MDS": mds_status}
+
+
+class MdsStatusClient:
+    AXES = ("SDLA", *StatusFormatter.BDS_BEAMS)
+    TIMEOUT_SECONDS = 1.0
+
+    def __init__(self, endpoint: str, interval_seconds: float = 5.0) -> None:
+        self.context = zmq.Context.instance()
+        self.endpoint = endpoint
+        self.interval_seconds = interval_seconds
+        self.poller = zmq.Poller()
+        self.socket = self._new_socket()
+        self.poller.register(self.socket, zmq.POLLIN)
+        self.readings: dict[str, str | None] = dict.fromkeys(self.AXES)
+        self._cycle: dict[str, str | None] | None = None
+        self._axis_index = 0
+        self._awaiting_reply = False
+        self._request_at: float | None = None
+        self._cycle_at: float | None = None
+        self._completed_at: float | None = None
+
+    def _new_socket(self) -> zmq.Socket[Any]:
+        socket = self.context.socket(zmq.REQ)
+        socket.setsockopt(zmq.LINGER, 0)
+        socket.connect(self.endpoint)
+        return socket
+
+    def _reconnect(self) -> None:
+        self.poller.unregister(self.socket)
+        self.socket.close(linger=0)
+        self.socket = self._new_socket()
+        self.poller.register(self.socket, zmq.POLLIN)
+        self._awaiting_reply = False
+
+    def _finish_axis(self, value: str | None, now: float) -> None:
+        assert self._cycle is not None
+        self._cycle[self.AXES[self._axis_index]] = value
+        self._axis_index += 1
+        self._awaiting_reply = False
+        if self._axis_index == len(self.AXES):
+            self.readings = self._cycle
+            self._cycle = None
+            self._completed_at = now
+
+    def tick(self) -> None:
+        now = time.monotonic()
+        if self._cycle is None:
+            if self._cycle_at is not None and now - self._cycle_at < self.interval_seconds:
+                return
+            self._cycle = dict.fromkeys(self.AXES)
+            self._cycle_at = now
+            self._axis_index = 0
+
+        if self._awaiting_reply:
+            events = dict(self.poller.poll(timeout=0))
+            if events.get(self.socket, 0) & zmq.POLLIN:
+                try:
+                    value = self.socket.recv_string(flags=zmq.NOBLOCK).strip()
+                except zmq.ZMQError:
+                    value = None
+                    self._reconnect()
+                self._finish_axis(value, now)
+            elif (
+                self._request_at is not None
+                and now - self._request_at >= self.TIMEOUT_SECONDS
+            ):
+                logging.warning("MDS read %s timed out", self.AXES[self._axis_index])
+                self._reconnect()
+                self._finish_axis(None, now)
+
+        if self._cycle is not None and not self._awaiting_reply:
+            try:
+                self.socket.send_string(
+                    f"read {self.AXES[self._axis_index]}", flags=zmq.NOBLOCK
+                )
+                self._awaiting_reply = True
+                self._request_at = now
+            except zmq.ZMQError as error:
+                logging.warning(
+                    "Could not request %s from MDS: %s",
+                    self.AXES[self._axis_index],
+                    error,
+                )
+                self._reconnect()
+                self._finish_axis(None, now)
+
+    def result(self) -> dict[str, str | None]:
+        if self._completed_at is None or time.monotonic() - self._completed_at >= max(
+            10.0, 2 * self.interval_seconds
+        ):
+            return dict.fromkeys(self.AXES)
+        return self.readings.copy()
+
+    def close(self) -> None:
+        self.poller.unregister(self.socket)
+        self.socket.close(linger=0)
 
 
 class DiskStatusClient:
@@ -613,6 +767,7 @@ class TextStatusInfo(StatusFormatter):
 
         socket = _new_socket()
         disk_client = DiskStatusClient(connect_endpoint)
+        mds_client = MdsStatusClient(mds_endpoint, request_interval_s)
         poller = zmq.Poller()
         poller.register(socket, zmq.POLLIN)
         last_wd_status: Any = {}
@@ -623,6 +778,7 @@ class TextStatusInfo(StatusFormatter):
 
         while True:
             disk_client.tick()
+            mds_client.tick()
             disk_status, disk_error = disk_client.result()
             now = datetime.datetime.now(datetime.timezone.utc)
 
@@ -662,12 +818,12 @@ class TextStatusInfo(StatusFormatter):
 
                 valid_status = isinstance(wd_status, dict)
                 if valid_status:
-                    last_wd_status = add_sdla_to_mds_status(wd_status, mds_endpoint)
+                    last_wd_status = wd_status
                 else:
                     logging.warning("Invalid watchdog status reply")
                 self._clear_screen()
                 self._print_watchdog_status(
-                    last_wd_status,
+                    add_mds_to_status(last_wd_status, mds_client.result()),
                     update_last_time=valid_status,
                     disk_status=disk_status,
                     disk_error=disk_error,
@@ -677,7 +833,7 @@ class TextStatusInfo(StatusFormatter):
             if last_wd_status is not None:
                 self._clear_screen()
                 self._print_watchdog_status(
-                    last_wd_status,
+                    add_mds_to_status(last_wd_status, mds_client.result()),
                     update_last_time=False,
                     disk_status=disk_status,
                     disk_error=disk_error,
@@ -877,6 +1033,7 @@ if QtWidgets is not None:
         def _setup_socket(self) -> None:
             self.context = zmq.Context.instance()
             self.disk_client = DiskStatusClient(self.connect_endpoint)
+            self.mds_client = MdsStatusClient(self.mds_endpoint, self.request_interval_s)
 
             def _new_socket() -> zmq.Socket[Any]:
                 req_socket = self.context.socket(zmq.REQ)
@@ -967,9 +1124,12 @@ if QtWidgets is not None:
                         lines.append(line)
                 else:
                     unknown = True
-                    reason = disk_error or (
-                        "no reply" if group is None else "invalid disk status"
-                    )
+                    if disk_error:
+                        reason = disk_error
+                    elif group is None:
+                        reason = f"{source} missing from disk status reply"
+                    else:
+                        reason = "invalid disk status"
                     lines.append(f"Cannot verify saving: {reason}")
                     lines.extend(f"{name}: unknown" for name in expected_names)
 
@@ -1055,7 +1215,7 @@ if QtWidgets is not None:
         ) -> None:
             disk_status, disk_error = self.disk_client.result()
             state = self.formatter.build_render_state(
-                wd_status,
+                add_mds_to_status(wd_status, self.mds_client.result()),
                 update_last_time=update_last_time,
                 disk_status=disk_status,
                 disk_error=disk_error,
@@ -1132,6 +1292,7 @@ if QtWidgets is not None:
 
         def _poll_once(self) -> None:
             self.disk_client.tick()
+            self.mds_client.tick()
             now = datetime.datetime.now(datetime.timezone.utc)
             if (
                 self._awaiting_reply
@@ -1172,9 +1333,7 @@ if QtWidgets is not None:
 
                 valid_status = isinstance(wd_status, dict)
                 if valid_status:
-                    self.last_wd_status = add_sdla_to_mds_status(
-                        wd_status, self.mds_endpoint
-                    )
+                    self.last_wd_status = wd_status
                 else:
                     logging.warning("Invalid watchdog status reply")
                 self._render(
@@ -1202,6 +1361,7 @@ if QtWidgets is not None:
         def closeEvent(self, event: Any) -> None:
             self.timer.stop()
             self.disk_client.close()
+            self.mds_client.close()
             self.poller.unregister(self.socket)
             self.socket.close()
             super().closeEvent(event)
@@ -1227,7 +1387,7 @@ def main() -> None:
     parser.add_argument(
         "--mds-endpoint",
         default="tcp://mimir:5555",
-        help="MDS endpoint used to query the SDLA position.",
+        help="MDS endpoint used to query the SDLA and BDS positions.",
     )
     parser.add_argument(
         "--gui",
