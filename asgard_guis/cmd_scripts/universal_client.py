@@ -16,6 +16,27 @@ sockets = [
 ]
 
 
+def nonsense_camera_reply(cmd, reply):
+    command = cmd.split(maxsplit=1)[0]
+    if command not in {"get_gain", "get_fps"}:
+        return False
+
+    try:
+        value = json.loads(reply)
+    except json.JSONDecodeError:
+        value = reply
+    if isinstance(value, bool):
+        return False
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return False
+
+    if command.endswith("gain"):
+        return value > 100
+    return value < 10
+
+
 def apply_dark_theme(app):
     app.setStyle("Fusion")
     palette = app.palette()
@@ -302,7 +323,7 @@ class ServerTab(QtWidgets.QWidget):
             error_occurred = True
         return reply, error_occurred
 
-    def append_response(self, reply):
+    def append_response(self, reply, cmd=None):
         try:
             resp = json.loads(reply)
             if isinstance(resp, dict):
@@ -312,6 +333,14 @@ class ServerTab(QtWidgets.QWidget):
                 self.append_colored(str(resp).replace("\\n", "\n"))
         except json.JSONDecodeError:
             self.append_colored(reply.replace("\\n", "\n"))
+        if (
+            self.server_name == "cam_server"
+            and cmd is not None
+            and nonsense_camera_reply(cmd, reply)
+        ):
+            self.text_area.append(
+                "this is a nonsense value, power-cycle-camera likely needed"
+            )
 
     def send_command(self):
         cmd = self.input_line.text().strip()
@@ -335,7 +364,7 @@ class ServerTab(QtWidgets.QWidget):
         reply, error_occurred = self.send_and_receive_with_reconnect(
             self.active_socket_index, cmd
         )
-        self.append_response(reply)
+        self.append_response(reply, cmd)
         if not error_occurred:
             self.input_line.clear()
         # Scroll to the bottom after new output
@@ -363,7 +392,7 @@ class ServerTab(QtWidgets.QWidget):
         for idx in range(len(self.zmq_sockets)):
             reply, error_occurred = self.send_and_receive_with_reconnect(idx, cmd)
             self.text_area.append(f"Beam {idx + 1} reply:")
-            self.append_response(reply)
+            self.append_response(reply, cmd)
             if error_occurred:
                 any_error = True
 
