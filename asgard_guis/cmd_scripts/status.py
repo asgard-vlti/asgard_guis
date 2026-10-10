@@ -692,22 +692,15 @@ if QtWidgets is not None:
             self._process_name = process_name
             self._opacity_effect: Any = None
             self._previous_cnt: int | None = None
+            self._watchdog_yellow = False
             self._setup_ui()
 
         def _setup_ui(self) -> None:
             self.setObjectName("processBox")
             self.setMinimumHeight(75)
-            is_tt = self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]
-            is_cred1 = self._process_name == StatusFormatter.DISK_LABELS["cred1"]
-            if self._process_name in StatusFormatter.DISK_LABELS.values():
-                self.setFixedHeight(114)
-
             layout = QtWidgets.QVBoxLayout(self)
             layout.setContentsMargins(10, 8, 10, 8)
             layout.setSpacing(6)
-            if self._process_name in StatusFormatter.DISK_LABELS.values():
-                layout.setContentsMargins(10, 4, 10, 4)
-                layout.setSpacing(5)
 
             self.title = QtWidgets.QLabel(self._process_name)
             self.title.setStyleSheet("font-weight: 700; color: #f2f4f8;")
@@ -715,42 +708,22 @@ if QtWidgets is not None:
             self.details.setStyleSheet("color: #d4d8e2;")
             self.details.setTextFormat(QtCore.Qt.RichText)
             self.details.setWordWrap(True)
+            self.details.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
             self.details.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
 
             layout.addWidget(self.title)
-            if is_tt or is_cred1:
-                self.details.setTextFormat(QtCore.Qt.PlainText)
-                self.title.setSizePolicy(
-                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
-                )
-                self.details.setSizePolicy(
-                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
-                )
-                layout.addWidget(self.details)
-                self.stream_grid = QtWidgets.QGridLayout()
-                self.stream_grid.setHorizontalSpacing(8)
-                self.stream_grid.setVerticalSpacing(0)
-                self.stream_labels = []
-                row_count = 3 if is_cred1 else 2
-                for index in range(6 if is_cred1 else 4):
-                    stream = QtWidgets.QLabel()
-                    stream.setSizePolicy(
-                        QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
-                    )
-                    self.stream_grid.addWidget(
-                        stream, index % row_count, index // row_count
-                    )
-                    self.stream_labels.append(stream)
-                if is_tt:
-                    self.beam_labels = self.stream_labels
-                layout.addLayout(self.stream_grid)
-                layout.addStretch(1)
-            else:
-                layout.addWidget(self.details, 1)
+            layout.addWidget(self.details, 1)
+            self.saving_label = QtWidgets.QLabel()
+            self.saving_label.setTextFormat(QtCore.Qt.PlainText)
+            self.saving_label.setSizePolicy(
+                QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+            )
+            self.saving_label.hide()
+            layout.addWidget(self.saving_label)
 
             self._apply_border(red_border=False)
-            self._opacity_effect = QtWidgets.QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(self._opacity_effect)
+            self._opacity_effect = QtWidgets.QGraphicsOpacityEffect(self.details)
+            self.details.setGraphicsEffect(self._opacity_effect)
             self.set_dimmed(False)
 
         def _apply_border(
@@ -779,16 +752,17 @@ if QtWidgets is not None:
             self._opacity_effect.setOpacity(0.4 if is_dimmed else 1.0)
 
         def update_from_task(
-            self, task_block: dict[str, Any], evaluate_progress: bool = True
+            self,
+            task_block: dict[str, Any],
+            evaluate_progress: bool = True,
+            saving_status: dict[str, Any] | None = None,
         ) -> None:
             html_lines: list[str] = []
             current_cnt: int | None = None
-            is_tt = self._process_name == StatusFormatter.DISK_LABELS["tt_performance"]
-            is_cred1 = self._process_name == StatusFormatter.DISK_LABELS["cred1"]
 
             for entry in task_block["entries"]:
                 indent_level = max(int(entry["indent"]) - 1, 0)
-                indent = "" if is_tt or is_cred1 else "&nbsp;" * (indent_level * 2)
+                indent = "&nbsp;" * (indent_level * 2)
                 value_color = StatusFormatter.STATE_COLORS.get(
                     entry["color"], "#d4d8e2"
                 )
@@ -812,22 +786,17 @@ if QtWidgets is not None:
                         f"{indent}<span style='color:{value_color}'>{escaped_value}</span>"
                     )
 
-            if (is_tt and len(html_lines) == 5) or (is_cred1 and len(html_lines) == 7):
-                summary = task_block["entries"][0]
-                self.details.setText(f"{summary['label']}: {summary['value']}")
-                self.details.setStyleSheet(
-                    f"color: {StatusFormatter.STATE_COLORS[summary['color']]};"
+            self.details.setText("<br/>".join(html_lines))
+            if saving_status is not None:
+                self.saving_label.setText(saving_status["text"])
+                self.saving_label.setToolTip(saving_status["tooltip"])
+                color = "yellow" if saving_status["warning"] else "green"
+                self.saving_label.setStyleSheet(
+                    f"color: {StatusFormatter.STATE_COLORS[color]};"
                 )
-                for stream, entry in zip(self.stream_labels, task_block["entries"][1:]):
-                    stream.setText(
-                        f"{entry['label']}: {entry.get('short_value', entry['value'])}"
-                    )
-                    stream.setStyleSheet(
-                        f"color: {StatusFormatter.STATE_COLORS[entry['color']]};"
-                    )
-                    stream.setToolTip(f"{entry['label']}: {entry['value']}")
+                self.saving_label.show()
             else:
-                self.details.setText("<br/>".join(html_lines))
+                self.saving_label.hide()
 
             has_red = bool(task_block.get("has_red"))
             if evaluate_progress:
@@ -838,24 +807,31 @@ if QtWidgets is not None:
                     and self._previous_cnt is not None
                     and current_cnt == self._previous_cnt
                 )
-                self._apply_border(
-                    red_border=has_red,
-                    yellow_border=(
-                        bool(task_block.get("has_yellow")) or cnt_unchanged
-                    )
-                    and not has_red,
-                )
+                self._watchdog_yellow = bool(task_block.get("has_yellow")) or cnt_unchanged
                 # Update previous cnt for next comparison
                 if current_cnt is not None:
                     self._previous_cnt = current_cnt
-            elif has_red:
-                # Still allow red override on redraws of cached data.
-                self._apply_border(red_border=True)
+            self._apply_border(
+                red_border=has_red,
+                yellow_border=self._watchdog_yellow
+                or bool(saving_status and saving_status["warning"]),
+            )
 
     class WatchdogStatusWindow(QtWidgets.QWidget):
         GRID_COLUMNS = 12
         REGULAR_SPAN = 3
-        SAVING_SPAN = 4
+        SAVING_TARGETS = {
+            "CRED1": ("cred1",),
+            "Heim Telem": ("ft_performance", "ft_settings"),
+            "Baldr TT Telem": ("tt_performance", "tt_settings"),
+        }
+        SAVING_STREAMS = {
+            "cred1": StatusFormatter.CRED1_STREAMS,
+            "ft_performance": ("FT performance",),
+            "ft_settings": ("ft_settings",),
+            "tt_performance": StatusFormatter.TT_BEAMS,
+            "tt_settings": StatusFormatter.TT_BEAMS,
+        }
 
         def __init__(
             self,
@@ -933,20 +909,103 @@ if QtWidgets is not None:
                 return int(suffix), name
             return sys.maxsize, name
 
+        @classmethod
+        def _saving_status(
+            cls,
+            sources: tuple[str, ...],
+            disk_status: Any,
+            disk_error: str | None,
+        ) -> dict[str, Any]:
+            total = sum(len(cls.SAVING_STREAMS[source]) for source in sources)
+            fresh_total = 0
+            unknown = False
+            lines = []
+
+            for source in sources:
+                expected_names = cls.SAVING_STREAMS[source]
+                group = disk_status.get(source) if isinstance(disk_status, dict) else None
+                checks = group.get("checks") if isinstance(group, dict) else None
+                valid = (
+                    disk_error is None
+                    and isinstance(checks, dict)
+                    and (
+                        len(checks) == 1
+                        if source == "ft_performance"
+                        else set(checks) == set(expected_names)
+                    )
+                    and all(
+                        StatusFormatter._valid_disk_check(check)
+                        for check in checks.values()
+                    )
+                )
+                if valid:
+                    fresh = sum(check["state"] == "fresh" for check in checks.values())
+                    expected_state = (
+                        "green" if fresh == len(checks) else "yellow" if fresh else "red"
+                    )
+                    valid = group.get("state") == expected_state
+
+                if len(sources) > 1:
+                    lines.append(
+                        "Telemetry:" if source.endswith("performance") else "Settings:"
+                    )
+                if valid:
+                    fresh_total += fresh
+                    names = tuple(checks) if source == "ft_performance" else expected_names
+                    for name in names:
+                        check = checks[name]
+                        line = f"{name}: {'saved' if check['state'] == 'fresh' else 'not saving'}"
+                        age = check.get("age_s")
+                        if isinstance(age, (int, float)) and math.isfinite(age):
+                            if age >= 0:
+                                line += f"; last write {age:.1f}s ago"
+                            else:
+                                line += f"; write timestamp {-age:.1f}s in future"
+                        detail = check.get("detail")
+                        if detail:
+                            line += f"; {detail}"
+                        lines.append(line)
+                else:
+                    unknown = True
+                    reason = disk_error or (
+                        "no reply" if group is None else "invalid disk status"
+                    )
+                    lines.append(f"Cannot verify saving: {reason}")
+                    lines.extend(f"{name}: unknown" for name in expected_names)
+
+            count = "?" if unknown else str(fresh_total)
+            warning = unknown or fresh_total != total
+
+            tooltip_text = "\n".join(lines)
+            return {
+                "text": f"disk: {count}/{total} streams saved",
+                "tooltip": f"<pre>{html.escape(tooltip_text)}</pre>",
+                "warning": warning,
+            }
+
         def _layout_positions(
             self, task_names: list[str]
         ) -> dict[str, tuple[int, int, int, int]]:
             btt_tasks = [name for name in task_names if name.upper().startswith("BTT")]
             bao_tasks = [name for name in task_names if name.upper().startswith("BAO")]
-            saving_tasks = [
-                name for name in StatusFormatter.DISK_LABELS.values() if name in task_names
-            ]
-            other_tasks = [
-                name
-                for name in task_names
+            standard_rows = (
+                (("CRED1", 4), ("DM", 3), ("MDS", 3), ("Eng gui", 2)),
+                (
+                    ("HDLR", 3),
+                    ("Heim Telem", 3),
+                    ("Baldr TT Telem", 3),
+                    ("back_end", 3),
+                ),
+            )
+            standard_names = {
+                name for row in standard_rows for name, _ in row
+            }
+            extra_tasks = [
+                name for name in task_names
                 if name not in btt_tasks
                 and name not in bao_tasks
-                and name not in saving_tasks
+                and name not in standard_names
+                and name not in StatusFormatter.DISK_LABELS.values()
             ]
 
             btt_tasks.sort(key=self._numeric_suffix)
@@ -967,20 +1026,19 @@ if QtWidgets is not None:
                 positions[name] = (row, col, 1, self.REGULAR_SPAN)
 
             bao_rows = math.ceil(len(bao_tasks) / regular_columns) if bao_tasks else 0
-            others_start_row = btt_rows + bao_rows
-            for idx, name in enumerate(other_tasks):
-                row = others_start_row + idx // regular_columns
+            standard_start_row = btt_rows + bao_rows
+            for row_offset, row_slots in enumerate(standard_rows):
+                col = 0
+                for name, span in row_slots:
+                    if name in task_names:
+                        positions[name] = (standard_start_row + row_offset, col, 1, span)
+                    col += span
+
+            extra_start_row = standard_start_row + len(standard_rows)
+            for idx, name in enumerate(extra_tasks):
+                row = extra_start_row + idx // regular_columns
                 col = (idx % regular_columns) * self.REGULAR_SPAN
                 positions[name] = (row, col, 1, self.REGULAR_SPAN)
-
-            saving_row = others_start_row + math.ceil(len(other_tasks) / regular_columns)
-            for idx, name in enumerate(saving_tasks):
-                positions[name] = (
-                    saving_row,
-                    idx * self.SAVING_SPAN,
-                    1,
-                    self.SAVING_SPAN,
-                )
 
             return positions
 
@@ -1017,7 +1075,35 @@ if QtWidgets is not None:
                 f"<span style='color:{header_color}'>{html.escape(header)}</span>"
             )
 
-            tasks = list(state["tasks"])
+            tasks = [
+                task for task in state["tasks"]
+                if task["task_name"] not in StatusFormatter.DISK_LABELS.values()
+            ]
+            saving_statuses = {
+                target: self._saving_status(
+                    sources,
+                    disk_status,
+                    disk_error,
+                )
+                for target, sources in self.SAVING_TARGETS.items()
+            }
+            existing_names = {task["task_name"] for task in tasks}
+            for target in saving_statuses:
+                if target not in existing_names:
+                    tasks.append(
+                        {
+                            "task_name": target,
+                            "entries": [
+                                {
+                                    "label": "status",
+                                    "value": "watchdog status unavailable",
+                                    "color": "default",
+                                    "indent": 1,
+                                }
+                            ],
+                            "has_red": False,
+                        }
+                    )
             task_names = [str(task["task_name"]) for task in tasks]
             positions = self._layout_positions(task_names)
 
@@ -1028,10 +1114,8 @@ if QtWidgets is not None:
                 box = self._get_or_create_box(task_name)
                 box.update_from_task(
                     task,
-                    evaluate_progress=(
-                        evaluate_progress
-                        or task_name in StatusFormatter.DISK_LABELS.values()
-                    ),
+                    evaluate_progress=evaluate_progress,
+                    saving_status=saving_statuses.get(task_name),
                 )
                 self.grid.removeWidget(box)
                 row, col, row_span, col_span = positions[task_name]
@@ -1043,10 +1127,8 @@ if QtWidgets is not None:
                     box.hide()
 
             is_stale = bool(state["is_stale"])
-            for name, box in self._boxes.items():
-                box.set_dimmed(
-                    is_stale and name not in StatusFormatter.DISK_LABELS.values()
-                )
+            for box in self._boxes.values():
+                box.set_dimmed(is_stale)
 
         def _poll_once(self) -> None:
             self.disk_client.tick()
