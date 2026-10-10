@@ -18,7 +18,7 @@ def main():
     try:
         saved = camera_mode_settings.save_snapshot_if_absent(cam_server_socket)
         camera_mode_settings.send_camera_command(cam_server_socket, "ndmr_mode 1")
-        camera_mode_settings.send_camera_command(cam_server_socket, "set_gain 1")
+        camera_mode_settings.send_camera_command(cam_server_socket, "set_gain 3")
     except (OSError, ValueError, RuntimeError, zmq.ZMQError) as exc:
         raise SystemExit(f"Lab Mode aborted before moving mechanisms: {exc}") from exc
 
@@ -26,7 +26,7 @@ def main():
         print("Previous camera gain, FPS, and NDMR mode saved")
     else:
         print("Keeping previous camera settings snapshot")
-    print("Camera set to GCDS mode and gain 1")
+    print("Camera set to GCDS mode and gain 3")
 
     msg = "off SBB"
     response = agu.send_and_get_response(mds_socket, msg)

@@ -74,7 +74,7 @@ class CameraModeTests(unittest.TestCase):
 
         self.assertEqual(
             self.camera_commands(),
-            ["get_gain", "get_fps", "status", "ndmr_mode 1", "set_gain 1", "make_dark"],
+            ["get_gain", "get_fps", "status", "ndmr_mode 1", "set_gain 3", "make_dark"],
         )
         self.assertEqual(
             json.loads(self.snapshot_path.read_text(encoding="utf-8")),
@@ -86,7 +86,7 @@ class CameraModeTests(unittest.TestCase):
         s_labmode.main()
 
         self.assertEqual(
-            self.camera_commands(), ["ndmr_mode 1", "set_gain 1", "make_dark"]
+            self.camera_commands(), ["ndmr_mode 1", "set_gain 3", "make_dark"]
         )
         self.assertEqual(camera_mode_settings.read_snapshot()["saved_at"], 10000)
 
