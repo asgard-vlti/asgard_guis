@@ -576,6 +576,7 @@ class LogTab(QtWidgets.QWidget):
     def refresh_log(self, force=False):
         # Keep the view anchored at the bottom only when user is already at the bottom.
         vbar = self.text_area.verticalScrollBar()
+        scroll_position = vbar.value()
         was_at_bottom = vbar.value() >= max(0, vbar.maximum() - 2)
 
         path = self.log_path()
@@ -614,9 +615,7 @@ class LogTab(QtWidgets.QWidget):
         self.text_area.setHtml(wrapped)
         self.last_rendered_key = render_key
 
-        if was_at_bottom:
-            vbar = self.text_area.verticalScrollBar()
-            vbar.setValue(vbar.maximum())
+        vbar.setValue(vbar.maximum() if was_at_bottom else scroll_position)
 
         if not self.initial_scroll_done:
             self.scroll_to_bottom()
