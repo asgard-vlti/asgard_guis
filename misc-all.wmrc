@@ -6,16 +6,9 @@
 # at .pecs/misc-all.wmrc on wvguws.
 #
 # From wag, pull the active copy from wvguws:
-#   rsync -e ssh -artz asg@wvguws:.pecs/misc-all.wmrc /vltuser/asg/pecs-wmrc/misc-all.wmrc
+#   rsync -e ssh -artz asg@wvguws:.pecs/misc-all.wmrc /vltuser/asg/asgard_guis/misc-all.wmrc
 # From wag, push changes back to the active copy on wvguws:
-#   rsync -e ssh -artz /vltuser/asg/pecs-wmrc/misc-all.wmrc asg@wvguws:.pecs/misc-all.wmrc
-#
-# who       when        what
-# --------  ----------  ----------------------------------------------
-# rschmutz  2026-02-08  ER-185810: SCUBA entry updated
-# rschmutz  2026-01-28  ER-185810: SCUBA menu entry added
-# rschmutz  2019-09-22  CCB-1400: mtinsDataXferGui added
-# gzins     2017-09-13  created
+#   rsync -e ssh -artz /vltuser/asg/asgard_guis/misc-all.wmrc  asg@wvguws:.pecs/misc-all.wmrc
 #
 
 Menu VltMenu1
