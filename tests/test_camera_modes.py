@@ -68,13 +68,21 @@ class CameraModeTests(unittest.TestCase):
     def camera_commands(self):
         return [command for name, command in self.commands if name == "cam_server"]
 
-    def test_lab_saves_settings_before_changing_gain(self):
+    def test_lab_saves_settings_before_setting_its_camera_configuration(self):
         with mock.patch.object(camera_mode_settings.time, "time", return_value=10000):
             s_labmode.main()
 
         self.assertEqual(
             self.camera_commands(),
-            ["get_gain", "get_fps", "status", "ndmr_mode 1", "set_gain 3", "make_dark"],
+            [
+                "get_gain",
+                "get_fps",
+                "status",
+                "ndmr_mode 1",
+                "set_fps 1000.0",
+                "set_gain 3",
+                "make_dark",
+            ],
         )
         self.assertEqual(
             json.loads(self.snapshot_path.read_text(encoding="utf-8")),
@@ -86,7 +94,8 @@ class CameraModeTests(unittest.TestCase):
         s_labmode.main()
 
         self.assertEqual(
-            self.camera_commands(), ["ndmr_mode 1", "set_gain 3", "make_dark"]
+            self.camera_commands(),
+            ["ndmr_mode 1", "set_fps 1000.0", "set_gain 3", "make_dark"],
         )
         self.assertEqual(camera_mode_settings.read_snapshot()["saved_at"], 10000)
 
