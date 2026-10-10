@@ -990,6 +990,14 @@ if QtWidgets is not None:
     class WatchdogStatusWindow(QtWidgets.QWidget):
         GRID_COLUMNS = 12
         REGULAR_SPAN = 3
+        TOOLTIP_STYLE = (
+            "QToolTip {"
+            "color: #f2f4f8;"
+            "background-color: #252d3b;"
+            "border: 1px solid #97a2ba;"
+            "padding: 6px;"
+            "}"
+        )
         SAVING_TARGETS = {
             "CRED1": ("cred1",),
             "Heim Telem": ("ft_performance", "ft_settings"),
@@ -1010,6 +1018,9 @@ if QtWidgets is not None:
             request_interval_s: float = 5.0,
         ) -> None:
             super().__init__()
+            app = QtWidgets.QApplication.instance()
+            if app is not None and self.TOOLTIP_STYLE not in app.styleSheet():
+                app.setStyleSheet(f"{app.styleSheet()}\n{self.TOOLTIP_STYLE}")
             self.connect_endpoint = connect_endpoint
             self.mds_endpoint = mds_endpoint
             self.request_interval_s = request_interval_s
