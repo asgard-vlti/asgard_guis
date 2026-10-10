@@ -578,6 +578,8 @@ class LogTab(QtWidgets.QWidget):
         vbar = self.text_area.verticalScrollBar()
         scroll_position = vbar.value()
         was_at_bottom = vbar.value() >= max(0, vbar.maximum() - 2)
+        hbar = self.text_area.horizontalScrollBar()
+        horizontal_position = hbar.value()
 
         path = self.log_path()
         filter_text = self.filter_input.text().strip()
@@ -616,6 +618,7 @@ class LogTab(QtWidgets.QWidget):
         self.last_rendered_key = render_key
 
         vbar.setValue(vbar.maximum() if was_at_bottom else scroll_position)
+        hbar.setValue(horizontal_position)
 
         if not self.initial_scroll_done:
             self.scroll_to_bottom()
