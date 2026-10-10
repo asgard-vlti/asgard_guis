@@ -13,3 +13,7 @@ git update-ref -d refs/heads/main
 git update-ref refs/heads/main refs/remotes/origin/main
 cd /vltuser/asg/asgard_guis
 git pull
+cd /vltuser/asg/archive_tools.git
+git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+git update-ref -d refs/heads/main
+git update-ref refs/heads/main refs/remotes/origin/main
