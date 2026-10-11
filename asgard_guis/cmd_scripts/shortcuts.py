@@ -833,7 +833,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		servo_text = HEIM_SERVO_MODES.get(servo_mode, f"Other ({servo_mode})" if servo_mode is not None else "Unknown")
 		offload_text = HEIM_OFFLOAD_MODES.get(offload_mode, f"Other ({offload_mode})" if offload_mode is not None else "Unknown")
 		if offload_mode == 0 and servo_mode == 4:
-			offload_text = "Nested (inactive: servo off)"
+			offload_text = "Nested (idle)"
+			self.offload_status_label.setToolTip("Nested offload is inactive while the servo is Off.")
+		else:
+			self.offload_status_label.setToolTip("")
 		self.servo_status_label.setText(servo_text + suffix)
 		self.offload_status_label.setText(offload_text + suffix)
 		self.delay_line_status_label.setText(f"Delay line: {settings.get('delay_line_type', 'Unknown')}{suffix}")

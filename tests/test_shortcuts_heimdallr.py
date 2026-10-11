@@ -299,6 +299,23 @@ class HeimdallrGuiTests(unittest.TestCase):
         self.assertFalse(any(button.isChecked() for button in self.window.servo_buttons.values()))
         self.assertFalse(any(button.isChecked() for button in self.window.offload_buttons.values()))
 
+    def test_nested_idle_status_does_not_resize_heimdallr_columns(self):
+        ddspc = _ddspc(active_cutoff=100.0)
+        self.window._on_heim_state(_settings(servo=5, offload=0), ddspc)
+        self.window.show()
+        self.app.processEvents()
+        widths = [self.window.heim_layout.cellRect(6, column).width() for column in range(4)]
+        minimum_width = self.window.minimumSizeHint().width()
+
+        self.window._on_heim_state(_settings(servo=4, offload=0), ddspc)
+        self.app.processEvents()
+        self.assertEqual(self.window.offload_status_label.text(), "Nested (idle)")
+        self.assertIn("inactive while the servo is Off", self.window.offload_status_label.toolTip())
+        self.assertEqual(
+            [self.window.heim_layout.cellRect(6, column).width() for column in range(4)], widths
+        )
+        self.assertEqual(self.window.minimumSizeHint().width(), minimum_width)
+
     def test_gain_is_validated_and_read_back_without_losing_edit(self):
         self.window._on_heim_state(_settings(kp=0.25), _ddspc())
         self.assertIn("0.25", self.window.kp_status_label.text())
