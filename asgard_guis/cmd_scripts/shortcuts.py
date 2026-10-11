@@ -494,11 +494,11 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		heim_group = QtWidgets.QGroupBox("Heimdallr")
 		heim_layout = QtWidgets.QGridLayout(heim_group)
 		self.heim_layout = heim_layout
-		self.align_btn = QtWidgets.QPushButton("Heim. Internal Align")
+		self.align_btn = QtWidgets.QPushButton("Internal Align")
 		self.align_btn.clicked.connect(
 			lambda: self._run_script("h-autoalign", ["-a", "ia"])
 		)
-		self.tilts_btn = QtWidgets.QPushButton("Heim. Tilts")
+		self.tilts_btn = QtWidgets.QPushButton("Tilts")
 		self.tilts_btn.clicked.connect(lambda: self._run_script("h-tilts", []))
 		self.sky_mode_btn = QtWidgets.QPushButton("Sky Mode")
 		self.sky_mode_btn.clicked.connect(lambda: self._run_script("s-skymode", []))
@@ -637,7 +637,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.stage_cutoff_btn = QtWidgets.QPushButton("Stage cutoff")
 		self.stage_cutoff_btn.clicked.connect(self._stage_cutoff)
 		heim_layout.addWidget(self.stage_cutoff_btn, 9, 2)
-		self.cutoff_status_label = QtWidgets.QLabel("Configured: — | Active: —")
+		self.cutoff_status_label = QtWidgets.QLabel("conf: — | cur: —")
 		heim_layout.addWidget(self.cutoff_status_label, 9, 3)
 
 		heim_layout.addWidget(QtWidgets.QLabel("DDSPC history:"), 10, 0)
@@ -651,7 +651,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.set_history_btn = QtWidgets.QPushButton("Set History")
 		self.set_history_btn.clicked.connect(self._set_history)
 		heim_layout.addWidget(self.set_history_btn, 10, 2)
-		self.history_status_label = QtWidgets.QLabel("Configured: — | Active: —")
+		self.history_status_label = QtWidgets.QLabel("conf: — | cur: —")
 		heim_layout.addWidget(self.history_status_label, 10, 3)
 		heim_layout.addWidget(QtWidgets.QLabel("DDSPC edits are staged for the next entry."), 11, 0, 1, 4)
 		self._refresh_heim_action_availability()
@@ -672,7 +672,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		baldr_layout.addWidget(QtWidgets.QLabel("ttg:"), 1, 0)
 		self.ttg_edit = QtWidgets.QLineEdit()
-		self.ttg_edit.setPlaceholderText("Enter ttg value")
+		self.ttg_edit.setPlaceholderText("Value")
 		baldr_layout.addWidget(self.ttg_edit, 1, 1)
 		self.ttg_btn = QtWidgets.QPushButton("Send ttg")
 		self.ttg_btn.clicked.connect(
@@ -682,7 +682,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		baldr_layout.addWidget(QtWidgets.QLabel("hog:"), 2, 0)
 		self.hog_edit = QtWidgets.QLineEdit()
-		self.hog_edit.setPlaceholderText("Enter hog value")
+		self.hog_edit.setPlaceholderText("Value")
 		baldr_layout.addWidget(self.hog_edit, 2, 1)
 		self.hog_btn = QtWidgets.QPushButton("Send hog")
 		self.hog_btn.clicked.connect(
@@ -835,15 +835,15 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			self.offload_buttons[mode].setChecked(fresh and offload_mode == code)
 		self.kp_status_label.setText(f"Live: {self._display_number(settings.get('kp'))}{suffix}")
 		self.cutoff_status_label.setText(
-			f"Configured: {self._display_number(configured.get('reg_cutoff'))} | "
-			f"Active: {self._display_number(active.get('reg_cutoff'))}{suffix}"
+			f"conf: {self._display_number(configured.get('reg_cutoff'))} | "
+			f"cur: {self._display_number(active.get('reg_cutoff'))}{suffix}"
 		)
 		def history_text(profile):
 			if profile.get("history") is None or profile.get("future") is None:
 				return "—"
 			return f"{profile['history']}/{profile['future']}"
 		self.history_status_label.setText(
-			f"Configured: {history_text(configured)} | Active: {history_text(active)}{suffix}"
+			f"conf: {history_text(configured)} | cur: {history_text(active)}{suffix}"
 		)
 		self._refresh_heim_action_availability()
 

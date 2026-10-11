@@ -376,6 +376,10 @@ class HeimdallrGuiTests(unittest.TestCase):
         self.assertIn("100", self.window.cutoff_status_label.text())
         self.assertIn("40/3", self.window.history_status_label.text())
         self.assertIn("30/3", self.window.history_status_label.text())
+        self.assertTrue(self.window.cutoff_status_label.text().startswith("conf:"))
+        self.assertIn("cur:", self.window.cutoff_status_label.text())
+        self.assertTrue(self.window.history_status_label.text().startswith("conf:"))
+        self.assertIn("cur:", self.window.history_status_label.text())
         self.assertFalse(self.window.set_history_btn.isEnabled())
 
     def test_failed_refresh_marks_feedback_stale_and_removes_history_permission(self):
