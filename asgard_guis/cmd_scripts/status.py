@@ -55,6 +55,7 @@ class StatusFormatter:
     }
     DISK_LABELS = {
         "cred1": "CRED1 saving",
+        "dm": "DM saving",
         "ft_performance": "FT performance saving",
         "tt_performance": "TT performance saving",
     }
@@ -63,6 +64,7 @@ class StatusFormatter:
         "hei_k1",
         "hei_k2",
     )
+    DM_STREAMS = ("DM commands",)
     BDS_BEAMS = tuple(f"BDS{beam}" for beam in range(1, 5))
     BDS_ALIGN_POSITIONS = (33.5, 35.0, 32.0, 32.25)
     BDS_TOLERANCE_MM = 0.1
@@ -133,10 +135,23 @@ class StatusFormatter:
                     source == "tt_performance" and set(checks) != set(cls.TT_BEAMS)
                 ) or (
                     source == "cred1" and set(checks) != set(cls.CRED1_STREAMS)
+                ) or (
+                    source == "dm"
+                    and (
+                        set(checks) != set(cls.DM_STREAMS)
+                        or type(group.get("mode")) is not int
+                        or group["mode"] not in (0, 1)
+                    )
                 ):
                     state = "red"
                     summary = "cannot verify"
-                    failures = [{"label": "check", "value": "invalid reply"}]
+                    failures = [
+                        {
+                            "label": "check",
+                            "value": (group.get("detail") if source == "dm" else None)
+                            or "invalid reply",
+                        }
+                    ]
                 else:
                     fresh = sum(
                         isinstance(check, dict) and check.get("state") == "fresh"
@@ -145,7 +160,9 @@ class StatusFormatter:
                     expected = (
                         "green" if fresh == len(checks) else "yellow" if fresh else "red"
                     )
-                    if state != expected:
+                    if state != expected or (
+                        source == "dm" and group["mode"] == 0 and fresh
+                    ):
                         state = "red"
                         summary = "cannot verify"
                         failures = [{"label": "check", "value": "invalid summary"}]
@@ -243,6 +260,16 @@ class StatusFormatter:
                 failures = [
                     {"label": name, "value": "unknown", "color": "red"}
                     for name in cls.CRED1_STREAMS
+                ]
+            if source == "dm" and summary == "cannot verify":
+                reason = failures[0]["value"]
+                summary = "?/1 streams saving"
+                failures = [
+                    {
+                        "label": cls.DM_STREAMS[0],
+                        "value": f"unknown; {reason}",
+                        "color": "red",
+                    }
                 ]
             entries = [
                 {"label": "disk", "value": summary, "color": state, "indent": 1}
@@ -1000,11 +1027,13 @@ if QtWidgets is not None:
         )
         SAVING_TARGETS = {
             "CRED1": ("cred1",),
+            "DM": ("dm",),
             "Heim Telem": ("ft_performance", "ft_settings"),
             "Baldr TT Telem": ("tt_performance", "tt_settings"),
         }
         SAVING_STREAMS = {
             "cred1": StatusFormatter.CRED1_STREAMS,
+            "dm": StatusFormatter.DM_STREAMS,
             "ft_performance": ("FT performance",),
             "ft_settings": ("ft_settings",),
             "tt_performance": StatusFormatter.TT_BEAMS,
@@ -1119,13 +1148,22 @@ if QtWidgets is not None:
                         StatusFormatter._valid_disk_check(check)
                         for check in checks.values()
                     )
+                    and (
+                        source != "dm"
+                        or (
+                            type(group.get("mode")) is int
+                            and group["mode"] in (0, 1)
+                        )
+                    )
                 )
                 if valid:
                     fresh = sum(check["state"] == "fresh" for check in checks.values())
                     expected_state = (
                         "green" if fresh == len(checks) else "yellow" if fresh else "red"
                     )
-                    valid = group.get("state") == expected_state
+                    valid = group.get("state") == expected_state and not (
+                        source == "dm" and group["mode"] == 0 and fresh
+                    )
 
                 if len(sources) > 1:
                     lines.append(
@@ -1154,7 +1192,10 @@ if QtWidgets is not None:
                     elif group is None:
                         reason = f"{source} missing from disk status reply"
                     else:
-                        reason = "invalid disk status"
+                        reason = (
+                            (group.get("detail") if source == "dm" else None)
+                            or "invalid disk status"
+                        )
                     lines.append(f"Cannot verify saving: {reason}")
                     lines.extend(f"{name}: unknown" for name in expected_names)
 

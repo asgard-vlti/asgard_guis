@@ -31,6 +31,11 @@ def disk_reply():
             "state": "green",
             "checks": {name: check("fresh", 1.0) for name in StatusFormatter.CRED1_STREAMS},
         },
+        "dm": {
+            "mode": 1,
+            "state": "green",
+            "checks": {StatusFormatter.DM_STREAMS[0]: check("fresh", 0.5, 10.0)},
+        },
         "ft_performance": {"state": "red", "checks": {"FT": check("stale", 3.0)}},
         "ft_settings": {
             "state": "green",
@@ -86,14 +91,14 @@ class DiskStatusRenderTests(unittest.TestCase):
             {}, disk_status=disk_reply(), disk_error=None
         )["tasks"]
         self.assertEqual([task["task_name"] for task in tasks], list(StatusFormatter.DISK_LABELS.values()))
-        self.assertEqual([task["entries"][0]["color"] for task in tasks], ["green", "red", "yellow"])
-        self.assertTrue(tasks[2]["has_yellow"])
+        self.assertEqual([task["entries"][0]["color"] for task in tasks], ["green", "green", "red", "yellow"])
+        self.assertTrue(tasks[3]["has_yellow"])
         self.assertEqual(
-            [entry["label"] for entry in tasks[2]["entries"][1:]],
+            [entry["label"] for entry in tasks[3]["entries"][1:]],
             ["beam1", "beam2", "beam3", "beam4"],
         )
-        self.assertEqual(tasks[2]["entries"][1]["color"], "green")
-        self.assertIn("last write 4.0s ago", tasks[2]["entries"][2]["value"])
+        self.assertEqual(tasks[3]["entries"][1]["color"], "green")
+        self.assertIn("last write 4.0s ago", tasks[3]["entries"][2]["value"])
 
     def test_terminal_uses_explicit_colors(self):
         output = io.StringIO()
@@ -147,11 +152,12 @@ class DiskStatusRenderTests(unittest.TestCase):
             )["tasks"]
             self.assertTrue(all(task["has_red"] for task in tasks))
             self.assertEqual(tasks[0]["entries"][0]["value"], "?/6 streams saving")
+            self.assertEqual(tasks[1]["entries"][0]["value"], "?/1 streams saving")
             self.assertTrue(
-                all("cannot verify" in task["entries"][0]["value"] for task in tasks[1:])
+                all("cannot verify" in task["entries"][0]["value"] for task in tasks[2:])
             )
             self.assertEqual(
-                [entry["label"] for entry in tasks[2]["entries"][1:]],
+                [entry["label"] for entry in tasks[3]["entries"][1:]],
                 ["beam1", "beam2", "beam3", "beam4"],
             )
 
@@ -228,13 +234,16 @@ class DiskStatusRenderTests(unittest.TestCase):
             all(label not in window._boxes for label in StatusFormatter.DISK_LABELS.values())
         )
         cred1 = window._boxes["CRED1"]
+        dm = window._boxes["DM"]
         heim = window._boxes["Heim Telem"]
         tt = window._boxes["Baldr TT Telem"]
         self.assertEqual(cred1.saving_label.text(), "disk: 6/6 streams saved")
+        self.assertEqual(dm.saving_label.text(), "disk: 1/1 streams saved")
         self.assertEqual(heim.saving_label.text(), "disk: 1/2 streams saved")
         self.assertEqual(tt.saving_label.text(), "disk: 7/8 streams saved")
         self.assertIn("baldr1: saved", cred1.saving_label.toolTip())
         self.assertIn("hei_k2: saved", cred1.saving_label.toolTip())
+        self.assertIn("DM commands: saved; last write 0.5s ago", dm.saving_label.toolTip())
         self.assertIn("Telemetry:", heim.saving_label.toolTip())
         self.assertIn("FT: not saving", heim.saving_label.toolTip())
         self.assertIn("Settings:", heim.saving_label.toolTip())
@@ -242,6 +251,7 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertIn("beam2: not saving", tt.saving_label.toolTip())
         self.assertIn("beam4: saved", tt.saving_label.toolTip())
         self.assertIn("#4f5b73", cred1.styleSheet())
+        self.assertIn("#4f5b73", dm.styleSheet())
         self.assertIn("#ffd700", heim.styleSheet())
         self.assertIn("#ffd700", tt.styleSheet())
 
@@ -255,6 +265,7 @@ class DiskStatusRenderTests(unittest.TestCase):
         )
         self.assertEqual(positions["BAO1"], (1, 0, 1, 3))
         self.assertEqual(positions["CRED1"], (2, 0, 1, 4))
+        self.assertEqual(positions["DM"], (2, 4, 1, 3))
         self.assertEqual(positions["Eng gui"], (2, 10, 1, 2))
         self.assertEqual(positions["Heim Telem"], (3, 3, 1, 3))
         self.assertEqual(positions["Baldr TT Telem"], (3, 6, 1, 3))
@@ -285,6 +296,7 @@ class DiskStatusRenderTests(unittest.TestCase):
         watchdog = watchdog_reply()
         window._render(watchdog, update_last_time=True)
         cred1 = window._boxes["CRED1"]
+        dm = window._boxes["DM"]
         heim = window._boxes["Heim Telem"]
         tt = window._boxes["Baldr TT Telem"]
 
@@ -344,9 +356,44 @@ class DiskStatusRenderTests(unittest.TestCase):
         self.assertEqual(tt.saving_label.text(), "disk: ?/8 streams saved")
         self.assertIn("beam3: unknown", tt.saving_label.toolTip())
 
+        payload["dm"] = {
+            "mode": 0,
+            "state": "red",
+            "checks": {
+                "DM commands": {
+                    "state": "stale",
+                    "age_s": None,
+                    "limit_s": 10.0,
+                    "detail": "save mode off",
+                }
+            },
+        }
+        window._render(watchdog, update_last_time=False, evaluate_progress=False)
+        self.assertEqual(dm.saving_label.text(), "disk: 0/1 streams saved")
+        self.assertIn("save mode off", dm.saving_label.toolTip())
+        self.assertIn("#ffd700", dm.styleSheet())
+
+        payload["dm"]["mode"] = 1
+        payload["dm"]["checks"]["DM commands"].update(
+            age_s=11.0, detail="no recent write"
+        )
+        window._render(watchdog, update_last_time=False, evaluate_progress=False)
+        self.assertIn("last write 11.0s ago", dm.saving_label.toolTip())
+
+        payload["dm"] = {
+            "mode": None,
+            "state": "red",
+            "detail": "save mode unavailable",
+            "checks": payload["dm"]["checks"],
+        }
+        window._render(watchdog, update_last_time=False, evaluate_progress=False)
+        self.assertEqual(dm.saving_label.text(), "disk: ?/1 streams saved")
+        self.assertIn("save mode unavailable", dm.saving_label.toolTip())
+
         window.disk_client.error = "disk status reply overdue"
         window._render(watchdog, update_last_time=False, evaluate_progress=False)
         self.assertEqual(cred1.saving_label.text(), "disk: ?/6 streams saved")
+        self.assertEqual(dm.saving_label.text(), "disk: ?/1 streams saved")
         self.assertEqual(heim.saving_label.text(), "disk: ?/2 streams saved")
         self.assertEqual(tt.saving_label.text(), "disk: ?/8 streams saved")
         self.assertIn("disk status reply overdue", tt.saving_label.toolTip())
@@ -354,9 +401,11 @@ class DiskStatusRenderTests(unittest.TestCase):
 
         window.disk_client.error = None
         watchdog["CRED1"]["process"] = "closed"
+        watchdog["DM"]["process"] = "closed"
         watchdog["Heim Telem"]["process"] = "closed"
         window._render(watchdog, update_last_time=False, evaluate_progress=True)
         self.assertIn("#ff7b7b", cred1.styleSheet())
+        self.assertIn("#ff7b7b", dm.styleSheet())
         self.assertIn("#ff7b7b", heim.styleSheet())
 
         window.formatter.last_wd_time -= status_module.datetime.timedelta(seconds=11)
@@ -371,9 +420,10 @@ class DiskStatusRenderTests(unittest.TestCase):
         window.disk_client.error = None
         window.disk_client.last_reply_at = time.monotonic()
         window._render({}, update_last_time=False, evaluate_progress=False)
-        self.assertEqual(set(window._boxes), {"CRED1", "Heim Telem", "Baldr TT Telem"})
+        self.assertEqual(set(window._boxes), {"CRED1", "DM", "Heim Telem", "Baldr TT Telem"})
         self.assertIn("watchdog status unavailable", window._boxes["CRED1"].details.text())
         self.assertEqual(window._boxes["CRED1"].saving_label.text(), "disk: 6/6 streams saved")
+        self.assertEqual(window._boxes["DM"].saving_label.text(), "disk: 1/1 streams saved")
 
 
 if __name__ == "__main__":
