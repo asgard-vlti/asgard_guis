@@ -16,6 +16,7 @@ Menu VltMenu1
     "ASGARD"            f.title
     "Xterm on mimir"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e mimir 1>&- 2>&- &\""
     "Xterm on munnin"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e munnin 1>&- 2>&- &\""
+    "git terminals" f.exec "remsh $RHOST -l $RUSER -n \"export DISPLAY=$DISPLAY; xterm $XTERM_OPTS -e bash -c 'cd /vltuser/asg/dcs.git && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e bash -c 'cd /vltuser/asg/asgard-alignment.git && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e bash -c 'cd /vltuser/asg/asgard_guis && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e bash -c 'cd /vltuser/asg/archive_tools.git && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e ssh -t mimir 'cd ~/Progs/repos/dcs && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e ssh -t mimir 'cd ~/Progs/repos/asgard-alignment && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e ssh -t mimir 'cd ~/Progs/repos/asgard_guis && exec bash -l' 1>&- 2>&- & xterm $XTERM_OPTS -e ssh -t mimir 'cd ~/Progs/repos/archive_tools && exec bash -l' 1>&- 2>&- &\""
     no-label             f.separator
     "Operations ..."     f.menu Operations
     no-label             f.separator
