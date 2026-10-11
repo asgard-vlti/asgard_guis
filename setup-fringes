@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""Open and arrange the Fringes GUIs on the current two-monitor X desktop."""
+
+import fcntl
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+
+
+MONITOR_PATTERN = re.compile(
+    r"^(\S+) connected( primary)? (\d+)x(\d+)([+-]\d+)([+-]\d+)"
+)
+MIMIR_BIN = "/home/asg/.conda/envs/asgard/bin"
+WINDOW_KEYS = (
+    "h_guis",
+    "rtd",
+    "text",
+    "shortcuts",
+    "dmview",
+    "logs",
+    "status",
+    "engineering",
+    "terminal",
+)
+
+
+@dataclass(frozen=True)
+class Monitor:
+    name: str
+    x: int
+    y: int
+    width: int
+    height: int
+    primary: bool
+
+
+@dataclass(frozen=True)
+class Window:
+    wid: str
+    desktop: int
+    pid: int
+    x: int
+    y: int
+    width: int
+    height: int
+    wm_class: str
+    title: str
+
+
+@dataclass(frozen=True)
+class Geometry:
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+def parse_monitors(output):
+    monitors = []
+    for line in output.splitlines():
+        match = MONITOR_PATTERN.match(line)
+        if match:
+            name, primary, width, height, x, y = match.groups()
+            monitors.append(
+                Monitor(name, int(x), int(y), int(width), int(height), bool(primary))
+            )
+    return sorted(monitors, key=lambda monitor: (monitor.x, monitor.y))
+
+
+def parse_current_desktop(output):
+    for line in output.splitlines():
+        fields = line.split()
+        if len(fields) > 1 and fields[1] == "*":
+            return int(fields[0])
+    raise RuntimeError("Cannot identify the active X workspace")
+
+
+def parse_windows(output):
+    windows = []
+    for line in output.splitlines():
+        fields = line.split(maxsplit=9)
+        if len(fields) < 10:
+            continue
+        try:
+            wid, desktop, pid, x, y, width, height = fields[:7]
+            windows.append(
+                Window(
+                    wid,
+                    int(desktop),
+                    int(pid),
+                    int(x),
+                    int(y),
+                    int(width),
+                    int(height),
+                    fields[8],
+                    fields[9],
+                )
+            )
+        except ValueError:
+            continue
+    return windows
+
+
+def matches(key, window):
+    title = window.title
+    if key == "terminal":
+        return "setupfringesmimir" in window.wm_class.lower()
+    if key == "engineering":
+        return (
+            "Heimdallr/Baldr/Solarstein" in title
+            or "Asgard alignment engineering GUI" in title
+        )
+    prefixes = {
+        "text": "Asgard servers text interface:",
+        "dmview": "DM SHM Viewer - beam 1, 2, 3, 4",
+        "logs": "Asgard log viewer:",
+    }
+    titles = {
+        "h_guis": "Heimdallr Real-Time Plots",
+        "rtd": "Asgard CRED1 viewer",
+        "shortcuts": "ASGARD Shortcuts",
+        "status": "Watchdog Status",
+    }
+    if key in prefixes:
+        return title.startswith(prefixes[key])
+    return title == titles[key]
+
+
+def find_window(key, windows, desktop):
+    candidates = [window for window in windows if matches(key, window)]
+    candidates.sort(key=lambda window: window.desktop != desktop)
+    return candidates[0] if candidates else None
+
+
+def missing_keys(windows, desktop):
+    return [key for key in WINDOW_KEYS if find_window(key, windows, desktop) is None]
+
+
+def wait_for_windows(read_windows, desktop, timeout=30, clock=time.monotonic, pause=time.sleep):
+    deadline = clock() + timeout
+    while True:
+        windows = read_windows()
+        if not missing_keys(windows, desktop) or clock() >= deadline:
+            return windows
+        pause(0.5)
+
+
+def wag_command(rhost, ruser, display, command):
+    remote = "DISPLAY={} {} 1>&- 2>&- &".format(
+        shlex.quote(display), " ".join(shlex.quote(argument) for argument in command)
+    )
+    return ["remsh", rhost, "-l", ruser, "-n", remote]
+
+
+def launch_command(key, rhost, ruser, op_user, display, xterm_opts):
+    mimir_commands = {
+        "shortcuts": ["shortcuts"],
+        "dmview": ["dmview", "-1"],
+        "logs": ["logs-client"],
+    }
+    wag_commands = {
+        "h_guis": ["h-guis"],
+        "rtd": ["cred1view"],
+        "text": ["text-clients"],
+        "status": ["status-mimir"],
+    }
+    if key in mimir_commands:
+        binary, *arguments = mimir_commands[key]
+        command = ["ssh", "-XC", "mimir", MIMIR_BIN + "/" + binary] + arguments
+        return wag_command(rhost, ruser, display, command)
+    if key in wag_commands:
+        return wag_command(rhost, ruser, display, wag_commands[key])
+    if key == "terminal":
+        command = (
+            ["xterm"]
+            + shlex.split(xterm_opts)
+            + ["-name", "SetupFringesMimir", "-title", "Mimir terminal", "-e", "mimir"]
+        )
+        return wag_command(rhost, ruser, display, command)
+    if key == "engineering":
+        return [
+            "ssh",
+            "-XY",
+            "-t",
+            op_user + "@wgsgb1",
+            "google-chrome",
+            "--user-data-dir=/home/{}/chrome-conf/ITS/{}".format(op_user, display),
+            "--profile-directory=ITS",
+            "--new-window",
+            "http://wag.pl.eso.org:8501",
+            "--window-name=Heimdallr/Baldr/Solarstein",
+        ]
+    raise ValueError("Unknown window: " + key)
+
+
+def geometry_for(key, left, right, window):
+    if key == "h_guis":
+        return None
+    if key == "rtd":
+        return Geometry(left.x + 8, left.y + 8, 850, 360)
+    if key == "text":
+        width = min(700, max(400, int(left.width * 0.29)))
+        height = min(500, int(left.height * 0.55))
+        return Geometry(left.x + 8, left.y + left.height - height - 40, width, height)
+    if key == "shortcuts":
+        text = geometry_for("text", left, right, window)
+        width = min(window.width, max(300, int(left.width * 0.25)))
+        height = min(window.height, int(left.height * 0.58))
+        return Geometry(
+            text.x + text.width + 8,
+            left.y + left.height - height - 40,
+            width,
+            height,
+        )
+
+    max_right = right.x + right.width - 8
+    max_bottom = right.y + right.height - 40
+    if key == "dmview":
+        width = min(613, right.width // 2 - 16)
+        height = min(431, int(right.height * 0.45))
+        return Geometry(right.x + 8, right.y + int(right.height * 0.30), width, height)
+    if key == "logs":
+        width = min(1000, int(right.width * 0.55) - 16)
+        height = min(700, int(right.height * 0.28))
+        return Geometry(right.x + 8, max_bottom - height, width, height)
+    if key == "status":
+        width = min(950, int(right.width * 0.43))
+        height = min(650, int(right.height * 0.53))
+        return Geometry(max_right - width, right.y + 8, width, height)
+    if key == "engineering":
+        width = min(1000, int(right.width * 0.43))
+        height = min(700, int(right.height * 0.38))
+        return Geometry(max_right - width, max_bottom - height, width, height)
+    if key == "terminal":
+        width = min(520, int(right.width * 0.28))
+        height = min(330, int(right.height * 0.30))
+        return Geometry(
+            right.x + (right.width - width) // 2,
+            right.y + (right.height - height) // 2,
+            width,
+            height,
+        )
+    raise ValueError("Unknown window: " + key)
+
+
+def command_output(command):
+    return subprocess.check_output(command, text=True, stderr=subprocess.PIPE)
+
+
+def read_windows():
+    return parse_windows(command_output(["wmctrl", "-lpGx"]))
+
+
+def move_to_desktop(window, desktop):
+    if window.desktop != desktop:
+        subprocess.run(
+            ["wmctrl", "-ir", window.wid, "-t", str(desktop)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
+def position_window(window, geometry):
+    subprocess.run(
+        [
+            "wmctrl",
+            "-ir",
+            window.wid,
+            "-e",
+            "0,{},{},{},{}".format(
+                geometry.x, geometry.y, geometry.width, geometry.height
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def error_detail(error):
+    detail = getattr(error, "stderr", None)
+    if isinstance(detail, bytes):
+        detail = detail.decode(errors="replace")
+    return detail.strip() if detail else str(error)
+
+
+def run(rhost, ruser, op_user, display, xterm_opts):
+    for binary in ("xrandr", "wmctrl", "remsh", "ssh"):
+        if shutil.which(binary) is None:
+            raise RuntimeError("Required command is missing on wvguws: " + binary)
+
+    monitors = parse_monitors(command_output(["xrandr", "--query"]))
+    if len(monitors) != 2:
+        raise RuntimeError("Expected two active X monitors; found {}".format(len(monitors)))
+    left, right = monitors
+    if not left.primary:
+        print("Warning: the left monitor is not the Qt primary screen", file=sys.stderr)
+
+    desktop = parse_current_desktop(command_output(["wmctrl", "-d"]))
+    windows = read_windows()
+    launched = []
+    for key in missing_keys(windows, desktop):
+        command = launch_command(key, rhost, ruser, op_user, display, xterm_opts)
+        try:
+            subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            launched.append(key)
+        except OSError as error:
+            print("Could not launch {}: {}".format(key, error), file=sys.stderr)
+
+    if launched:
+        windows = wait_for_windows(read_windows, desktop)
+
+    missing = []
+    failed = False
+    for key in WINDOW_KEYS:
+        window = find_window(key, windows, desktop)
+        if window is None:
+            missing.append(key)
+            continue
+        try:
+            move_to_desktop(window, desktop)
+            if key == "h_guis":
+                if window.pid > 0:
+                    for companion in windows:
+                        if companion.pid == window.pid and companion.wid != window.wid:
+                            move_to_desktop(companion, desktop)
+                continue
+            position_window(window, geometry_for(key, left, right, window))
+        except subprocess.CalledProcessError as error:
+            print(
+                "Could not arrange {}: {}".format(key, error_detail(error)),
+                file=sys.stderr,
+            )
+            failed = True
+
+    terminal = find_window("terminal", windows, desktop)
+    if terminal is not None:
+        try:
+            subprocess.run(
+                ["wmctrl", "-ia", terminal.wid],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as error:
+            print(
+                "Could not raise Mimir terminal: {}".format(error_detail(error)),
+                file=sys.stderr,
+            )
+            failed = True
+
+    if missing:
+        print("Windows did not appear: " + ", ".join(missing), file=sys.stderr)
+    return 1 if missing or failed else 0
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv
+    if len(args) != 5 or not all(args[:4]):
+        print(
+            "Usage: setup-fringes RHOST RUSER OP_USER DISPLAY XTERM_OPTS",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        lock_path = os.path.expanduser("~/.pecs/setup-fringes.lock")
+        with open(lock_path, "a") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            return run(*args)
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
+        print("Setup Fringes: " + error_detail(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

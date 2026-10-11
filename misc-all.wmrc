@@ -5,11 +5,15 @@
 # asgard_guis so it is tracked in Git; keep it in sync with the active copy
 # at .pecs/misc-all.wmrc on wvguws.
 # The git terminals entry runs open-git-terminals from this checkout on wag.
+# Setup Fringes runs .pecs/setup-fringes on wvguws, on the active workspace.
 #
 # From wag, pull the active copy from wvguws:
 #   rsync -e ssh -artz asg@wvguws:.pecs/misc-all.wmrc /vltuser/asg/asgard_guis/misc-all.wmrc
 # From wag, push changes back to the active copy on wvguws:
 #   rsync -e ssh -artz /vltuser/asg/asgard_guis/misc-all.wmrc  asg@wvguws:.pecs/misc-all.wmrc
+# Install the launcher beside the active menu file with executable permissions:
+#   rsync -e ssh -artz /vltuser/asg/asgard_guis/setup-fringes asg@wvguws:.pecs/setup-fringes
+# Launcher errors are appended to .pecs/setup-fringes.log on wvguws.
 #
 
 Menu VltMenu1
@@ -69,6 +73,8 @@ Menu WagPanels
 
 Menu HdlrBaldrPanels
 {
+    "Setup Fringes"    f.exec "$HOME/.pecs/setup-fringes \"$RHOST\" \"$RUSER\" \"$OP_USER\" \"$DISPLAY\" \"$XTERM_OPTS\" >>$HOME/.pecs/setup-fringes.log 2>&1"
+    no-label            f.separator
     "Engineering Gui"   f.exec "ssh -XY -t $OP_USER@wgsgb1 google-chrome --user-data-dir=/home/$OP_USER/chrome-conf/ITS/$DISPLAY --profile-directory=ITS --new-window http://wag.pl.eso.org:8501 --window-name=Heimdallr/Baldr/Solarstein"
     "Text Clients"	 f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY text-clients 1>&- 2>&- &\""
     "Hdlr Guis"		 f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY h-guis 1>&- 2>&- &\""
