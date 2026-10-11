@@ -7,7 +7,7 @@ from unittest import mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtTest, QtWidgets
 
 from asgard_guis.cmd_scripts import shortcuts
 
@@ -329,6 +329,31 @@ class HeimdallrGuiTests(unittest.TestCase):
         self.assertEqual(self.window.cutoff_edit.text(), "75")
         self.assertIn("0.4", self.window.kp_status_label.text())
         self.assertIn("conf: 6e1", self.window.cutoff_status_label.text())
+
+    def test_poll_preserves_ctrl_a_selection_in_focused_tuning_fields(self):
+        self.window._on_heim_state(_settings(kp=0.25), _ddspc(configured_cutoff=0.0296))
+        self.window.show()
+        self.app.processEvents()
+
+        self.window.kp_edit.setFocus()
+        QtTest.QTest.keyClick(self.window.kp_edit, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier)
+        self.assertEqual(self.window.kp_edit.selectedText(), "0.25")
+        self.window._on_heim_state(_settings(kp=0.4), _ddspc(configured_cutoff=0.0296))
+        self.assertEqual(self.window.kp_edit.selectedText(), "0.25")
+        self.assertIn("0.4", self.window.kp_status_label.text())
+        self.window.kp_edit.clearFocus()
+        self.window._on_heim_state(_settings(kp=0.4), _ddspc(configured_cutoff=0.0296))
+        self.assertEqual(self.window.kp_edit.text(), "0.4")
+
+        self.window.cutoff_edit.setFocus()
+        QtTest.QTest.keyClick(self.window.cutoff_edit, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier)
+        self.assertEqual(self.window.cutoff_edit.selectedText(), "0.0296")
+        self.window._on_heim_state(_settings(kp=0.4), _ddspc(configured_cutoff=0.044))
+        self.assertEqual(self.window.cutoff_edit.selectedText(), "0.0296")
+        self.assertIn("conf: 4e-2", self.window.cutoff_status_label.text())
+        self.window.cutoff_edit.clearFocus()
+        self.window._on_heim_state(_settings(kp=0.4), _ddspc(configured_cutoff=0.044))
+        self.assertEqual(self.window.cutoff_edit.text(), "0.044")
 
     def test_cutoff_readout_has_one_significant_figure_without_rounding_input(self):
         self.window._on_heim_state(

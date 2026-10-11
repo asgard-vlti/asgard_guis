@@ -865,10 +865,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 				if self.kp_edit.text() == submitted:
 					self._kp_dirty = False
 				self._pending_kp = None
-		if not self._kp_dirty and kp is not None:
-			self.kp_edit.blockSignals(True)
-			self.kp_edit.setText(f"{kp:g}")
-			self.kp_edit.blockSignals(False)
+		if not self._kp_dirty and kp is not None and not self.kp_edit.hasFocus():
+			text = f"{kp:g}"
+			if self.kp_edit.text() != text:
+				self.kp_edit.blockSignals(True)
+				self.kp_edit.setText(text)
+				self.kp_edit.blockSignals(False)
 
 		cutoff = self._finite_float(configured.get("reg_cutoff"))
 		if self._pending_cutoff is not None and cutoff is not None:
@@ -877,10 +879,12 @@ class ShortcutsGUI(QtWidgets.QWidget):
 				if self.cutoff_edit.text() == submitted:
 					self._cutoff_dirty = False
 				self._pending_cutoff = None
-		if not self._cutoff_dirty and cutoff is not None:
-			self.cutoff_edit.blockSignals(True)
-			self.cutoff_edit.setText(f"{cutoff:g}")
-			self.cutoff_edit.blockSignals(False)
+		if not self._cutoff_dirty and cutoff is not None and not self.cutoff_edit.hasFocus():
+			text = f"{cutoff:g}"
+			if self.cutoff_edit.text() != text:
+				self.cutoff_edit.blockSignals(True)
+				self.cutoff_edit.setText(text)
+				self.cutoff_edit.blockSignals(False)
 
 		configured_pair = (configured.get("history"), configured.get("future"))
 		if self._pending_history is not None and configured_pair == self._pending_history:
