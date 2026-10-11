@@ -1,0 +1,111 @@
+#*******************************************************************************
+# E.S.O. - VLT project
+#
+# "@(#) $Id$"
+#
+# who       when        what
+# --------  ----------  ----------------------------------------------
+# asgmgr    2025-09-14  created.
+# Yi Lu     2026-04-15  revised.
+
+PAF.HDR.START;
+PAF.TYPE                "ObsBlockDescription";     # Type of PAF
+PAF.ID                  "";                        # ID of PAF
+PAF.NAME                "";                        # Name of PAF
+PAF.DESC                "";                        # Short description of PAF
+PAF.CRTE.NAME           "tpltooBuild";             # Name of creator
+PAF.CRTE.DAYTIM         "2025-09-14T02:40:28.00";  # Civil time for creation
+PAF.LCHG.NAME           "asgmgr";                  # Name of person/appl. chg.
+PAF.LCHG.DAYTIM         "2025-09-14T02:40:28.00";  # Timestamp of last change
+PAF.CHCK.NAME           "";                        # Name of appl. checking
+PAF.CHCK.DAYTIM         "";                        # Time for checking
+PAF.CHCK.CHECKSUM       "";                        # Checksum for the PAF
+PAF.HDR.END;
+
+# --------------------------------------------------------------------
+OBS.ID                  "-1";                      # Observation block ID
+OBS.NAME                "Maintenance";             # OB name
+OBS.GRP                 "0";                       # linked blocks
+OBS.PROG.ID             "Maintenance";             # ESO program identification
+OBS.PI-COI.ID           "0";                       # ESO internal PI-COI ID
+OBS.PI-COI.NAME         "Condor";                  # PI-COI name
+
+# Now we define the target block
+
+__TARGET_BLOCK_START__
+
+TPL.ID                  "ASG_img_acq";
+TPL.NAME                "Preset + acquisition";
+DET1.DIT                "__DIT__";
+DET1.GAIN               "__GAIN__";
+DET1.NWORESET           "__NWORESET__";
+#SEQ.FT.MODE             "AUTO";
+#SEQ.MET.MODE            "ON"
+SEQ.PRESET              "T";
+TEL.TARG.ALPHA          "__RA__";
+TEL.TARG.DELTA          "__DEC__";
+TEL.TARG.EQUINOX        "2000";
+TEL.TARG.PMA            "__PMA__";
+TEL.TARG.PMD            "__PMD__";
+TEL.TARG.EPOCH          "2000";
+TEL.TARG.FLUX.L         "3000";
+TEL.TARG.MAG.H          "__H__";
+TEL.TARG.MAG.K          "__K__";
+TEL.TARG.NAME           "__NAME__";
+TEL.TARG.PARALLAX       "__PARALLAX__";
+TEL.TARG.RADVEL         "0";
+#TEL.TARG.VIS            "0.5";
+#TEL.TARG.DIAMETER       "0.0";
+TEL.GS1.ALPHA           "0.";
+TEL.GS1.DELTA           "0.";
+TEL.GS1.MAG             "12.";
+INS.BLD.MAG             "__BLDMODE__";
+INS.BLD.PHMASK          "LL";
+INS.BLD.BAND            "H"; 
+INS.MODE                "HDLR_ONLY_ASTRO";
+INS.USEADC              "T"
+COU.AO.TYPE             "NGS_VIS";
+COU.NGS.ALPHA           "000000.000";
+COU.NGS.DELTA           "+000000.000";
+COU.NGS.EPOCH           "2000";
+COU.NGS.MAG             "__G__";
+COU.NGS.NAME            "Name";
+COU.NGS.PARALLAX        "0";
+COU.NGS.PMA             "0";
+COU.NGS.PMD             "0";
+COU.NGS.RADVEL          "0";
+COU.NGS.SOURCE          "SCIENCE";
+COU.LGS.SOURCE          "SCIENCE";
+COU.LGS.NAME            "Name";
+COU.LGS.ALPHA           "000000.000";
+COU.LGS.DELTA           "000000.000";
+COU.LGS.PARALLAX        "0.0";
+COU.LGS.PMA             "0.0";
+COU.LGS.PMD             "0.0";
+COU.LGS.RADVEL          "0.0";
+COU.LGS.EPOCH           "2000.0";
+DEL.FT.SENSOR           "ASGARD";
+DEL.REF.MODE            "AUTO";
+DEL.REF.NAME            "dl1";
+DEL.REF.OPL             "30";
+
+TPL.ID                  "ASG_HDLR_ONLY_ASTRO_obs";
+TPL.NAME                "Observation with Heimdallr only";
+DET1.DIT                "__DIT__";
+DET1.RECTIME.DARK       "20";
+DET1.RECTIME.FOREG      "10";
+DET1.RECTIME.FRINGES    "120";
+DET1.RECTIME.KAPPA      "5";
+SEQ.SPLAY               "T";
+DPR.CATG                "TEST";
+__TARGET_BLOCK_END__
+
+#___oOo___
+
+
+
+
+
+
+
+
