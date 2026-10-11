@@ -793,6 +793,14 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		number = cls._finite_float(value)
 		return f"{number:g}" if number is not None else "—"
 
+	@classmethod
+	def _display_cutoff(cls, value):
+		number = cls._finite_float(value)
+		if number is None:
+			return "—"
+		mantissa, exponent = f"{number:.0e}".split("e")
+		return f"{mantissa}e{int(exponent)}"
+
 	def _is_heim_state_fresh(self):
 		return self._heim_state_fresh and time.monotonic() - self._heim_state_time <= 2.5
 
@@ -835,8 +843,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			self.offload_buttons[mode].setChecked(fresh and offload_mode == code)
 		self.kp_status_label.setText(f"Live: {self._display_number(settings.get('kp'))}{suffix}")
 		self.cutoff_status_label.setText(
-			f"conf: {self._display_number(configured.get('reg_cutoff'))} | "
-			f"cur: {self._display_number(active.get('reg_cutoff'))}{suffix}"
+			f"conf: {self._display_cutoff(configured.get('reg_cutoff'))} | "
+			f"cur: {self._display_cutoff(active.get('reg_cutoff'))}{suffix}"
 		)
 		def history_text(profile):
 			if profile.get("history") is None or profile.get("future") is None:

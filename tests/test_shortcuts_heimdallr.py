@@ -328,7 +328,14 @@ class HeimdallrGuiTests(unittest.TestCase):
         self.assertEqual(self.window.kp_edit.text(), "0.56")
         self.assertEqual(self.window.cutoff_edit.text(), "75")
         self.assertIn("0.4", self.window.kp_status_label.text())
-        self.assertIn("60", self.window.cutoff_status_label.text())
+        self.assertIn("conf: 6e1", self.window.cutoff_status_label.text())
+
+    def test_cutoff_readout_has_one_significant_figure_without_rounding_input(self):
+        self.window._on_heim_state(
+            _settings(), _ddspc(configured_cutoff=0.0296, active_cutoff=0.044)
+        )
+        self.assertEqual(self.window.cutoff_status_label.text(), "conf: 3e-2 | cur: 4e-2")
+        self.assertEqual(self.window.cutoff_edit.text(), "0.0296")
 
     def test_history_combo_syncs_configured_preset_and_preserves_user_choice(self):
         self.window._on_heim_state(_settings(servo=4), _ddspc(history=(40, 3)))
@@ -370,10 +377,9 @@ class HeimdallrGuiTests(unittest.TestCase):
 
         self.window._on_heim_state(
             _settings(servo=5),
-            _ddspc(configured_cutoff=120.0, active_cutoff=100.0, history=(40, 3), active_history=(30, 3)),
+            _ddspc(configured_cutoff=300.0, active_cutoff=100.0, history=(40, 3), active_history=(30, 3)),
         )
-        self.assertIn("120", self.window.cutoff_status_label.text())
-        self.assertIn("100", self.window.cutoff_status_label.text())
+        self.assertEqual(self.window.cutoff_status_label.text(), "conf: 3e2 | cur: 1e2")
         self.assertIn("40/3", self.window.history_status_label.text())
         self.assertIn("30/3", self.window.history_status_label.text())
         self.assertTrue(self.window.cutoff_status_label.text().startswith("conf:"))
