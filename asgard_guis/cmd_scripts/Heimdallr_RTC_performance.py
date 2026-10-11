@@ -13,6 +13,7 @@ import argparse
 from statemachine import StateMachine, State
 
 import heapq
+import math
 
 import numpy as np
 
@@ -23,12 +24,57 @@ from datetime import datetime
 
 N_TSCOPES = 4
 N_BASELINES = 6
+BASELINE_TO_TSCOPE_AVERAGE_MATRIX = np.array(
+    [
+        [1, 1, 1, 0, 0, 0],
+        [1, 0, 0, 1, 1, 0],
+        [0, 1, 0, 1, 0, 1],
+        [0, 0, 1, 0, 1, 1],
+    ],
+    dtype=float,
+) / 3
 
 # This doesn't seem to help. Generally, there is libGL error
 # whenever starting...
 # pg.setConfigOptions(useOpenGL=True)
 
 # MT W M : check the second lowest eigenvalue and compare threshold
+
+
+def telescope_gd_snr_ranks(gd_snr_history, valid_samples, update_time_ms):
+    if valid_samples <= 0:
+        return [None] * N_TSCOPES
+
+    window_samples = (
+        math.ceil(5000 / update_time_ms)
+        if update_time_ms > 0
+        else len(gd_snr_history)
+    )
+    recent_count = min(valid_samples, window_samples, len(gd_snr_history))
+    recent = gd_snr_history[-recent_count:]
+    finite = np.isfinite(recent)
+    baseline_counts = finite.sum(axis=0)
+    baseline_means = np.divide(
+        np.where(finite, recent, 0.0).sum(axis=0),
+        baseline_counts,
+        out=np.full(N_BASELINES, np.nan),
+        where=baseline_counts > 0,
+    )
+
+    telescope_means = []
+    for baseline_weights in BASELINE_TO_TSCOPE_AVERAGE_MATRIX:
+        values = baseline_means[baseline_weights > 0]
+        valid_values = values[np.isfinite(values)]
+        telescope_means.append(
+            np.mean(valid_values) if valid_values.size else np.nan
+        )
+
+    return [
+        None
+        if not np.isfinite(mean)
+        else 1 + sum(other > mean for other in telescope_means)
+        for mean in telescope_means
+    ]
 
 
 class HeimdallrStateMachine(StateMachine):
@@ -116,21 +162,8 @@ class HeimdallrStateMachine(StateMachine):
 
         # Use the most recent gd_snr vector
         median_gd_snr_per_baseline = self.most_recent_gd_snr
-        baseline_to_tscope_average_matrix = (
-            1
-            / 3
-            * np.array(
-                [
-                    [1, 1, 1, 0, 0, 0],
-                    [1, 0, 0, 1, 1, 0],
-                    [0, 1, 0, 1, 0, 1],
-                    [0, 0, 1, 0, 1, 1],
-                ]
-            )
-        )
-
         median_gd_snr_per_telescope = (
-            baseline_to_tscope_average_matrix @ median_gd_snr_per_baseline
+            BASELINE_TO_TSCOPE_AVERAGE_MATRIX @ median_gd_snr_per_baseline
         )
 
         # choose lowest telescope
@@ -546,6 +579,7 @@ def main():
     dm = np.zeros((samples, N_TSCOPES))
     offload = np.zeros((samples, N_TSCOPES))
     gd_snr = np.zeros((samples, N_BASELINES))
+    gd_snr_samples_seen = 0
     pd_snr = np.zeros((samples, N_BASELINES))
 
     gd_threshold = 5.0
@@ -775,10 +809,13 @@ def main():
     legend_layout.addWidget(quit_button)
 
     # Telescopes legend with tracking state swatch
-    tel_label = QtWidgets.QLabel("<b>Telescopes</b>")
+    tel_label = QtWidgets.QLabel(
+        "<b>Telescopes</b><br>5 s GD SNR rank (#1 highest)"
+    )
     legend_layout.addWidget(tel_label)
     telescope_names = ["T1", "T2", "T3", "T4"]
     tracking_state_swatches = []
+    rank_labels = []
     for i, name in enumerate(telescope_names):
         color = TELESCOPE_COLORS[i % N_TSCOPES].color()
         color_hex = color.name() if hasattr(color, "name") else color
@@ -795,9 +832,14 @@ def main():
             "background-color: #888; color: black; border: 1px solid #333;"
         )
         tracking_state_swatches.append(state_swatch)
+        rank_label = QtWidgets.QLabel("—")
+        rank_label.setFixedWidth(30)
+        rank_label.setAlignment(QtCore.Qt.AlignCenter)
+        rank_labels.append(rank_label)
         row = QtWidgets.QHBoxLayout()
         row.addWidget(swatch)
         row.addWidget(QtWidgets.QLabel(name))
+        row.addWidget(rank_label)
         row.addWidget(state_swatch)
         row.addStretch()
         legend_layout.addLayout(row)
@@ -1282,6 +1324,7 @@ def main():
 
     def update():
         nonlocal status, v2_K1, v2_K2, pd_tel, gd_tel, dm, offload, gd_snr, pd_snr
+        nonlocal gd_snr_samples_seen
         nonlocal tracking_states, gd_threshold, gd_snr_vs_offsets, search_offset
         status = Z.send("status")
         if status is None:
@@ -1306,6 +1349,13 @@ def main():
         for arr, key in arrays:
             arr[:] = np.roll(arr, -1, axis=0)
             arr[-1] = status[key]
+
+        gd_snr_samples_seen = min(samples, gd_snr_samples_seen + 1)
+        for label, rank in zip(
+            rank_labels,
+            telescope_gd_snr_ranks(gd_snr, gd_snr_samples_seen, update_time),
+        ):
+            label.setText("—" if rank is None else f"#{rank}")
 
         settings = Z.send("settings")
         search_offset = np.asarray(settings["search_offset"], dtype=float)
