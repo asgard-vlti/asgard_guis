@@ -1,10 +1,152 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+from pathlib import Path
+import signal
 import subprocess
 import sys
 import time
 
 import zmq
 from PyQt5 import QtCore, QtWidgets
+
+
+RECON_SCRIPT = "/home/asg/.conda/envs/asgard/bin/baldrtt-recon"
+RECON_HOST = "mimir"
+BALDR_TT_PORTS = {beam: 6670 + beam for beam in range(1, 5)}
+
+
+def _is_recon_command(argv):
+	if not argv:
+		return False
+	if Path(argv[0]).name.startswith("python"):
+		if len(argv) > 2 and argv[1] == "-m":
+			return argv[2] == "dcs.baldr_tt.save_recon"
+		if len(argv) < 2:
+			return False
+		script = argv[1]
+	else:
+		script = argv[0]
+	return Path(script).name == "baldrtt-recon" or script.endswith(
+		"/baldr_tt/save_recon.py"
+	)
+
+
+def _is_recon_pid(pid, proc_root="/proc"):
+	try:
+		with open(f"{proc_root}/{pid}/cmdline", "rb") as cmdline:
+			argv = [part.decode("utf-8", "replace") for part in cmdline.read().split(b"\0") if part]
+	except OSError:
+		return False
+	return _is_recon_command(argv)
+
+
+def _recon_pids(proc_root="/proc"):
+	try:
+		entries = os.listdir(proc_root)
+	except OSError:
+		return []
+	return sorted(
+		int(entry)
+		for entry in entries
+		if entry.isdigit() and int(entry) != os.getpid() and _is_recon_pid(entry, proc_root)
+	)
+
+
+def _stop_recon_processes(log_message, grace_seconds=4):
+	pids = _recon_pids()
+	if not pids:
+		log_message("[INFO] No baldrtt-recon jobs found.")
+		return True
+
+	for pid in pids:
+		if not _is_recon_pid(pid):
+			continue
+		try:
+			os.kill(pid, signal.SIGTERM)
+			log_message(f"[INFO] Sent SIGTERM to baldrtt-recon PID {pid}.")
+		except ProcessLookupError:
+			pass
+		except OSError as exc:
+			log_message(f"[ERROR] Cannot stop baldrtt-recon PID {pid}: {exc}")
+
+	deadline = time.monotonic() + grace_seconds
+	remaining = [pid for pid in pids if _is_recon_pid(pid)]
+	while remaining and time.monotonic() < deadline:
+		time.sleep(max(0.0, min(0.1, deadline - time.monotonic())))
+		remaining = [pid for pid in remaining if _is_recon_pid(pid)]
+
+	for pid in remaining:
+		if not _is_recon_pid(pid):
+			continue
+		try:
+			os.kill(pid, signal.SIGKILL)
+			log_message(f"[WARN] Force-stopped baldrtt-recon PID {pid}.")
+		except ProcessLookupError:
+			pass
+		except OSError as exc:
+			log_message(f"[ERROR] Cannot force-stop baldrtt-recon PID {pid}: {exc}")
+
+	force_deadline = time.monotonic() + 0.5
+	still_running = [pid for pid in remaining if _is_recon_pid(pid)]
+	while still_running and time.monotonic() < force_deadline:
+		time.sleep(0.05)
+		still_running = [pid for pid in still_running if _is_recon_pid(pid)]
+	if still_running:
+		log_message(f"[ERROR] Recon jobs still running: {still_running}")
+	return not still_running
+
+
+def _clear_baldr_beam(host, beam):
+	context = zmq.Context.instance()
+	socket = context.socket(zmq.REQ)
+	socket.setsockopt(zmq.SNDTIMEO, 500)
+	socket.setsockopt(zmq.RCVTIMEO, 2000)
+	socket.setsockopt(zmq.LINGER, 0)
+	socket.connect(f"tcp://{host}:{BALDR_TT_PORTS[beam]}")
+	try:
+		socket.send_string("stop_clear_dm")
+		if socket.recv_json() is not True:
+			raise RuntimeError("server did not acknowledge stop_clear_dm")
+	finally:
+		socket.close()
+
+
+class StopReconWorker(QtCore.QThread):
+	log_message = QtCore.pyqtSignal(str)
+	stop_finished = QtCore.pyqtSignal(bool)
+
+	def __init__(self, host, debug=False):
+		super().__init__()
+		self._host = host
+		self._debug = debug
+
+	def run(self):
+		if self._debug:
+			self.log_message.emit("[DEBUG] Would stop all local baldrtt-recon jobs and clear Baldr TT beams 1-4.")
+			self.stop_finished.emit(True)
+			return
+
+		try:
+			processes_stopped = _stop_recon_processes(self.log_message.emit)
+			beams_cleared = True
+			with ThreadPoolExecutor(max_workers=4) as executor:
+				futures = {
+					executor.submit(_clear_baldr_beam, self._host, beam): beam
+					for beam in BALDR_TT_PORTS
+				}
+				for future in as_completed(futures):
+					beam = futures[future]
+					try:
+						future.result()
+						self.log_message.emit(f"[OK] Baldr{beam} servo stopped and DM channels cleared.")
+					except Exception as exc:
+						beams_cleared = False
+						self.log_message.emit(f"[ERROR] Baldr{beam} reset failed: {exc}")
+			self.stop_finished.emit(processes_stopped and beams_cleared)
+		except Exception as exc:
+			self.log_message.emit(f"[ERROR] Recon stop failed: {exc}")
+			self.stop_finished.emit(False)
 
 
 class BLFPoller(QtCore.QThread):
@@ -95,7 +237,7 @@ class ReconWorker(QtCore.QThread):
 			return
 
 		try:
-			script = "/home/asg/.conda/envs/asgard/bin/baldrtt-recon"
+			script = RECON_SCRIPT
 			self.log_message.emit(f"[INFO] Running: {script}")
 			try:
 				subprocess.run([script], check=True)
@@ -121,6 +263,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.cam_server_socket = self._build_socket(6667, host="mimir")
 		self.baldr_sockets = []
 		self.current_baldr_mode = "Standard"
+		self._recon_generation = 0
+		self._recon_stop_requested = False
 
 		self.setWindowTitle("ASGARD Shortcuts")
 		self._apply_dark_theme()
@@ -237,6 +381,9 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.recon_btn = QtWidgets.QPushButton("Recon")
 		self.recon_btn.clicked.connect(self._run_recon)
 		baldr_layout.addWidget(self.recon_btn, 3, 0)
+		self.stop_recon_btn = QtWidgets.QPushButton("Stop Recon (All)")
+		self.stop_recon_btn.clicked.connect(self._stop_recon)
+		baldr_layout.addWidget(self.stop_recon_btn, 5, 0, 1, 4)
 		self.recon_status_label = QtWidgets.QLabel("")
 		baldr_layout.addWidget(self.recon_status_label, 4, 0, 1, 4)
 
@@ -466,6 +613,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 				self._append_log(f"[ERROR] Baldr{i} {cmd} -> {exc}")
 
 	def _run_recon(self):
+		if self._recon_stop_requested:
+			return
 		if self.current_baldr_mode != "Faint":
 			self._append_log("[WARN] Recon is only available in Faint mode.")
 			return
@@ -473,6 +622,7 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		if hasattr(self, "recon_worker") and self.recon_worker.isRunning():
 			return
 
+		self._recon_generation += 1
 		self.recon_status_label.setText("waiting for reconstructor construction")
 		self.recon_btn.setEnabled(False)
 		for command in ['servo "off"', "zero_tt", 'servo "tt"', "auto_coupling"]:
@@ -481,21 +631,48 @@ class ShortcutsGUI(QtWidgets.QWidget):
 
 		self.recon_worker = ReconWorker(self.debug)
 		self.recon_worker.log_message.connect(self._append_log)
-		self.recon_worker.recon_finished.connect(self._on_recon_finished)
+		generation = self._recon_generation
+		self.recon_worker.recon_finished.connect(
+			lambda success: self._on_recon_finished(success, generation)
+		)
 		self.recon_worker.start()
 
-	def _on_recon_finished(self, success):
+	def _on_recon_finished(self, success, generation):
+		if self._recon_stop_requested or generation != self._recon_generation:
+			return
 		if not success:
 			self.recon_status_label.setText("Recon failed")
 			self.recon_btn.setEnabled(True)
 			return
 
-		QtCore.QTimer.singleShot(500, self._send_recon_command)
+		QtCore.QTimer.singleShot(500, lambda: self._send_recon_command(generation))
 
-	def _send_recon_command(self):
+	def _send_recon_command(self, generation):
+		if self._recon_stop_requested or generation != self._recon_generation:
+			return
 		self._send_baldr_all("recon")
 		self.recon_status_label.setText("Recon complete")
 		self.recon_btn.setEnabled(True)
+
+	def _stop_recon(self):
+		if hasattr(self, "stop_recon_worker") and self.stop_recon_worker.isRunning():
+			return
+		self._recon_generation += 1
+		self._recon_stop_requested = True
+		self.recon_btn.setEnabled(False)
+		self.stop_recon_btn.setEnabled(False)
+		self.recon_status_label.setText("Stopping recon and clearing DM channels...")
+		self.stop_recon_worker = StopReconWorker(host=RECON_HOST, debug=self.debug)
+		self.stop_recon_worker.log_message.connect(self._append_log)
+		self.stop_recon_worker.stop_finished.connect(self._on_stop_recon_finished)
+		self.stop_recon_worker.start()
+
+	def _on_stop_recon_finished(self, success):
+		status = "Debug: no action" if self.debug else ("Recon stopped" if success else "Recon stop incomplete")
+		self.recon_status_label.setText(status)
+		self.stop_recon_btn.setEnabled(True)
+		self._recon_stop_requested = False
+		self.recon_btn.setEnabled(success)
 
 	def _run_script(self, script, args):
 		cmd = ["/home/asg/.conda/envs/asgard/bin/" + script, *args]
@@ -513,6 +690,10 @@ class ShortcutsGUI(QtWidgets.QWidget):
 		self.log.append(text)
 
 	def closeEvent(self, event):
+		if hasattr(self, "stop_recon_worker") and self.stop_recon_worker.isRunning():
+			if not self.stop_recon_worker.wait(10000):
+				event.ignore()
+				return
 		self._poller.stop()
 		self._poller.wait(2000)
 		self.heim_socket.setsockopt(zmq.LINGER, 0)
