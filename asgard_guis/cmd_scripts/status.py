@@ -18,6 +18,8 @@ from typing import Any, cast
 
 import zmq
 
+from asgard_guis.cmd_scripts.window_geometry import apply_startup_geometry
+
 try:
     from PyQt5 import QtCore, QtWidgets  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - optional runtime dependency
@@ -1489,6 +1491,7 @@ def main() -> None:
         window = cast(Any, window_cls)(
             args.endpoint, args.mds_endpoint, args.request_interval
         )
+        apply_startup_geometry(window)
         getattr(window, "show")()
         sys.exit(app.exec_())
 

@@ -10,6 +10,8 @@ import time
 import zmq
 from PyQt5 import QtCore, QtWidgets
 
+from asgard_guis.cmd_scripts.window_geometry import apply_startup_geometry
+
 
 RECON_SCRIPT = "/home/asg/.conda/envs/asgard/bin/baldrtt-recon"
 RECON_HOST = "mimir"
@@ -721,6 +723,7 @@ def main():
 
 	app = QtWidgets.QApplication([])
 	win = ShortcutsGUI(host=args.host, debug=args.debug)
+	apply_startup_geometry(win)
 	win.show()
 	sys.exit(app.exec_())
 

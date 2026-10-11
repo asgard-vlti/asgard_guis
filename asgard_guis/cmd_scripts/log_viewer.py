@@ -8,6 +8,8 @@ import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from asgard_guis.cmd_scripts.window_geometry import apply_startup_geometry
+
 DEFAULT_LOG_ROOT = "/home/asg/logs"
 TAIL_LINES = 100
 REFRESH_MS = 1000
@@ -735,6 +737,7 @@ def main():
 
     app = QtWidgets.QApplication([])
     client = UniversalLogClient(args.log_root)
+    apply_startup_geometry(client)
     client.show()
     sys.exit(app.exec_())
 
