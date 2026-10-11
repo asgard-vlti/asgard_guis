@@ -66,6 +66,7 @@ class LogViewerSmokeTests(unittest.TestCase):
             viewer = log_viewer.UniversalLogClient(log_root)
             try:
                 tab = viewer.tabs.widget(0)
+                self.assertEqual(tab.log_path(), str(log_dir / "log.txt"))
                 self.assertIn("#1e1f22", viewer.styleSheet())
                 self.assertIn("#272a30", viewer.styleSheet())
                 self.assertIn(log_viewer.ERROR_COLOR, tab.text_area.toHtml())
@@ -74,5 +75,76 @@ class LogViewerSmokeTests(unittest.TestCase):
                 tab.filter_input.setText("warning")
                 self.assertNotIn("bad", tab.text_area.toPlainText())
                 self.assertIn("slow", tab.text_area.toPlainText())
+            finally:
+                viewer.close()
+
+    def test_newest_start_timestamp_wins_and_refresh_switches_files(self):
+        with tempfile.TemporaryDirectory() as log_root:
+            log_dir = Path(log_root) / "heimdallr"
+            log_dir.mkdir()
+            newest = log_dir / "log_20261011T120000.000000002Z_21.txt"
+            older = log_dir / "log_20261011T120000.000000001Z_22.txt"
+            newest.write_text("new run\n", encoding="utf-8")
+            older.write_text("old run\n", encoding="utf-8")
+            (log_dir / "log.txt").write_text("legacy run\n", encoding="utf-8")
+            (log_dir / "log_20261012T120000.000000000Z_23.txt.bak").write_text(
+                "unrelated file\n", encoding="utf-8"
+            )
+
+            viewer = log_viewer.UniversalLogClient(log_root)
+            try:
+                tab = viewer.tabs.widget(log_viewer.SERVER_DIRS.index("heimdallr"))
+                self.assertEqual(tab.log_path(), str(newest))
+                self.assertIn("new run", tab.text_area.toPlainText())
+
+                restarted = log_dir / "log_20261011T120001.000000000Z_24.txt"
+                restarted.write_text("restarted run\n", encoding="utf-8")
+                tab.refresh_log()
+                self.assertEqual(tab.log_path(), str(restarted))
+                self.assertIn("restarted run", tab.text_area.toPlainText())
+                self.assertNotIn("new run", tab.text_area.toPlainText())
+            finally:
+                viewer.close()
+
+    def test_baldr_instance_selector_uses_each_instances_latest_log(self):
+        with tempfile.TemporaryDirectory() as log_root:
+            for server in ("baldr", "baldr_tt"):
+                for instance in ("1", "2"):
+                    log_dir = Path(log_root) / server / instance
+                    log_dir.mkdir(parents=True)
+                    (log_dir / f"log_20261011T120000.000000000Z_{instance}.txt").write_text(
+                        f"{server} instance {instance}\n", encoding="utf-8"
+                    )
+
+            viewer = log_viewer.UniversalLogClient(log_root)
+            try:
+                for tab_index, server in enumerate(("baldr", "baldr_tt"), len(log_viewer.SERVER_DIRS)):
+                    tab = viewer.tabs.widget(tab_index)
+                    self.assertIn(f"{server} instance 1", tab.text_area.toPlainText())
+                    tab.instance_dropdown.setCurrentText("2")
+                    self.assertIn(f"{server} instance 2", tab.text_area.toPlainText())
+                    self.assertNotIn(f"{server} instance 1", tab.text_area.toPlainText())
+            finally:
+                viewer.close()
+
+    def test_control_line_uses_selected_log_without_creating_legacy_file(self):
+        with tempfile.TemporaryDirectory() as log_root:
+            log_dir = Path(log_root) / "mds"
+            log_dir.mkdir()
+            older = log_dir / "log_20261011T120000.000000000Z_20.txt"
+            newest = log_dir / "log_20261011T120001.000000000Z_21.txt"
+            older.write_text("old run\n", encoding="utf-8")
+            newest.write_text("new run\n", encoding="utf-8")
+
+            viewer = log_viewer.UniversalLogClient(log_root)
+            try:
+                mds_tab = viewer.tabs.widget(log_viewer.SERVER_DIRS.index("mds"))
+                mds_tab.append_action_line("Restarted mds.")
+                self.assertIn("[CONTROL] Restarted mds.", newest.read_text(encoding="utf-8"))
+                self.assertNotIn("[CONTROL]", older.read_text(encoding="utf-8"))
+
+                eng_gui_tab = viewer.tabs.widget(log_viewer.SERVER_DIRS.index("eng_gui"))
+                eng_gui_tab.append_action_line("No log yet.")
+                self.assertFalse((Path(log_root) / "eng_gui" / "log.txt").exists())
             finally:
                 viewer.close()
