@@ -82,6 +82,44 @@ class StopWorkerTests(unittest.TestCase):
         stop.assert_not_called()
         clear.assert_not_called()
 
+    def test_reset_error_shows_server_reply(self):
+        socket = mock.Mock()
+        socket.recv_json.return_value = {"error": "unordered_map::at"}
+        with mock.patch.object(shortcuts.zmq.Context, "instance") as context:
+            context.return_value.socket.return_value = socket
+            with self.assertRaisesRegex(RuntimeError, "unordered_map::at"):
+                shortcuts._clear_baldr_beam("mimir", 1)
+        socket.close.assert_called_once_with()
+
+    def test_requested_sigterm_is_reported_as_stop(self):
+        worker = shortcuts.ReconWorker()
+        messages = []
+        finished = []
+        worker.log_message.connect(messages.append)
+        worker.recon_finished.connect(finished.append)
+        def stop_after_launch():
+            worker.request_stop()
+            return 143
+
+        process = mock.Mock(wait=mock.Mock(side_effect=stop_after_launch))
+        with mock.patch.object(shortcuts.subprocess, "Popen", return_value=process):
+            worker.run()
+
+        self.assertEqual(finished, [False])
+        self.assertTrue(any("stopped after SIGTERM" in message for message in messages))
+        self.assertFalse(any(message.startswith("[ERROR]") for message in messages))
+
+    def test_requested_stop_before_launch_skips_recon(self):
+        worker = shortcuts.ReconWorker()
+        finished = []
+        worker.recon_finished.connect(finished.append)
+        worker.request_stop()
+        with mock.patch.object(shortcuts.subprocess, "Popen") as launch:
+            worker.run()
+
+        launch.assert_not_called()
+        self.assertEqual(finished, [False])
+
     def test_stale_completion_cannot_reload_reconstructor(self):
         with mock.patch.object(shortcuts.BLFPoller, "start"):
             window = shortcuts.ShortcutsGUI(debug=True)

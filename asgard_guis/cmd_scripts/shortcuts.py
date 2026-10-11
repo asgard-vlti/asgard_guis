@@ -5,6 +5,7 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 import zmq
@@ -106,8 +107,12 @@ def _clear_baldr_beam(host, beam):
 	socket.connect(f"tcp://{host}:{BALDR_TT_PORTS[beam]}")
 	try:
 		socket.send_string("stop_clear_dm")
-		if socket.recv_json() is not True:
-			raise RuntimeError("server did not acknowledge stop_clear_dm")
+		reply = socket.recv_json()
+		if reply is not True:
+			raise RuntimeError(
+				f"server did not acknowledge stop_clear_dm (reply: {reply!r}); "
+				"check that the updated /usr/local/bin/baldr_tt is running"
+			)
 	finally:
 		socket.close()
 
@@ -229,6 +234,12 @@ class ReconWorker(QtCore.QThread):
 	def __init__(self, debug=False):
 		super().__init__()
 		self._debug = debug
+		self._stop_requested = False
+		self._launch_lock = threading.Lock()
+
+	def request_stop(self):
+		with self._launch_lock:
+			self._stop_requested = True
 
 	def run(self):
 		if self._debug:
@@ -238,11 +249,23 @@ class ReconWorker(QtCore.QThread):
 
 		try:
 			script = RECON_SCRIPT
-			self.log_message.emit(f"[INFO] Running: {script}")
-			try:
-				subprocess.run([script], check=True)
-			except (OSError, subprocess.CalledProcessError) as exc:
-				self.log_message.emit(f"[ERROR] {script} failed: {exc}")
+			with self._launch_lock:
+				if self._stop_requested:
+					process = None
+				else:
+					self.log_message.emit(f"[INFO] Running: {script}")
+					process = subprocess.Popen([script])
+			if process is None:
+				self.log_message.emit("[INFO] baldrtt-recon start cancelled.")
+				self.recon_finished.emit(False)
+				return
+			returncode = process.wait()
+			if self._stop_requested and returncode == 143:
+				self.log_message.emit("[INFO] baldrtt-recon stopped after SIGTERM; checking DM resets.")
+				self.recon_finished.emit(False)
+				return
+			if returncode != 0:
+				self.log_message.emit(f"[ERROR] {script} exited with status {returncode}.")
 				self.recon_finished.emit(False)
 				return
 
@@ -659,6 +682,8 @@ class ShortcutsGUI(QtWidgets.QWidget):
 			return
 		self._recon_generation += 1
 		self._recon_stop_requested = True
+		if hasattr(self, "recon_worker"):
+			self.recon_worker.request_stop()
 		self.recon_btn.setEnabled(False)
 		self.stop_recon_btn.setEnabled(False)
 		self.recon_status_label.setText("Stopping recon and clearing DM channels...")
