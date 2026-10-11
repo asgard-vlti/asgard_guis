@@ -1,143 +1,42 @@
-#!/usr/bin/env python3
-"""Open the four Git repositories in touching 2x2 blocks on two X monitors."""
+#!/usr/bin/env bash
+set -euo pipefail
 
-import os
-import re
-import subprocess
-import sys
-import time
+dimensions=$(xdpyinfo | awk '/dimensions:/ && !found {print $2; found=1}')
+if [[ ! $dimensions =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    echo "Cannot determine X display size" >&2
+    exit 1
+fi
 
+screen_width=${BASH_REMATCH[1]}
+screen_height=${BASH_REMATCH[2]}
+cell_width=$((screen_width / 4))
+cell_height=$((screen_height / 2))
 
-REPOS = ("dcs", "asgard-alignment", "asgard_guis", "archive_tools")
-WAG_PATHS = (
-    "/vltuser/asg/dcs.git",
-    "/vltuser/asg/asgard-alignment.git",
-    "/vltuser/asg/asgard_guis",
-    "/vltuser/asg/archive_tools.git",
+# Leave room for window-manager borders and titles. Xterm geometry uses character cells.
+columns=$(((cell_width - 32) / 10))
+rows=$(((cell_height - 64) / 20))
+if ((columns < 20 || rows < 10)); then
+    echo "X display is too small for eight terminals in a 4x2 grid" >&2
+    exit 1
+fi
+
+names=(dcs asgard-alignment asgard_guis archive_tools)
+wag_paths=(
+    /vltuser/asg/dcs.git
+    /vltuser/asg/asgard-alignment.git
+    /vltuser/asg/asgard_guis
+    /vltuser/asg/archive_tools.git
 )
-MONITOR_PATTERN = re.compile(
-    r"^\S+\s+connected(?:\s+primary)?\s+(\d+)x(\d+)([+-]\d+)([+-]\d+)"
-)
 
+for index in "${!names[@]}"; do
+    x=$((index * cell_width + 8))
+    top_geometry="${columns}x${rows}+${x}+8"
+    bottom_geometry="${columns}x${rows}+${x}+$((cell_height + 8))"
 
-def monitor_bounds():
-    output = subprocess.check_output(["xrandr", "--query"], text=True)
-    monitors = []
-    for line in output.splitlines():
-        match = MONITOR_PATTERN.match(line)
-        if match:
-            width, height, x, y = map(int, match.groups())
-            monitors.append((x, y, width, height))
-    if len(monitors) != 2:
-        raise RuntimeError(f"Expected two active X monitors, found {len(monitors)}")
-    return sorted(monitors, key=lambda monitor: (monitor[0], monitor[1]))
-
-
-def outer_frame_size(marker):
-    deadline = time.monotonic() + 3
-    while time.monotonic() < deadline:
-        try:
-            tree = subprocess.check_output(["xwininfo", "-root", "-tree"], text=True)
-        except (OSError, subprocess.CalledProcessError):
-            return None
-        for line in tree.splitlines():
-            if marker not in line:
-                continue
-            match = re.match(r"\s*(0x[0-9a-fA-F]+)\b", line)
-            if not match:
-                continue
-            window_id = match.group(1)
-            for _ in range(12):
-                try:
-                    info = subprocess.check_output(["xwininfo", "-id", window_id], text=True)
-                except (OSError, subprocess.CalledProcessError):
-                    break
-                root = re.search(r"Root window id:\s*(0x[0-9a-fA-F]+)", info)
-                parent = re.search(r"Parent window id:\s*(0x[0-9a-fA-F]+)", info)
-                if not root or not parent:
-                    break
-                if int(parent.group(1), 16) == int(root.group(1), 16):
-                    width = re.search(r"^\s*Width:\s*(\d+)", info, re.MULTILINE)
-                    height = re.search(r"^\s*Height:\s*(\d+)", info, re.MULTILINE)
-                    if width and height:
-                        return int(width.group(1)), int(height.group(1))
-                    break
-                window_id = parent.group(1)
-        time.sleep(0.1)
-    return None
-
-
-def launch(host, repo, wag_path, geometry, xterm_options, marker=None):
-    command = ["xterm", *xterm_options, "-geometry", geometry, "-title", f"{host}: {repo}"]
-    if marker:
-        command.extend(["-name", marker])
-    if host == "wag":
-        command.extend(["-e", "bash", "-c", 'cd "$1" && exec bash -l', "_", wag_path])
-    else:
-        command.extend(
-            ["-e", "ssh", "-t", "mimir", f"cd ~/Progs/repos/{repo} && exec bash -l"]
-        )
-    subprocess.Popen(
-        command,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
-
-
-def main():
-    for monitor_index, (x, y, width, height) in enumerate(monitor_bounds()):
-        if x < 0 or y < 0:
-            raise RuntimeError("Negative X monitor offsets are not supported")
-        tile_width = width // 2
-        tile_height = height // 2
-        columns = (tile_width - 48) // 10
-        rows = (tile_height - 96) // 20
-        if columns < 20 or rows < 10:
-            raise RuntimeError("An X monitor is too small for a 2x2 terminal block")
-
-        first = monitor_index * 2
-        marker = f"asgard-git-terminal-{os.getpid()}-{monitor_index}"
-        size = f"{columns}x{rows}"
-        block_x = x + 8
-        block_y = y + 32
-
-        # Xterm sizes are in character cells; measure its outer frame for touching offsets.
-        launch(
-            "mimir",
-            REPOS[first],
-            WAG_PATHS[first],
-            f"{size}+{block_x}+{block_y}",
-            sys.argv[1:],
-            marker,
-        )
-        frame = outer_frame_size(marker)
-        if frame is None:
-            print("Could not measure Xterm frame; using monitor tile offsets", file=sys.stderr)
-        frame_width, frame_height = frame or (tile_width, tile_height)
-
-        launch(
-            "mimir",
-            REPOS[first + 1],
-            WAG_PATHS[first + 1],
-            f"{size}+{block_x + frame_width}+{block_y}",
-            sys.argv[1:],
-        )
-        launch(
-            "wag",
-            REPOS[first],
-            WAG_PATHS[first],
-            f"{size}+{block_x}+{block_y + frame_height}",
-            sys.argv[1:],
-        )
-        launch(
-            "wag",
-            REPOS[first + 1],
-            WAG_PATHS[first + 1],
-            f"{size}+{block_x + frame_width}+{block_y + frame_height}",
-            sys.argv[1:],
-        )
-
-
-if __name__ == "__main__":
-    main()
+    xterm "$@" -geometry "$top_geometry" -title "wag: ${names[index]}" \
+        -e bash -c 'cd "$1" && exec bash -l' _ "${wag_paths[index]}" \
+        >/dev/null 2>&1 &
+    xterm "$@" -geometry "$bottom_geometry" -title "mimir: ${names[index]}" \
+        -e ssh -t mimir "cd ~/Progs/repos/${names[index]} && exec bash -l" \
+        >/dev/null 2>&1 &
+done
