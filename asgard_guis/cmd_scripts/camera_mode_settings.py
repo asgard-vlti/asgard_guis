@@ -127,9 +127,10 @@ def restore_sky_settings(socket, path=None, now=None):
     path = _snapshot_path(path)
     fps, gain, nbreads, source = settings_for_sky(path, now)
     send_camera_command(socket, f"ndmr_mode {nbreads}")
-    time.sleep(0.1)
+    time.sleep(0.5)
     send_camera_command(socket, f"set_fps {fps}")
-    time.sleep(0.1)
+    time.sleep(0.5)
     send_camera_command(socket, f"set_gain {gain}")
+    time.sleep(0.5)
     path.unlink(missing_ok=True)
     return fps, gain, nbreads, source
