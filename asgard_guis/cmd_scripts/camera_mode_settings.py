@@ -9,7 +9,6 @@ from pathlib import Path
 
 import asgard_guis.utils as agu
 
-
 SNAPSHOT_PATH = Path("/home/asg/.config/s_labmode_camera_settings.json")
 MAX_AGE_SECONDS = 2 * 60 * 60
 DEFAULT_FPS = 1000.0
@@ -45,11 +44,7 @@ def _validate_settings(data):
         or saved_at <= 0
     ):
         raise ValueError("camera settings snapshot has invalid timestamp")
-    if (
-        isinstance(nbreads, bool)
-        or not isinstance(nbreads, int)
-        or nbreads < 1
-    ):
+    if isinstance(nbreads, bool) or not isinstance(nbreads, int) or nbreads < 1:
         raise ValueError("camera settings snapshot has invalid NDMR read count")
     return {
         "gain": gain,
@@ -132,7 +127,9 @@ def restore_sky_settings(socket, path=None, now=None):
     path = _snapshot_path(path)
     fps, gain, nbreads, source = settings_for_sky(path, now)
     send_camera_command(socket, f"ndmr_mode {nbreads}")
+    time.sleep(0.1)
     send_camera_command(socket, f"set_fps {fps}")
+    time.sleep(0.1)
     send_camera_command(socket, f"set_gain {gain}")
     path.unlink(missing_ok=True)
     return fps, gain, nbreads, source
