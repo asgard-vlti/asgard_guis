@@ -7,7 +7,11 @@ readme = "README.md"
 requires-python =">=3.8"
 license = {file = "LICENSE"}
 
+[project.optional-dependencies]
+ob-creator = ["numpy", "astropy", "astroquery"]
+
 [project.scripts] 
+ob-creator = "asgard_guis.cmd_scripts.ob_creator:main"
 temperature-watchdog = "asgard_guis.cmd_scripts.temperature_watchdog:main"
 temperature-plotting = "asgard_guis.cmd_scripts.plot_temps:main"
 mimir-startup = "asgard_guis.cmd_scripts.startup_mimir:main"
@@ -27,7 +31,9 @@ baldr-pupil-mask-alignment = "asgard_guis.cmd_scripts.baldr_pupil_mask_alignment
 [tool.hatch.build.targets.wheel]
 packages = ["asgard_guis"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"templates/no_coords_dynamical.ONAXIS.obd" = "asgard_guis/templates/no_coords_dynamical.ONAXIS.obd"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-

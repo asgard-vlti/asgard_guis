@@ -12,7 +12,7 @@ python asgard_guis/generate_cmd_scripts_reference.py
 
 ## asgard_guis (on wag)
 
-Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 15.
+Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 16.
 
 ### Quick reference
 
@@ -25,6 +25,7 @@ Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlt
 | `logs-client` | `logs-client [LOG_ROOT]` | Launch the Qt log viewer for Asgard server logs. |
 | `mimir-shutdown` | `mimir-shutdown` | Shut down Mimir and power off its configured PDU outlets. |
 | `mimir-startup` | `mimir-startup` | Power on the Mimir PDU outlets and verify that they report on. |
+| `ob-creator` | `ob-creator TARGETS [TARGETS ...] -m {at,ut} [-l LABEL] [-b {STANDARD,FAINT}] [-t TEMPLATE]` | Generate ASGARD Observation Blocks for single or multiple targets. |
 | `pu-search-gui` | `pu-search-gui [--debug]` | Pupil Search GUI |
 | `s-labmode` | `s-labmode` | put solarstein in labmode i.e. flippers up, sbb position and sbb on |
 | `s-skymode` | `s-skymode` | put solarstein in skymode i.e. entrance flippers down, SBB off |
@@ -40,7 +41,7 @@ Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlt
 
 No description provided in source.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/baldr_faint_alignment.py:234`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/baldr_faint_alignment.py#L234)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/baldr_faint_alignment.py:237`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/baldr_faint_alignment.py#L237)
 
 **Invocation:** `baldr-faint-alignment`
 
@@ -105,7 +106,7 @@ Spiral Search GUI
 
 Launch the Qt log viewer for Asgard server logs.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:623`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L623)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:725`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L725)
 
 **Invocation:** `logs-client [LOG_ROOT]`
 
@@ -142,6 +143,28 @@ Power on the Mimir PDU outlets and verify that they report on.
 **Arguments**
 
 _No command-line arguments._
+
+---
+
+#### `ob-creator`
+
+Generate ASGARD Observation Blocks for single or multiple targets.
+
+Example: ob-creator HD123 HD456 --mode ut --label Commu --bldmode FAINT
+
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/ob_creator.py:144`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/ob_creator.py#L144)
+
+**Invocation:** `ob-creator TARGETS [TARGETS ...] -m {at,ut} [-l LABEL] [-b {STANDARD,FAINT}] [-t TEMPLATE]`
+
+**Arguments**
+
+| Argument | Type | Required | Default | Choices | Description |
+| --- | --- | --- | --- | --- | --- |
+| `targets` | `str` | Yes | — | — | List of target star names (e.g., HD123 HD98922) |
+| `-m`, `--mode` | `str` | Yes | — | `at, ut` | Telescope mode: 'at' or 'ut' |
+| `-l`, `--label` | `str` | No | `` | — | Optional label to prepend to the filename |
+| `-b`, `--bldmode` | `str.upper` | No | `None` | `STANDARD, FAINT` | Optional: Override automatic BLDMODE setting (STANDARD or FAINT) |
+| `-t`, `--template` | `Path` | No | `DEFAULT_TEMPLATE` | — | OB template path (default: the template included with asgard_guis) |
 
 ---
 
@@ -210,7 +233,7 @@ ASGARD shortcuts GUI
 
 Poll watchdog status updates from a ZMQ REQ endpoint.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:981`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L981)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:1395`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L1395)
 
 **Invocation:** `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--mds-endpoint MDS_ENDPOINT] [--gui] [--no-gui]`
 
@@ -220,7 +243,7 @@ Poll watchdog status updates from a ZMQ REQ endpoint.
 | --- | --- | --- | --- | --- | --- |
 | `--endpoint`, `--bind-endpoint` | `str` | No | `tcp://mimir:7019` | — | ZMQ endpoint to connect the REQ socket to. |
 | `--request-interval` | `float` | No | `5.0` | — | Seconds between status requests (default: 5.0). |
-| `--mds-endpoint` | `str` | No | `tcp://mimir:5555` | — | MDS endpoint used to query the SDLA position. |
+| `--mds-endpoint` | `str` | No | `tcp://mimir:5555` | — | MDS endpoint used to query the SDLA and BDS positions. |
 | `--gui` | `bool` | No | `True` | — | If the display should be a GUI instead of terminal output |
 | `--no-gui` | `bool` | No | `True` | — | Display watchdog status in the terminal. |
 
@@ -266,7 +289,7 @@ Launch temperature watchdog logger
 
 Launch the Qt command client for the configured Asgard servers.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:486`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/universal_client.py#L486)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:540`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/universal_client.py#L540)
 
 **Invocation:** `text-clients [IP_ADDRESS]`
 
@@ -439,7 +462,7 @@ Behavior:<br>  1) Scan around --start-center to find the first dot.<br>  2) Move
 
 Run the instrument shutdown sequence, optionally including C-RED.
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:238`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/shutdown_instrument.py#L238)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:275`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/shutdown_instrument.py#L275)
 
 **Invocation:** `instrument-shutdown [inc_CRED]`
 
@@ -455,7 +478,7 @@ Run the instrument shutdown sequence, optionally including C-RED.
 
 A full system startup, starting from the case where only mimir is on
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:116`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/startup_instrument.py#L116)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/startup_instrument.py:122`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/startup_instrument.py#L122)
 
 **Invocation:** `instrument-startup`
 
@@ -513,7 +536,7 @@ Autoalign Heimdallr beams.
 
 ## dcs (on mimir)
 
-Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 24.
+Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 25.
 
 ### Quick reference
 
@@ -540,6 +563,7 @@ Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/bl
 | `h-tilts` | `h-tilts` | Run Heimdallr's internal tip/tilt offload method. |
 | `mcs-client` | `mcs-client [--log-location LOG_LOCATION] [--script-only]` | Run the MDS server. |
 | `move-hpol` | `move-hpol BID POS` | Combined HPOL-HFO control |
+| `power-cycle-camera` | `power-cycle-camera` | Power-cycle the C-RED1 camera and restore its cropped server mode on mimir. |
 | `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE] [--is-sim]` | Start logging the fringe tracker performance and settings. |
 | `save-tt-performance` | `save-tt-performance` | Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file. |
 | `text-clients` | `text-clients IP_ADDRESS` | Launch the Qt command client for the configured DCS servers. |
@@ -705,7 +729,7 @@ Set one DM Zernike map on shms[3] and trigger update.
 
 Low-bandwidth DM SHM viewer
 
-**Source:** [`dcs/dcs/cmd_scripts/dmview.py:226`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dmview.py#L226)
+**Source:** [`dcs/dcs/cmd_scripts/dmview.py:233`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dmview.py#L233)
 
 **Invocation:** `dmview BEAM [BEAM ...]`
 
@@ -812,7 +836,7 @@ _No command-line arguments._
 
 Autoalign Heimdallr beams.
 
-**Source:** [`dcs/dcs/cmd_scripts/h_autoalign.py:663`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/h_autoalign.py#L663)
+**Source:** [`dcs/dcs/cmd_scripts/h_autoalign.py:683`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/h_autoalign.py#L683)
 
 **Invocation:** `h-autoalign [--shutter_pause_time SHUTTER_PAUSE_TIME] -a {cp,coarseparallel,ia,imageall,p3,p1,pupil3,pa,pupilall,test_mcs} [-b {K1,K2}] [-s SAVE_PATH] [-p] [-o {internal,mcs,none}] [-n NCUBES] [-t T_PAUSE]`
 
@@ -870,7 +894,7 @@ Run Heimdallr's internal tip/tilt offload method.
 
 Method:<br>1. Read the baseline-averaged power images for K1 and K2.<br>2. Sum the K1 and K2 power images for each baseline.<br>3. Estimate noise from the 15th percentile and calculate each image's SNR.<br>4. Convert baseline centroids into telescope offsets with SNR-weighted least squares.<br>5. Send the resulting tip/tilt steps to the HTTI and HTPI motors through MDS.
 
-**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:102`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/slow_hdlr_tt_offload.py#L102)
+**Source:** [`dcs/heimdallr/slow_hdlr_tt_offload.py:103`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/slow_hdlr_tt_offload.py#L103)
 
 **Invocation:** `h-tilts`
 
@@ -884,7 +908,7 @@ _No command-line arguments._
 
 Run the MDS server.
 
-**Source:** [`dcs/mcs_client/mcs_client.py:982`](https://github.com/asgard-vlti/dcs/blob/main/mcs_client/mcs_client.py#L982)
+**Source:** [`dcs/mcs_client/mcs_client.py:992`](https://github.com/asgard-vlti/dcs/blob/main/mcs_client/mcs_client.py#L992)
 
 **Invocation:** `mcs-client [--log-location LOG_LOCATION] [--script-only]`
 
@@ -914,11 +938,25 @@ Combined HPOL-HFO control
 
 ---
 
+#### `power-cycle-camera`
+
+Power-cycle the C-RED1 camera and restore its cropped server mode on mimir.
+
+**Source:** [`dcs/dcs/cmd_scripts/power_cycle_camera.py:247`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/power_cycle_camera.py#L247)
+
+**Invocation:** `power-cycle-camera`
+
+**Arguments**
+
+_No command-line arguments._
+
+---
+
 #### `save-ft-performance`
 
 Start logging the fringe tracker performance and settings.
 
-**Source:** [`dcs/heimdallr/save_ft_performance.py:175`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/save_ft_performance.py#L175)
+**Source:** [`dcs/heimdallr/save_ft_performance.py:250`](https://github.com/asgard-vlti/dcs/blob/main/heimdallr/save_ft_performance.py#L250)
 
 **Invocation:** `save-ft-performance [--gdrate GDRATE] [--rate RATE] [--is-sim]`
 
@@ -926,8 +964,8 @@ Start logging the fringe tracker performance and settings.
 
 | Argument | Type | Required | Default | Choices | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--gdrate` | `int` | No | `10` | — | Sample rate when group delay tracking in Hz |
-| `--rate` | `int` | No | `1000` | — | Sample rate in Hz |
+| `--gdrate` | `int` | No | `10` | — | Legacy off-mode rate; only the default of 10 Hz is accepted |
+| `--rate` | `int` | No | `1000` | — | Legacy active rate; only the default of 1000 Hz is accepted |
 | `--is-sim` | `bool` | No | `False` | — | Connect to the local simulator and save logs under sim-data |
 
 ---
@@ -936,7 +974,7 @@ Start logging the fringe tracker performance and settings.
 
 Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file.
 
-**Source:** [`dcs/baldr_tt/save_tt_performance.py:184`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_tt_performance.py#L184)
+**Source:** [`dcs/baldr_tt/save_tt_performance.py:187`](https://github.com/asgard-vlti/dcs/blob/main/baldr_tt/save_tt_performance.py#L187)
 
 **Invocation:** `save-tt-performance`
 
