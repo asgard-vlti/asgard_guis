@@ -97,15 +97,15 @@ class SetupFringesTests(unittest.TestCase):
             self.assertLessEqual(placement.y + placement.height, right.y + right.height)
 
     def test_launcher_commands_preserve_existing_routes(self):
-        args = ("wag", "asg", "operator", ":0", "-fn fixed")
+        args = ("operator", ":0", ["-fn", "fixed"])
         dmview = setup_fringes.launch_command("dmview", *args)
         chrome = setup_fringes.launch_command("engineering", *args)
         terminal = setup_fringes.launch_command("terminal", *args)
-        self.assertIn("ssh -XC mimir", dmview[-1])
-        self.assertIn("/home/asg/.conda/envs/asgard/bin/dmview -1", dmview[-1])
+        self.assertEqual(dmview[:3], ["ssh", "-XC", "mimir"])
+        self.assertEqual(dmview[-2:], ["/home/asg/.conda/envs/asgard/bin/dmview", "-1"])
         self.assertEqual(chrome[:5], ["ssh", "-XY", "-t", "operator@wgsgb1", "google-chrome"])
-        self.assertIn("-name SetupFringesMimir", terminal[-1])
-        self.assertIn("-e mimir", terminal[-1])
+        self.assertEqual(terminal[:3], ["xterm", "-fn", "fixed"])
+        self.assertEqual(terminal[-2:], ["-e", "mimir"])
 
     def test_reuse_and_timeout(self):
         existing = [self.window(key) for key in setup_fringes.WINDOW_KEYS]
@@ -167,11 +167,14 @@ class SetupFringesTests(unittest.TestCase):
             stack.enter_context(mock.patch.object(setup_fringes.subprocess, "run"))
             stack.enter_context(mock.patch.object(setup_fringes, "move_to_desktop"))
             stack.enter_context(mock.patch.object(setup_fringes, "position_window"))
-            result = setup_fringes.run("wag", "asg", "operator", ":0", "")
+            result = setup_fringes.run("operator", ":0", [])
 
         self.assertEqual(result, 0)
         self.assertEqual(popen.call_count, 1)
-        self.assertIn("logs-client", popen.call_args.args[0][-1])
+        self.assertEqual(
+            popen.call_args.args[0],
+            ["ssh", "-XC", "mimir", "/home/asg/.conda/envs/asgard/bin/logs-client"],
+        )
 
     def test_missing_window_is_reported_after_timeout(self):
         windows = [
@@ -207,7 +210,7 @@ class SetupFringesTests(unittest.TestCase):
                 mock.patch.object(setup_fringes, "position_window")
             )
             stack.enter_context(mock.patch("sys.stderr", errors))
-            result = setup_fringes.run("wag", "asg", "operator", ":0", "")
+            result = setup_fringes.run("operator", ":0", [])
 
         self.assertEqual(result, 1)
         self.assertIn("Windows did not appear: logs", errors.getvalue())

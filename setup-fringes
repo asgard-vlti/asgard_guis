@@ -4,7 +4,6 @@
 import fcntl
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import sys
@@ -150,14 +149,7 @@ def wait_for_windows(read_windows, desktop, timeout=30, clock=time.monotonic, pa
         pause(0.5)
 
 
-def wag_command(rhost, ruser, display, command):
-    remote = "DISPLAY={} {} 1>&- 2>&- &".format(
-        shlex.quote(display), " ".join(shlex.quote(argument) for argument in command)
-    )
-    return ["remsh", rhost, "-l", ruser, "-n", remote]
-
-
-def launch_command(key, rhost, ruser, op_user, display, xterm_opts):
+def launch_command(key, op_user, display, xterm_opts):
     mimir_commands = {
         "shortcuts": ["shortcuts"],
         "dmview": ["dmview", "-1"],
@@ -171,17 +163,15 @@ def launch_command(key, rhost, ruser, op_user, display, xterm_opts):
     }
     if key in mimir_commands:
         binary, *arguments = mimir_commands[key]
-        command = ["ssh", "-XC", "mimir", MIMIR_BIN + "/" + binary] + arguments
-        return wag_command(rhost, ruser, display, command)
+        return ["ssh", "-XC", "mimir", MIMIR_BIN + "/" + binary] + arguments
     if key in wag_commands:
-        return wag_command(rhost, ruser, display, wag_commands[key])
+        return wag_commands[key]
     if key == "terminal":
-        command = (
+        return (
             ["xterm"]
-            + shlex.split(xterm_opts)
+            + xterm_opts
             + ["-name", "SetupFringesMimir", "-title", "Mimir terminal", "-e", "mimir"]
         )
-        return wag_command(rhost, ruser, display, command)
     if key == "engineering":
         return [
             "ssh",
@@ -290,10 +280,10 @@ def error_detail(error):
     return detail.strip() if detail else str(error)
 
 
-def run(rhost, ruser, op_user, display, xterm_opts):
-    for binary in ("xrandr", "wmctrl", "remsh", "ssh"):
+def run(op_user, display, xterm_opts):
+    for binary in ("xrandr", "wmctrl", "ssh", "xterm"):
         if shutil.which(binary) is None:
-            raise RuntimeError("Required command is missing on wvguws: " + binary)
+            raise RuntimeError("Required command is missing on wag: " + binary)
 
     monitors = parse_monitors(command_output(["xrandr", "--query"]))
     if len(monitors) != 2:
@@ -306,7 +296,7 @@ def run(rhost, ruser, op_user, display, xterm_opts):
     windows = read_windows()
     launched = []
     for key in missing_keys(windows, desktop):
-        command = launch_command(key, rhost, ruser, op_user, display, xterm_opts)
+        command = launch_command(key, op_user, display, xterm_opts)
         try:
             subprocess.Popen(
                 command,
@@ -367,17 +357,18 @@ def run(rhost, ruser, op_user, display, xterm_opts):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    if len(args) != 5 or not all(args[:4]):
+    display = os.environ.get("DISPLAY")
+    if not args or not args[0] or not display:
         print(
-            "Usage: setup-fringes RHOST RUSER OP_USER DISPLAY XTERM_OPTS",
+            "Usage: DISPLAY=host:screen setup-fringes OP_USER [XTERM_OPTS ...]",
             file=sys.stderr,
         )
         return 2
     try:
-        lock_path = os.path.expanduser("~/.pecs/setup-fringes.lock")
+        lock_path = os.path.expanduser("~/.setup-fringes.lock")
         with open(lock_path, "a") as lock_file:
             fcntl.flock(lock_file, fcntl.LOCK_EX)
-            return run(*args)
+            return run(args[0], display, args[1:])
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print("Setup Fringes: " + error_detail(error), file=sys.stderr)
         return 1
