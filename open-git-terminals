@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dimensions=$(xdpyinfo | awk '/dimensions:/ && !found {print $2; found=1}')
+if [[ ! $dimensions =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    echo "Cannot determine X display size" >&2
+    exit 1
+fi
+
+screen_width=${BASH_REMATCH[1]}
+screen_height=${BASH_REMATCH[2]}
+cell_width=$((screen_width / 4))
+cell_height=$((screen_height / 2))
+
+# Leave room for window-manager borders and titles. Xterm geometry uses character cells.
+columns=$(((cell_width - 32) / 10))
+rows=$(((cell_height - 64) / 20))
+if ((columns < 20 || rows < 10)); then
+    echo "X display is too small for eight terminals in a 4x2 grid" >&2
+    exit 1
+fi
+
+names=(dcs asgard-alignment asgard_guis archive_tools)
+wag_paths=(
+    /vltuser/asg/dcs.git
+    /vltuser/asg/asgard-alignment.git
+    /vltuser/asg/asgard_guis
+    /vltuser/asg/archive_tools.git
+)
+
+for index in "${!names[@]}"; do
+    x=$((index * cell_width + 8))
+    top_geometry="${columns}x${rows}+${x}+8"
+    bottom_geometry="${columns}x${rows}+${x}+$((cell_height + 8))"
+
+    xterm "$@" -geometry "$top_geometry" -title "wag: ${names[index]}" \
+        -e bash -c 'cd "$1" && exec bash -l' _ "${wag_paths[index]}" \
+        >/dev/null 2>&1 &
+    xterm "$@" -geometry "$bottom_geometry" -title "mimir: ${names[index]}" \
+        -e ssh -t mimir "cd ~/Progs/repos/${names[index]} && exec bash -l" \
+        >/dev/null 2>&1 &
+done
