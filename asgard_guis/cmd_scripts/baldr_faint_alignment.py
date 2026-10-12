@@ -117,6 +117,7 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 		self.move_delta_label.setText(f"Move Delta: {self.move_delta:g}")
 
 	def _set_spherical(self, enabled):
+		self.align_btn.setDisabled(enabled)
 		if enabled:
 			beam = self.beam_combo.currentText()
 			self._run_script("dm-zernike", [beam, "11", "0.1"])
@@ -209,6 +210,11 @@ class BaldrFaintAlignmentGUI(QtWidgets.QWidget):
 			}
 			QPushButton:pressed, QToolButton:pressed {
 				background-color: #24282e;
+			}
+			QPushButton:disabled {
+				background-color: #23252a;
+				border-color: #373a3f;
+				color: #777d86;
 			}
 			QComboBox {
 				background-color: #272a30;
