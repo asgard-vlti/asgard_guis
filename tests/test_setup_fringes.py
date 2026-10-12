@@ -62,6 +62,18 @@ class SetupFringesTests(unittest.TestCase):
             2,
         )
 
+    def test_mirrored_outputs_share_one_usable_monitor_region(self):
+        monitors = setup_fringes.parse_monitors(
+            "HDMI-1 connected primary 1920x1200+0+0\n"
+            "HDMI-2 connected 1920x1200+1920+0\n"
+            "DP-4 connected 1920x1080+0+0\n"
+        )
+        self.assertEqual([monitor.name for monitor in monitors], ["HDMI-1", "HDMI-2"])
+        self.assertEqual((monitors[0].width, monitors[0].height), (1920, 1080))
+        self.assertTrue(monitors[0].primary)
+        text = setup_fringes.geometry_for("text", *monitors)
+        self.assertLessEqual(text.y + text.height, monitors[0].height)
+
     def test_layout_uses_left_monitor_even_when_right_is_primary(self):
         monitors = setup_fringes.parse_monitors(
             "DP-1 connected 1920x1080+0+0\n"
@@ -199,6 +211,7 @@ class SetupFringesTests(unittest.TestCase):
                 return (
                     "DP-1 connected primary 1920x1080+0+0\n"
                     "DP-2 connected 1920x1080+1920+0\n"
+                    "DP-3 connected 1920x1080+0+0\n"
                 )
             return "2  * DG: 1x1\n"
 

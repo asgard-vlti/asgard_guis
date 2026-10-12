@@ -63,15 +63,27 @@ class Geometry:
 
 
 def parse_monitors(output):
-    monitors = []
+    monitors = {}
     for line in output.splitlines():
         match = MONITOR_PATTERN.match(line)
         if match:
             name, primary, width, height, x, y = match.groups()
-            monitors.append(
-                Monitor(name, int(x), int(y), int(width), int(height), bool(primary))
+            monitor = Monitor(name, int(x), int(y), int(width), int(height), bool(primary))
+            origin = (monitor.x, monitor.y)
+            mirrored = monitors.get(origin)
+            if mirrored is None:
+                monitors[origin] = monitor
+                continue
+            # Use the area visible on every output mirrored at this origin.
+            monitors[origin] = Monitor(
+                monitor.name if monitor.primary else mirrored.name,
+                monitor.x,
+                monitor.y,
+                min(mirrored.width, monitor.width),
+                min(mirrored.height, monitor.height),
+                mirrored.primary or monitor.primary,
             )
-    return sorted(monitors, key=lambda monitor: (monitor.x, monitor.y))
+    return sorted(monitors.values(), key=lambda monitor: (monitor.x, monitor.y))
 
 
 def parse_current_desktop(output):
@@ -299,7 +311,7 @@ def run(op_user, display, xterm_opts):
 
     monitors = parse_monitors(command_output(["xrandr", "--query"]))
     if len(monitors) != 2:
-        raise RuntimeError("Expected two active X monitors; found {}".format(len(monitors)))
+        raise RuntimeError("Expected two X monitor regions; found {}".format(len(monitors)))
     left, right = monitors
     desktop = parse_current_desktop(command_output(["wmctrl", "-d"]))
     windows = read_windows(desktop)
@@ -313,7 +325,6 @@ def run(op_user, display, xterm_opts):
                 command,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
             )
             launched.append(key)
         except OSError as error:
