@@ -14,6 +14,9 @@ from dataclasses import dataclass
 MONITOR_PATTERN = re.compile(
     r"^(\S+) connected( primary)? (\d+)x(\d+)([+-]\d+)([+-]\d+)"
 )
+TREE_WINDOW_PATTERN = re.compile(
+    r'^\s*(0x[0-9a-fA-F]+) "([^"]*)": \((.*)\)\s+(\d+)x(\d+)\S*\s+(\S+)\s*$'
+)
 MIMIR_BIN = "/home/asg/.conda/envs/asgard/bin"
 WINDOW_KEYS = (
     "h_guis",
@@ -96,12 +99,39 @@ def parse_windows(output):
                     int(y),
                     int(width),
                     int(height),
-                    fields[8],
+                    fields[7],
                     fields[9],
                 )
             )
         except ValueError:
             continue
+    return windows
+
+
+def parse_tree_windows(output, desktop):
+    windows = []
+    for line in output.splitlines():
+        match = TREE_WINDOW_PATTERN.match(line)
+        if match is None:
+            continue
+        wid, title, class_hint, width, height, absolute = match.groups()
+        coordinates = re.findall(r"[+-]-?\d+", absolute)
+        if len(coordinates) != 2:
+            continue
+        class_parts = re.findall(r'"([^"]*)"', class_hint)
+        windows.append(
+            Window(
+                wid,
+                desktop,
+                0,
+                int(coordinates[0].replace("+-", "-")),
+                int(coordinates[1].replace("+-", "-")),
+                int(width),
+                int(height),
+                ".".join(class_parts),
+                title,
+            )
+        )
     return windows
 
 
@@ -188,7 +218,7 @@ def launch_command(key, op_user, display, xterm_opts):
     raise ValueError("Unknown window: " + key)
 
 
-def geometry_for(key, left, right, window):
+def geometry_for(key, left, right):
     if key == "h_guis":
         return None
     if key == "rtd":
@@ -198,9 +228,9 @@ def geometry_for(key, left, right, window):
         height = min(500, int(left.height * 0.55))
         return Geometry(left.x + 8, left.y + left.height - height - 40, width, height)
     if key == "shortcuts":
-        text = geometry_for("text", left, right, window)
-        width = min(window.width, max(300, int(left.width * 0.25)))
-        height = min(window.height, int(left.height * 0.58))
+        text = geometry_for("text", left, right)
+        width = min(451, max(300, int(left.width * 0.25)))
+        height = min(667, left.height - 56)
         return Geometry(
             text.x + text.width + 8,
             left.y + left.height - height - 40,
@@ -222,55 +252,37 @@ def geometry_for(key, left, right, window):
         width = min(950, int(right.width * 0.43))
         height = min(650, int(right.height * 0.53))
         return Geometry(max_right - width, right.y + 8, width, height)
-    if key == "engineering":
-        width = min(1000, int(right.width * 0.43))
-        height = min(700, int(right.height * 0.38))
-        return Geometry(max_right - width, max_bottom - height, width, height)
-    if key == "terminal":
-        width = min(520, int(right.width * 0.28))
-        height = min(330, int(right.height * 0.30))
-        return Geometry(
-            right.x + (right.width - width) // 2,
-            right.y + (right.height - height) // 2,
-            width,
-            height,
-        )
+    if key in ("engineering", "terminal"):
+        return None
     raise ValueError("Unknown window: " + key)
+
+
+def format_geometry(geometry):
+    return "{}x{}{:+d}{:+d}".format(
+        geometry.width, geometry.height, geometry.x, geometry.y
+    )
+
+
+def command_with_geometry(command, key, left, right):
+    geometry = geometry_for(key, left, right)
+    if geometry is None:
+        return command
+    setting = "ASGARD_SETUP_FRINGES_GEOMETRY=" + format_geometry(geometry)
+    if command[0] == "ssh":
+        host = command.index("mimir")
+        return command[: host + 1] + ["env", setting] + command[host + 1 :]
+    return ["env", setting] + command
 
 
 def command_output(command):
     return subprocess.check_output(command, text=True, stderr=subprocess.PIPE)
 
 
-def read_windows():
-    return parse_windows(command_output(["wmctrl", "-lpGx"]))
-
-
-def move_to_desktop(window, desktop):
-    if window.desktop != desktop:
-        subprocess.run(
-            ["wmctrl", "-ir", window.wid, "-t", str(desktop)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-
-
-def position_window(window, geometry):
-    subprocess.run(
-        [
-            "wmctrl",
-            "-ir",
-            window.wid,
-            "-e",
-            "0,{},{},{},{}".format(
-                geometry.x, geometry.y, geometry.width, geometry.height
-            ),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+def read_windows(desktop):
+    windows = parse_windows(command_output(["wmctrl", "-lpGx"]))
+    if windows:
+        return windows
+    return parse_tree_windows(command_output(["xwininfo", "-root", "-tree"]), desktop)
 
 
 def error_detail(error):
@@ -281,7 +293,7 @@ def error_detail(error):
 
 
 def run(op_user, display, xterm_opts):
-    for binary in ("xrandr", "wmctrl", "ssh", "xterm"):
+    for binary in ("xrandr", "wmctrl", "xwininfo", "ssh", "xterm"):
         if shutil.which(binary) is None:
             raise RuntimeError("Required command is missing on wag: " + binary)
 
@@ -289,14 +301,13 @@ def run(op_user, display, xterm_opts):
     if len(monitors) != 2:
         raise RuntimeError("Expected two active X monitors; found {}".format(len(monitors)))
     left, right = monitors
-    if not left.primary:
-        print("Warning: the left monitor is not the Qt primary screen", file=sys.stderr)
-
     desktop = parse_current_desktop(command_output(["wmctrl", "-d"]))
-    windows = read_windows()
+    windows = read_windows(desktop)
     launched = []
     for key in missing_keys(windows, desktop):
-        command = launch_command(key, op_user, display, xterm_opts)
+        command = command_with_geometry(
+            launch_command(key, op_user, display, xterm_opts), key, left, right
+        )
         try:
             subprocess.Popen(
                 command,
@@ -309,50 +320,13 @@ def run(op_user, display, xterm_opts):
             print("Could not launch {}: {}".format(key, error), file=sys.stderr)
 
     if launched:
-        windows = wait_for_windows(read_windows, desktop)
+        windows = wait_for_windows(lambda: read_windows(desktop), desktop)
 
-    missing = []
-    failed = False
-    for key in WINDOW_KEYS:
-        window = find_window(key, windows, desktop)
-        if window is None:
-            missing.append(key)
-            continue
-        try:
-            move_to_desktop(window, desktop)
-            if key == "h_guis":
-                if window.pid > 0:
-                    for companion in windows:
-                        if companion.pid == window.pid and companion.wid != window.wid:
-                            move_to_desktop(companion, desktop)
-                continue
-            position_window(window, geometry_for(key, left, right, window))
-        except subprocess.CalledProcessError as error:
-            print(
-                "Could not arrange {}: {}".format(key, error_detail(error)),
-                file=sys.stderr,
-            )
-            failed = True
-
-    terminal = find_window("terminal", windows, desktop)
-    if terminal is not None:
-        try:
-            subprocess.run(
-                ["wmctrl", "-ia", terminal.wid],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        except subprocess.CalledProcessError as error:
-            print(
-                "Could not raise Mimir terminal: {}".format(error_detail(error)),
-                file=sys.stderr,
-            )
-            failed = True
+    missing = missing_keys(windows, desktop)
 
     if missing:
         print("Windows did not appear: " + ", ".join(missing), file=sys.stderr)
-    return 1 if missing or failed else 0
+    return 1 if missing else 0
 
 
 def main(argv=None):

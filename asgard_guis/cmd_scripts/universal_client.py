@@ -6,6 +6,8 @@ import json
 from PyQt5 import QtWidgets, QtGui, QtCore
 import html
 
+from asgard_guis.cmd_scripts.window_geometry import apply_startup_geometry
+
 sockets = [
     ("cam_server", [6667]),
     ("DM_server", [6666]),
@@ -551,6 +553,7 @@ def main():
     app = QtWidgets.QApplication([])
     apply_dark_theme(app)
     client = UniversalClient(args.ip_address, servers)
+    apply_startup_geometry(client)
     client.show()
     sys.exit(app.exec_())
 
