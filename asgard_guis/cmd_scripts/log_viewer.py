@@ -36,7 +36,7 @@ TELEM_LOCK_KEYS = {
 ANSI_PATTERN = re.compile(r"\x1b\[([0-9;]*)m")
 ANSI_STRIP_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 SEVERITY_PATTERN = re.compile(
-    r"^\s*(?:(?:\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?|\[[^\]\n]+\])\s+)?"
+    r"^\s*(?:(?:\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\[[^\]\n]+\])\s+)?"
     r"(?:\[(?P<bracket>ERROR|WARN(?:ING)?)\]|(?P<plain>ERROR|WARN(?:ING)?)(?=\s|:|$))",
     re.IGNORECASE,
 )

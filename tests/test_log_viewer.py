@@ -40,6 +40,18 @@ class LogRenderingTests(unittest.TestCase):
         self.assertIn(f'<span style="color: {log_viewer.WARNING_COLOR}">WARN</span>', rendered)
         self.assertIn(": &amp; retry", rendered)
 
+    def test_explicit_timezones_keep_ansi_severity_highlighting(self):
+        for timestamp in (
+            "2026-10-12T00:00:00.123Z",
+            "2026-10-12T00:00:00Z",
+            "2026-10-11T21:00:00.123-03:00",
+            "2026-10-12 00:00:00,123+0000",
+        ):
+            with self.subTest(timestamp=timestamp):
+                rendered = self.render(f"{timestamp} \x1b[31m[ERROR]\x1b[0m failed\n")
+                self.assertIn(log_viewer.ERROR_COLOR, rendered)
+                self.assertIn("failed", rendered)
+
     def test_ansi_sequence_inside_label_keeps_severity_color(self):
         text = "ER\x1b[34mROR: failed\x1b[0m"
         rendered = self.render(text)

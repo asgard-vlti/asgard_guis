@@ -2,7 +2,7 @@ import sys
 import os
 import glob
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import numpy as np
 import argparse
 import time
@@ -10,6 +10,15 @@ import time
 from PyQt5 import QtWidgets, QtCore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.dates import AutoDateLocator, AutoDateFormatter
+
+
+def parse_timestamp(value):
+    """Read explicit ISO timestamps or historical UTC rows written on wag."""
+    timestamp = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    return timestamp.astimezone(timezone.utc)
 
 
 class TempPlotWidget(QtWidgets.QWidget):
@@ -64,7 +73,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                 for row in reader:
                     if not row:
                         continue
-                    self.times.append(datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S"))
+                    self.times.append(parse_timestamp(row[0]))
                     converted_row = []
                     for name, x in zip(self.probe_names, row[1:]):
                         if x == "None":
@@ -90,7 +99,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                 for row in reader:
                     if not row:
                         continue
-                    self.times.append(datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S"))
+                    self.times.append(parse_timestamp(row[0]))
                     converted_row = []
                     for name, x in zip(self.probe_names, row[1:]):
                         if x == "None":
@@ -257,7 +266,12 @@ class TempPlotWidget(QtWidgets.QWidget):
                 ax.tick_params(labelbottom=False)
 
         # Only the last subplot shows xtick labels
-        self.axes[-1].set_xlabel("Time")
+        locator = AutoDateLocator(tz=timezone.utc)
+        self.axes[-1].xaxis.set_major_locator(locator)
+        self.axes[-1].xaxis.set_major_formatter(
+            AutoDateFormatter(locator, tz=timezone.utc)
+        )
+        self.axes[-1].set_xlabel("Time (UTC)")
 #        self.figure.tight_layout()
         self.canvas.draw()
 

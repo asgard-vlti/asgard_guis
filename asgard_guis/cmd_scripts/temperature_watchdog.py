@@ -7,6 +7,7 @@ import asgard_guis.PDU
 import os
 import asgard_guis.utils
 import argparse
+from datetime import datetime, timezone
 
 
 def str_to_ls(s):
@@ -33,7 +34,7 @@ def main():
     duration = args.duration * 60 * 60  # convert hours to seconds
     sampling = args.sampling
 
-    cur_datetime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    cur_datetime = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     savepth = os.path.expanduser(
         os.path.join("~", "logs", "templogs", f"tempWD_{cur_datetime}.log")
     )
@@ -73,7 +74,9 @@ def main():
                     mds, "temp_status now"
                 )
                 temp_status = str_to_ls(temp_status)
-                current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                current_time = datetime.now(timezone.utc).isoformat(
+                    timespec="milliseconds"
+                ).replace("+00:00", "Z")
                 print(temp_status)
                 f.write(
                     current_time
