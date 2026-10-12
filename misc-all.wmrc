@@ -20,7 +20,7 @@ Menu VltMenu1
     "ASGARD"            f.title
     "Xterm on mimir"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e mimir 1>&- 2>&- &\""
     "Xterm on munnin"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY xterm $XTERM_OPTS -e munnin 1>&- 2>&- &\""
-    "git terminals"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY /vltuser/asg/asgard_guis/open-git-terminals $XTERM_OPTS 1>&- 2>&- &\""
+    "dev ..."           f.menu Dev
     no-label             f.separator
     "Operations ..."     f.menu Operations
     no-label             f.separator
@@ -32,6 +32,12 @@ Menu VltMenu1
     "Heimdallr/Baldr Panels ... " f.menu HdlrBaldrPanels
     "Bifrost Panels ..." f.menu BifrostPanels
     "RTDs ..."           f.menu Rtds
+}
+
+Menu Dev
+{
+    "dev"               f.title
+    "git terminals"     f.exec "remsh $RHOST -l $RUSER -n \"DISPLAY=$DISPLAY /vltuser/asg/asgard_guis/open-git-terminals $XTERM_OPTS 1>&- 2>&- &\""
 }
 
 Menu Operations
