@@ -11,6 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 DEFAULT_LOG_ROOT = "/home/asg/logs"
 TAIL_LINES = 100
 REFRESH_MS = 1000
+LOG_FILENAME_PATTERN = re.compile(r"log_\d{8}T\d{6}\.\d{9}Z_\d+\.txt\Z")
 
 SERVER_DIRS = [
     "mds",
@@ -366,8 +367,26 @@ class LogTab(QtWidgets.QWidget):
     def log_path(self):
         if self.with_baldr_selector and self.instance_dropdown is not None:
             instance = self.instance_dropdown.currentText()
-            return os.path.join(self.log_root, self.relative_log_dir, instance, "log.txt")
-        return os.path.join(self.log_root, self.relative_log_dir, "log.txt")
+            log_dir = os.path.join(self.log_root, self.relative_log_dir, instance)
+        else:
+            log_dir = os.path.join(self.log_root, self.relative_log_dir)
+
+        try:
+            with os.scandir(log_dir) as entries:
+                latest = max(
+                    (
+                        entry.name
+                        for entry in entries
+                        if entry.is_file() and LOG_FILENAME_PATTERN.fullmatch(entry.name)
+                    ),
+                    default=None,
+                )
+        except OSError:
+            latest = None
+
+        if latest is not None:
+            return os.path.join(log_dir, latest)
+        return os.path.join(log_dir, "log.txt")
 
     def server_key(self):
         if self.with_baldr_selector and self.instance_dropdown is not None:
@@ -398,7 +417,8 @@ class LogTab(QtWidgets.QWidget):
         path = self.log_path()
 
         try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            if not os.path.isfile(path):
+                return
             with open(path, "a", encoding="utf-8") as log_file:
                 log_file.write(control_line + "\n")
         except OSError:
