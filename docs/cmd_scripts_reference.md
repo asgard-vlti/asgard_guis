@@ -12,7 +12,7 @@ python asgard_guis/generate_cmd_scripts_reference.py
 
 ## asgard_guis (on wag)
 
-Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 16.
+Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlti/asgard_guis/blob/main/pyproject.toml): 17.
 
 ### Quick reference
 
@@ -27,6 +27,7 @@ Scripts declared in [`asgard_guis/pyproject.toml`](https://github.com/asgard-vlt
 | `mimir-startup` | `mimir-startup` | Power on the Mimir PDU outlets and verify that they report on. |
 | `ob-creator` | `ob-creator TARGETS [TARGETS ...] -m {at,ut} [-l LABEL] [-b {STANDARD,FAINT}] [-t TEMPLATE]` | Generate ASGARD Observation Blocks for single or multiple targets. |
 | `pu-search-gui` | `pu-search-gui [--debug]` | Pupil Search GUI |
+| `read-all-pdu` | `read-all-pdu` | Print one outlet number and status per line. |
 | `s-labmode` | `s-labmode` | put solarstein in labmode i.e. flippers up, sbb position and sbb on |
 | `s-skymode` | `s-skymode` | put solarstein in skymode i.e. entrance flippers down, SBB off |
 | `shortcuts` | `shortcuts [--host HOST] [--debug]` | ASGARD shortcuts GUI |
@@ -106,7 +107,7 @@ Spiral Search GUI
 
 Launch the Qt log viewer for Asgard server logs.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:745`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L745)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/log_viewer.py:747`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/log_viewer.py#L747)
 
 **Invocation:** `logs-client [LOG_ROOT]`
 
@@ -122,7 +123,7 @@ Launch the Qt log viewer for Asgard server logs.
 
 Shut down Mimir and power off its configured PDU outlets.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shutdown_mimir.py:22`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shutdown_mimir.py#L22)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shutdown_mimir.py:19`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shutdown_mimir.py#L19)
 
 **Invocation:** `mimir-shutdown`
 
@@ -136,7 +137,7 @@ _No command-line arguments._
 
 Power on the Mimir PDU outlets and verify that they report on.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/startup_mimir.py:9`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/startup_mimir.py#L9)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/startup_mimir.py:6`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/startup_mimir.py#L6)
 
 **Invocation:** `mimir-startup`
 
@@ -184,6 +185,20 @@ Pupil Search GUI
 
 ---
 
+#### `read-all-pdu`
+
+Print one outlet number and status per line.
+
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/read_all_pdu.py:7`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/read_all_pdu.py#L7)
+
+**Invocation:** `read-all-pdu`
+
+**Arguments**
+
+_No command-line arguments._
+
+---
+
 #### `s-labmode`
 
 put solarstein in labmode i.e. flippers up, sbb position and sbb on
@@ -216,7 +231,7 @@ _No command-line arguments._
 
 ASGARD shortcuts GUI
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:1260`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shortcuts.py#L1260)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/shortcuts.py:1262`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/shortcuts.py#L1262)
 
 **Invocation:** `shortcuts [--host HOST] [--debug]`
 
@@ -233,7 +248,7 @@ ASGARD shortcuts GUI
 
 Poll watchdog status updates from a ZMQ REQ endpoint.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:1436`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L1436)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/status.py:1438`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/status.py#L1438)
 
 **Invocation:** `status-mimir [--endpoint ENDPOINT] [--request-interval REQUEST_INTERVAL] [--mds-endpoint MDS_ENDPOINT] [--gui] [--no-gui]`
 
@@ -253,7 +268,7 @@ Poll watchdog status updates from a ZMQ REQ endpoint.
 
 Plot temperature logs from temperature_watchdog.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/plot_temps.py:275`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/plot_temps.py#L275)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/plot_temps.py:283`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/plot_temps.py#L283)
 
 **Invocation:** `temperature-plotting [LOGFILE] [--window WINDOW] [--interval INTERVAL] [--lookback LOOKBACK]`
 
@@ -272,7 +287,7 @@ Plot temperature logs from temperature_watchdog.
 
 Launch temperature watchdog logger
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/temperature_watchdog.py:20`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/temperature_watchdog.py#L20)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/temperature_watchdog.py:29`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/temperature_watchdog.py#L29)
 
 **Invocation:** `temperature-watchdog [--duration DURATION] [--sampling SAMPLING]`
 
@@ -289,7 +304,7 @@ Launch temperature watchdog logger
 
 Launch the Qt command client for the configured Asgard servers.
 
-**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:540`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/universal_client.py#L540)
+**Source:** [`asgard_guis/asgard_guis/cmd_scripts/universal_client.py:542`](https://github.com/asgard-vlti/asgard_guis/blob/main/asgard_guis/cmd_scripts/universal_client.py#L542)
 
 **Invocation:** `text-clients [IP_ADDRESS]`
 
@@ -462,7 +477,7 @@ Behavior:<br>  1) Scan around --start-center to find the first dot.<br>  2) Move
 
 Run the instrument shutdown sequence, optionally including C-RED.
 
-**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:389`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/shutdown_instrument.py#L389)
+**Source:** [`asgard-alignment/asgard_alignment/cmd_scripts/shutdown_instrument.py:303`](https://github.com/asgard-vlti/asgard-alignment/blob/main/asgard_alignment/cmd_scripts/shutdown_instrument.py#L303)
 
 **Invocation:** `instrument-shutdown [inc_CRED]`
 
@@ -535,7 +550,7 @@ Autoalign Heimdallr beams.
 
 ## dcs (on mimir)
 
-Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 25.
+Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/blob/main/pyproject.toml): 26.
 
 ### Quick reference
 
@@ -565,6 +580,7 @@ Scripts declared in [`dcs/pyproject.toml`](https://github.com/asgard-vlti/dcs/bl
 | `power-cycle-camera` | `power-cycle-camera` | Power-cycle the C-RED1 camera and restore its cropped server mode on mimir. |
 | `save-ft-performance` | `save-ft-performance [--gdrate GDRATE] [--rate RATE] [--is-sim]` | Start logging the fringe tracker performance and settings. |
 | `save-tt-performance` | `save-tt-performance` | Save telemetry when baldr is running in faint mode. Also saves the settings at a slower rate (1 Hz) to a separate file. |
+| `sparkles` | `sparkles [BEAM]` | Static DM sparkles control panel |
 | `text-clients` | `text-clients IP_ADDRESS` | Launch the Qt command client for the configured DCS servers. |
 
 ### Script details
@@ -605,7 +621,7 @@ Move baldrN ROI to center using baldr_tt peak.
 
 Acquire the singleton lock and run the Asgard back-end server.
 
-**Source:** [`dcs/back_end_server/back_end_server.py:836`](https://github.com/asgard-vlti/dcs/blob/main/back_end_server/back_end_server.py#L836)
+**Source:** [`dcs/back_end_server/back_end_server.py:828`](https://github.com/asgard-vlti/dcs/blob/main/back_end_server/back_end_server.py#L828)
 
 **Invocation:** `back-end-server`
 
@@ -728,7 +744,7 @@ Set one DM Zernike map on shms[3] and trigger update.
 
 Low-bandwidth DM SHM viewer
 
-**Source:** [`dcs/dcs/cmd_scripts/dmview.py:233`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dmview.py#L233)
+**Source:** [`dcs/dcs/cmd_scripts/dmview.py:235`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/dmview.py#L235)
 
 **Invocation:** `dmview BEAM [BEAM ...]`
 
@@ -982,6 +998,22 @@ Save telemetry when baldr is running in faint mode. Also saves the settings at a
 **Arguments**
 
 _No command-line arguments._
+
+---
+
+#### `sparkles`
+
+Static DM sparkles control panel
+
+**Source:** [`dcs/dcs/cmd_scripts/sparkles.py:267`](https://github.com/asgard-vlti/dcs/blob/main/dcs/cmd_scripts/sparkles.py#L267)
+
+**Invocation:** `sparkles [BEAM]`
+
+**Arguments**
+
+| Argument | Type | Required | Default | Choices | Description |
+| --- | --- | --- | --- | --- | --- |
+| `beam` | `int` | No | `1` | `range(1, 5)` | — |
 
 ---
 

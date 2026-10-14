@@ -11,8 +11,8 @@ select another template.
 
 ## PDU configuration
 
-The `mimir-startup`, `mimir-shutdown`, and `temperature-watchdog` commands read
-the PDU IP and outlet assignments from the packaged
+The `mimir-startup`, `mimir-shutdown`, `read-all-pdu`, and `temperature-watchdog`
+commands read the PDU IP and outlet assignments from the packaged
 [`asgard_guis/pdu.toml`](asgard_guis/pdu.toml). Each outlet has a list of devices,
 so a device may use multiple outlets and an outlet may supply multiple devices.
 The current assignments are Mimir on outlets 1 and 8, MDS on 5, and C-RED on 6.
@@ -22,3 +22,6 @@ Edit that TOML in the source checkout and reinstall `asgard_guis` on wag for a
 change to take effect. Invalid or missing assignments stop the affected command
 before it connects to the PDU or starts a shutdown. Temperature logs keep the
 outlet names recorded when they were created, so older logs still plot correctly.
+
+Run `read-all-pdu` on wag to print the status of each configured outlet as
+`outlet: status`, ordered by outlet number.

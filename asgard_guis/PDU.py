@@ -71,7 +71,8 @@ class AtenEcoPDU:
             # Read response after login
             response = self.tn.read_until(b"Logged in successfully", self.timeout)
             if b"Logged in successfully" in response:
-                print("Login successful!")
+                if verbose:
+                    print("Login successful!")
                 # Read the command line prompt (e.g., 'PE Telnet server 1.1\n>')
                 self.tn.read_until(
                     b">", self.timeout
@@ -80,7 +81,7 @@ class AtenEcoPDU:
             else:
                 print(response)
                 print("Login failed. Check username/password or PDU status.")
-                self.close()
+                self.close(verbose=verbose)
                 return False
         except Exception as e:
             print(f"Error connecting or logging in: {e}")
@@ -240,20 +241,22 @@ class AtenEcoPDU:
         command = f"read sensor o{padded_sensor} {return_string}"
         return self._send_command(command)
 
-    def close(self):
+    def close(self, verbose=True):
         """
         Closes the Telnet session.
         """
         if self.connected and self.tn:
             try:
-                print("Closing Telnet session...")
+                if verbose:
+                    print("Closing Telnet session...")
                 self._send_command(
                     "quit", expected_response=b""
                 )  # 'quit' command doesn't always return a prompt
                 self.tn.close()
                 self.connected = False
-                print("Telnet session closed.")
+                if verbose:
+                    print("Telnet session closed.")
             except Exception as e:
                 print(f"Error closing Telnet session: {e}")
-        else:
+        elif verbose:
             print("No active Telnet session to close.")
