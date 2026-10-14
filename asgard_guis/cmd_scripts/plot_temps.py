@@ -2,6 +2,7 @@ import sys
 import os
 import glob
 import csv
+import re
 from datetime import datetime
 import numpy as np
 import argparse
@@ -10,6 +11,13 @@ import time
 from PyQt5 import QtWidgets, QtCore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+
+def outlet_columns(probe_names):
+    """Read outlet traces from the log that was recorded, regardless of current config."""
+    return [
+        name for name in probe_names if re.match(r"^outlet[1-9]\d*(?:\s|$)", name)
+    ]
 
 
 class TempPlotWidget(QtWidgets.QWidget):
@@ -74,7 +82,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                         else:
                             converted_row.append(float(x))
                     self.probe_data.append(converted_row)
-                self.file_pos = f.tell()
+                self.file_pos = f.seek(0, os.SEEK_END)
         except Exception as e:
             print(f"Error initializing data: {e}")
             self.times = []
@@ -100,7 +108,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                         else:
                             converted_row.append(float(x))
                     self.probe_data.append(converted_row)
-                self.file_pos = f.tell()
+                self.file_pos = f.seek(0, os.SEEK_END)
         except Exception as e:
             print(f"Error appending new data: {e}")
 
@@ -152,7 +160,7 @@ class TempPlotWidget(QtWidgets.QWidget):
                 "PI Coeffs",
                 (0, None),
             ),
-            (["outlet5 (MDS)", "outlet6 (C RED)"], "Current (amps)", (0, None)),
+            (outlet_columns(probe_names), "Current (amps)", (0, None)),
         ]
 
         # Calculate rolling window size in samples

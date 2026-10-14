@@ -1,11 +1,8 @@
 import asgard_guis.PDU
+from asgard_guis.pdu_config import load_pdu_config
 import time
 import subprocess
 import os
-
-# FIXME have these imported from somewhere common
-MIMIR_OUTLETS = [1, 8]
-PDU_IP_ADDRESS = "192.168.100.11"
 
 
 def _confirm_or_abort(message):
@@ -22,7 +19,9 @@ def _confirm_or_abort(message):
 def main():
     """Shut down Mimir and power off its configured PDU outlets."""
 
-    pdu = asgard_guis.PDU.AtenEcoPDU(PDU_IP_ADDRESS)
+    config = load_pdu_config()
+    mimir_outlets = config.outlets_for("Mimir")
+    pdu = asgard_guis.PDU.AtenEcoPDU(config.ip)
     pdu.connect()
 
     proceed_to_poweroff = True
@@ -55,7 +54,7 @@ def main():
         print("ERROR: Mimir power off has been aborted.")
         return
 
-    for outlet in MIMIR_OUTLETS:
+    for outlet in mimir_outlets:
         pdu.switch_outlet_status(outlet, "off")
 
     # Add a 30 second wait to allow shutdown to progress
@@ -64,15 +63,15 @@ def main():
 
     print("Powering off Mimir outlets...")
 
-    is_off = [False for _ in MIMIR_OUTLETS]
+    is_off = [False for _ in mimir_outlets]
     max_time = 60
     start_time = time.time()
 
     while (not all(is_off)) and (time.time() - start_time < max_time):
-        for outlet in MIMIR_OUTLETS:
+        for outlet in mimir_outlets:
             status = pdu.read_outlet_status(outlet)
             if status == "off":
-                is_off[MIMIR_OUTLETS.index(outlet)] = True
+                is_off[mimir_outlets.index(outlet)] = True
                 print(f"Outlet {outlet} is off")
 
         time.sleep(1)
@@ -81,7 +80,7 @@ def main():
         print("--- Finished: Mimir is off (you may now close this window) ---")
     else:
         print("ERROR: Mimir is not off, check PDU status manually")
-        for outlet, status in zip(MIMIR_OUTLETS, is_off):
+        for outlet, status in zip(mimir_outlets, is_off):
             if not status:
                 print(f"Outlet {outlet} is still on")
 

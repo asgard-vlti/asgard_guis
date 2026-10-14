@@ -4,9 +4,11 @@
 
 import time
 import asgard_guis.PDU
+from asgard_guis.pdu_config import load_pdu_config
 import os
 import asgard_guis.utils
 import argparse
+import csv
 
 
 def str_to_ls(s):
@@ -15,6 +17,13 @@ def str_to_ls(s):
     start = s.find("[") + 1
     end = s.find("]")
     return list(s[start:end].split(","))
+
+
+def monitored_outlets(config):
+    """Monitor the MDS and camera outlets, counting shared outlets once."""
+    return tuple(
+        sorted(set(config.outlets_for("MDS")) | set(config.outlets_for("C-RED")))
+    )
 
 
 def main():
@@ -30,6 +39,9 @@ def main():
     )
     args = parser.parse_args()
 
+    config = load_pdu_config()
+    outlets_of_interest = monitored_outlets(config)
+
     duration = args.duration * 60 * 60  # convert hours to seconds
     sampling = args.sampling
 
@@ -40,31 +52,23 @@ def main():
 
     print("opening file at", savepth)
 
-    pdu = asgard_guis.PDU.AtenEcoPDU("192.168.100.11")
+    pdu = asgard_guis.PDU.AtenEcoPDU(config.ip)
     pdu.connect()
     print("Connected to PDU")
-
-    outlets_of_interest = [5, 6]
-    outlet_names = ["MDS", "C RED"]
 
     mds = asgard_guis.utils.open_socket_connection("MDS")
 
     keys = str_to_ls(asgard_guis.utils.send_and_get_response(mds, "temp_status keys"))
 
     start_time = time.time()
-    with open(savepth, "w") as f:
+    with open(savepth, "w", newline="") as f:
         # temp probes first, followed by PI infos prefixed by servo name
-        f.write(
-            "Time,"
-            + ",".join(keys)
-            + ","
-            + ",".join(
-                [
-                    f"outlet{o} ({desc})"
-                    for o, desc in zip(outlets_of_interest, outlet_names)
-                ]
-            )
-            + "\n"
+        csv.writer(f).writerow(
+            ["Time", *keys]
+            + [
+                f"outlet{o} ({' / '.join(config.devices_for(o))})"
+                for o in outlets_of_interest
+            ]
         )
         print("Starting monitoring...")
         try:
