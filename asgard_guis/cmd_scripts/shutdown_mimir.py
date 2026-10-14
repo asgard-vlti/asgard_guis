@@ -36,7 +36,9 @@ def main():
     shutdown_result = None
     shutdown_result = subprocess.call(
         [
-            "ssh", "-XC", "mimir",
+            "ssh",
+            "-XC",
+            "mimir",
             "sudo shutdown -h now",
         ]
     )
@@ -55,7 +57,6 @@ def main():
 
     for outlet in MIMIR_OUTLETS:
         pdu.switch_outlet_status(outlet, "off")
-
 
     # Add a 30 second wait to allow shutdown to progress
     print("Waiting 30s to ensure shutdown has completed...")
@@ -77,16 +78,13 @@ def main():
         time.sleep(1)
 
     if all(is_off):
-        print("--- Mimir is off ---")
+        print("--- Finished: Mimir is off (you may now close this window) ---")
     else:
         print("ERROR: Mimir is not off, check PDU status manually")
         for outlet, status in zip(MIMIR_OUTLETS, is_off):
             if not status:
                 print(f"Outlet {outlet} is still on")
 
+
 if __name__ == "__main__":
     main()
-
-
-
-
