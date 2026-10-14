@@ -21,6 +21,14 @@ def main():
 
     config = load_pdu_config()
     mimir_outlets = config.outlets_for("Mimir")
+    if not _confirm_or_abort(
+        "WARNING: You are about to shut down and power off Mimir "
+        f"(PDU outlets {', '.join(str(outlet) for outlet in mimir_outlets)}). "
+        "Continue? (y/n): "
+    ):
+        print("Mimir shutdown cancelled.")
+        return
+
     pdu = asgard_guis.PDU.AtenEcoPDU(config.ip)
     pdu.connect()
 

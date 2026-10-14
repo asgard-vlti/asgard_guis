@@ -96,6 +96,9 @@ class PDUCommandTests(unittest.TestCase):
             ssh = stack.enter_context(
                 patch.object(shutdown_mimir.subprocess, "call", return_value=0)
             )
+            confirmation = stack.enter_context(
+                patch("builtins.input", return_value="y")
+            )
             stack.enter_context(patch.object(shutdown_mimir.time, "sleep"))
             stack.enter_context(redirect_stdout(StringIO()))
             pdu_class.return_value.read_outlet_status.return_value = "off"
@@ -103,10 +106,31 @@ class PDUCommandTests(unittest.TestCase):
 
         pdu_class.assert_called_once_with("192.168.100.11")
         ssh.assert_called_once()
+        self.assertIn("power off Mimir", confirmation.call_args.args[0])
+        self.assertIn("2, 7", confirmation.call_args.args[0])
         self.assertEqual(
             pdu_class.return_value.switch_outlet_status.call_args_list,
             [call(2, "off"), call(7, "off")],
         )
+
+    def test_shutdown_refusal_stops_before_pdu_or_ssh(self):
+        with ExitStack() as stack:
+            stack.enter_context(
+                patch.object(shutdown_mimir, "load_pdu_config", return_value=self.config)
+            )
+            pdu_class = stack.enter_context(patch("asgard_guis.PDU.AtenEcoPDU"))
+            ssh = stack.enter_context(patch.object(shutdown_mimir.subprocess, "call"))
+            confirmation = stack.enter_context(
+                patch("builtins.input", return_value="n")
+            )
+            output = StringIO()
+            stack.enter_context(redirect_stdout(output))
+            shutdown_mimir.main()
+
+        self.assertIn("power off Mimir", confirmation.call_args.args[0])
+        self.assertIn("Mimir shutdown cancelled.", output.getvalue())
+        pdu_class.assert_not_called()
+        ssh.assert_not_called()
 
     def test_invalid_config_stops_before_power_or_remote_shutdown(self):
         for module in (startup_mimir, shutdown_mimir):
