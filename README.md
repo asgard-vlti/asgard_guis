@@ -9,6 +9,15 @@ directory where you run the command. The command uses the included
 `templates/no_coords_dynamical.ONAXIS.obd` by default. Use `--template` to
 select another template.
 
+On wag, each target is queried first at Strasbourg (`simbad.cds.unistra.fr`).
+If that lookup times out or encounters a network/service error, the command
+automatically tries the Harvard mirror (`simbad.harvard.edu`, also available at
+https://simbad.cfa.harvard.edu/simbad/). Each server gets 10 seconds for the full
+lookup, including field setup. If both servers time out, the command exits after
+approximately 20 seconds per target with an error. A successful response with no
+matching target reports "not found" without retrying. An OB is written only after
+every target has been retrieved successfully.
+
 ## PDU configuration
 
 The `mimir-startup`, `mimir-shutdown`, `read-all-pdu`, and `temperature-watchdog`

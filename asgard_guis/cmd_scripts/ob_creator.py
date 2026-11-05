@@ -11,13 +11,87 @@
 #
 
 
+import signal
 import sys
+import time
+from contextlib import contextmanager
 from pathlib import Path
 
+SIMBAD_SERVERS = ("simbad.cds.unistra.fr", "simbad.harvard.edu")
+SIMBAD_TIMEOUT = 10
 TEMPLATE_NAME = "no_coords_dynamical.ONAXIS.obd"
 PACKAGE_TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / TEMPLATE_NAME
 SOURCE_TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / TEMPLATE_NAME
 DEFAULT_TEMPLATE = PACKAGE_TEMPLATE if PACKAGE_TEMPLATE.is_file() else SOURCE_TEMPLATE
+
+
+class SimbadLookupError(RuntimeError):
+    """The target could not be retrieved from SIMBAD."""
+
+
+class _SimbadDeadlineExpired(BaseException):
+    """Unwind library error handlers before reporting the lookup timeout."""
+
+
+@contextmanager
+def _simbad_deadline(timeout):
+    """Bound the full lookup on wag, including network calls during setup."""
+    def timed_out(signum, frame):
+        raise _SimbadDeadlineExpired()
+
+    started = time.monotonic()
+    previous_handler = signal.signal(signal.SIGALRM, timed_out)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, timeout)
+    try:
+        yield
+    except _SimbadDeadlineExpired:
+        raise TimeoutError(f"Timed out after {timeout:g} seconds") from None
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_timer[0]:
+            remaining = max(0.000001, previous_timer[0] - (time.monotonic() - started))
+            signal.setitimer(signal.ITIMER_REAL, remaining, previous_timer[1])
+
+
+def _query_simbad(target_name):
+    from astroquery.simbad import Simbad
+    from pyvo.dal.exceptions import DALAccessError
+    from requests.exceptions import RequestException
+
+    failures = []
+    for server in SIMBAD_SERVERS:
+        print(
+            f"Querying SIMBAD for {target_name} via {server} "
+            f"(timeout {SIMBAD_TIMEOUT:g}s)...",
+            flush=True,
+        )
+        try:
+            # Astroquery's timeout only limits asynchronous server-side execution.
+            with _simbad_deadline(SIMBAD_TIMEOUT):
+                client = Simbad()
+                client.server = server
+                client.add_votable_fields(
+                    "pmra", "pmdec", "V", "G", "J", "H", "K", "plx_value", "rvz_radvel"
+                )
+                result = client.query_object(target_name)
+        except (TimeoutError, RequestException, DALAccessError) as error:
+            message = " ".join(str(error).strip().splitlines()[:2]) or type(error).__name__
+            reason = f"{server}: {message}"
+            failures.append(reason)
+            print(f"SIMBAD lookup failed on {reason}", file=sys.stderr, flush=True)
+            continue
+
+        if result is None or len(result) == 0:
+            raise SimbadLookupError(
+                f"Target '{target_name}' was not found in SIMBAD ({server})."
+            )
+        return result
+
+    raise SimbadLookupError(
+        f"Could not query SIMBAD for '{target_name}'. " + "; ".join(failures)
+    )
+
 
 def create_ob(targets_data, output_filename, template_file=DEFAULT_TEMPLATE):
     try:
@@ -54,12 +128,9 @@ def create_ob(targets_data, output_filename, template_file=DEFAULT_TEMPLATE):
     
 def extract_simbad_data(target_name):
     import numpy as onp
-    from astroquery.simbad import Simbad
     from astropy.coordinates import Angle
 
-    print(f"Querying Simbad for {target_name}...")
-    Simbad.add_votable_fields("pmra", "pmdec", "V", "G", "J", "H", "K", "plx_value", "rvz_radvel")
-    result = Simbad.query_object(target_name)
+    result = _query_simbad(target_name)
     print("Got the info !")
 
     ra0 = result[0]['ra']
@@ -170,7 +241,10 @@ def main():
     all_targets_data = []
     
     for name in target_names:
-        target_dict = extract_simbad_data(name)
+        try:
+            target_dict = extract_simbad_data(name)
+        except SimbadLookupError as error:
+            parser.exit(1, f"Error: {error}\n")
         all_targets_data.append(target_dict)
     
     faintest_k = max([target["K_FLOAT"] for target in all_targets_data])
