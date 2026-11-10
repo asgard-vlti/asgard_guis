@@ -186,7 +186,7 @@ def extract_simbad_data(target_name):
         
     val_g = result[0]['G']
     if onp.ma.is_masked(val_g) or onp.isnan(val_g):
-        gmag_out = '99.'
+        gmag_out = '5'
     else:
         gmag_out = f"{float(val_g):.2f}"
         
