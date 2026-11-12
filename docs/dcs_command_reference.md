@@ -14,7 +14,7 @@ python asgard_guis/generate_command_reference.py
 
 Source: [`dcs/asgard-cred1-server/cred1_onsky_server.c`](../../dcs/asgard-cred1-server/cred1_onsky_server.c)
 
-Protocol: Commander. Commands documented: 25.
+Protocol: Commander. Commands documented: 26.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
@@ -35,6 +35,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `get_water_temp` | `get_water_temp` | Prints the water temperature. |
 | `help` | `help` | List every command and its description. |
 | `make_dark` | `make_dark` | Records dark for current config. |
+| `move_roi` | `move_roi [roi_str: std::string, dx: int, dy: int]` | Updates position of specified ROI |
 | `ndmr_mode` | `ndmr_mode [reads: unsigned int]` | Set/unset the multiple readout mode. |
 | `quit` | `quit` | Stops and closes the server. |
 | `return_type` | `return_type [name: std::string]` | Return the result type for one command. |
@@ -266,6 +267,26 @@ _No arguments._
 | --- | --- |
 | `void` | — |
 
+#### `move_roi`
+
+Updates position of specified ROI
+
+**Invocation:** `move_roi [roi_str: std::string, dx: int, dy: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `roi_str` | `std::string` | Required | Name of the ROI to move. |
+| `dx` | `int` | Required | Horizontal offset in pixels added to the ROI x0 coordinate. |
+| `dy` | `int` | Required | Vertical offset in pixels added to the ROI y0 coordinate. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
+
 #### `ndmr_mode`
 
 Set/unset the multiple readout mode.
@@ -480,7 +501,7 @@ Set/unset the dark subtraction.
 
 Source: [`dcs/asgard-dm-server/asgard_commander_MDM_high_perf_server.c`](../../dcs/asgard-dm-server/asgard_commander_MDM_high_perf_server.c)
 
-Protocol: Commander. Commands documented: 13.
+Protocol: Commander. Commands documented: 15.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
@@ -492,10 +513,12 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `command_names` | `command_names` | List all available command names. |
 | `description` | `description [name: std::string]` | Describe one command, including its signature. |
 | `get_nch` | `get_nch` | Returns the number of virtual channels per DM. |
+| `get_save_status` | `get_save_status` | Returns DM command archiving mode and when it was enabled. |
 | `help` | `help` | List every command and its description. |
 | `quit` | `quit` | Stops and closes the server. |
 | `reset` | `reset [dm_id: int, channel: int]` | Resets one or all virtual channels of a DM. |
 | `return_type` | `return_type [name: std::string]` | Return the result type for one command. |
+| `save` | `save [mode: int]` | Turns DM command archiving on or off. |
 | `set_nch` | `set_nch [n_channels: int]` | Updates the number of virtual channels per DM. |
 | `signature` | `signature [name: std::string]` | Return the arguments and return type for one command. |
 | `start` | `start` | Starts monitoring shared memory data structures. |
@@ -572,6 +595,22 @@ _No arguments._
 | --- | --- |
 | `int` | — |
 
+#### `get_save_status`
+
+Returns DM command archiving mode and when it was enabled.
+
+**Invocation:** `get_save_status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `nlohmann::json` | — |
+
 #### `help`
 
 List every command and its description.
@@ -640,6 +679,24 @@ Return the result type for one command.
 | Type | Description |
 | --- | --- |
 | `JSON` | — |
+
+#### `save`
+
+Turns DM command archiving on or off.
+
+**Invocation:** `save [mode: int]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `int` | Required | Set to 1 to archive commands and timestamps, 0 to disable. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `void` | — |
 
 #### `set_nch`
 
@@ -729,7 +786,7 @@ _No arguments._
 
 Source: [`dcs/heimdallr/heimdallr.cpp`](../../dcs/heimdallr/heimdallr.cpp)
 
-Protocol: Commander. Commands documented: 41.
+Protocol: Commander. Commands documented: 43.
 
 Arguments are shown in the positional JSON array accepted by Commander. Names such as `arg_0` match Commander's generated argument names.
 
@@ -740,6 +797,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `arguments` | `arguments [name: std::string]` | Return argument metadata for one command. |
 | `beams_active` | `beams_active [b1: int = 1, b2: int = 1, b3: int = 1, b4: int = 1]` | Set which beams are active |
 | `command_names` | `command_names` | List all available command names. |
+| `ddspc` | `ddspc [action: std::string, value: nlohmann::json = nlohmann::json(nullptr)]` | Get or stage DDSPC tuning, or freeze the active run. Returns JSON with configured, active, and runtime status. |
 | `default_gains` | `default_gains` | Set the gains to default values |
 | `description` | `description [name: std::string]` | Describe one command, including its signature. |
 | `dl` | `dl [beam: int, value: double = 0.0]` | Set a delay line value in microns |
@@ -749,6 +807,7 @@ Arguments are shown in the positional JSON array accepted by Commander. Names su
 | `expstatus` | `expstatus` | Get the exposure time status (success if complete) |
 | `fixed_dl` | `fixed_dl [value: int = 0]` | Set the fixed delay line value |
 | `foreground` | `foreground [state: int = 1]` | Set (1) or unset (0) foreground delay line offsets |
+| `ft_telemetry` | `ft_telemetry [stream_id: std::uint64_t = std::uint64_t(0), after_seq: std::uint32_t = std::uint32_t(0), limit: std::uint32_t = std::uint32_t(0)]` | Get buffered fringe-tracker performance samples |
 | `gain` | `gain [gain: double = 0.0]` | Set the gain for the servo loop |
 | `get_baseline_im` | `get_baseline_im [filter: std::string, baseline: int]` | Get a baseline image for K1 or K2 as an encoded string |
 | `get_gd_toml_offsets` | `get_gd_toml_offsets` | Get the GD phasor offsets for all baselines in microns, to 3 decimal places |
@@ -835,6 +894,25 @@ _No arguments._
 | Type | Description |
 | --- | --- |
 | `std::vector<std::string>` | — |
+
+#### `ddspc`
+
+Get or stage DDSPC tuning, or freeze the active run. Returns JSON with configured, active, and runtime status.
+
+**Invocation:** `ddspc [action: std::string, value: nlohmann::json = nlohmann::json(nullptr)]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `action` | `std::string` | Required | Enter these examples in the Heimdallr text client. Numeric values illustrate syntax; read the current profile with `ddspc "get"` before tuning.<br>`ddspc "get"`: read status; omit the value.<br>`ddspc "freeze"`: queue a freeze of the active DDSPC run; omit the value. Learning, regularization changes, and exploration stop while control continues. Requires an active DDSPC profile; repeating a pending or completed freeze is harmless.<br>`ddspc "set-history" [30,3]`: stage [history,future] frame counts. Supported pairs are [20,2], [30,3], [40,3], and [50,3]; both values must be integers and the servo must be off.<br>`ddspc "set-reg-start" 1000`: stage the starting regularization; must be finite and at least the configured reg_cutoff.<br>`ddspc "set-reg-cutoff" 0.01`: stage the regularization floor; must be finite, positive, and no greater than the configured reg_start.<br>`ddspc "set-reg-divisor" 4`: stage the divisor used to reduce regularization toward the cutoff; must be finite and greater than 1.<br>`ddspc "set-reg-interval" 200`: stage the regularization reduction interval in valid frames; must be an integer from 1 to 2147483647.<br>`ddspc "set-n-exploration" 2500`: stage the exploration duration in valid frames; must be an integer from 0 to 2147483647. Zero disables exploration.<br>`ddspc "set-exploration-sigma" 0.01`: stage the standard deviation of the exploration noise in command waves, before clipping; must be finite and nonnegative.<br>`ddspc "set-gamma" 1.0`: stage the RLS forgetting factor; must be finite and in (0, 1].<br>`ddspc "set-continue-learning" false`: stage whether learning continues after exploration; requires a JSON boolean, true or false. False freezes the run after exploration, immediately on entry if n_exploration is zero. |
+| `value` | `nlohmann::json` | `nlohmann::json(nullptr)` | Supply the number, boolean, or [history,future] array required by the action. Omit it for get and freeze (JSON null is also accepted).<br>Setters update the in-memory configured profile for the next DDSPC entry; they do not change the active run or save the startup TOML. Use `ddspc "get"` for current values because startup configuration can override defaults.<br>To apply tuning, enter each command separately in the Heimdallr text client:<br>1. `servo "off"` to leave the current servo mode.<br>2. `ddspc "get"`, then the required set-* commands above (for example, `ddspc "set-history" [30,3]`). Check each response's configured profile.<br>3. `servo "ddspc"` to start a fresh DDSPC run and enable nested offload.<br>4. `ddspc "get"` to check that active matches the intended configured profile once the fringe tracker processes the transition. Repeating `servo "ddspc"` while already selected does not apply staged changes.<br>Every successful action returns configured (the staged profile), active (the current run's profile), and runtime (freeze_pending, frozen, and freeze_reason). Active and runtime are null when no DDSPC profile is active, including before the fringe tracker processes entry. The active profile is not proof of valid fringe tracking.<br>Freeze is asynchronous: poll `ddspc "get"` until runtime.frozen is true and runtime.freeze_pending is false. Freeze reasons are manual or after_exploration; freeze_reason is null before freezing. There is no unfreeze action; leave DDSPC and re-enter to start a fresh run.<br>On an error, correct the action, value, or required servo state and check status before continuing. If entry or freeze stays pending, check the fringe-tracker service. To stop DDSPC, use `servo "off"`; to stop offload too, use `offload "off"`. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `nlohmann::json` | — |
 
 #### `default_gains`
 
@@ -1000,6 +1078,26 @@ Set (1) or unset (0) foreground delay line offsets
 | Type | Description |
 | --- | --- |
 | `void` | — |
+
+#### `ft_telemetry`
+
+Get buffered fringe-tracker performance samples
+
+**Invocation:** `ft_telemetry [stream_id: std::uint64_t = std::uint64_t(0), after_seq: std::uint32_t = std::uint32_t(0), limit: std::uint32_t = std::uint32_t(0)]`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `stream_id` | `std::uint64_t` | `std::uint64_t(0)` | Stream ID returned by the first request. |
+| `after_seq` | `std::uint32_t` | `std::uint32_t(0)` | Last sequence written by the client. |
+| `limit` | `std::uint32_t` | `std::uint32_t(0)` | Maximum samples to return; zero queries the cursor. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `nlohmann::json` | — |
 
 #### `gain`
 
@@ -1246,7 +1344,7 @@ Set the servo mode
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `mode` | `std::string` | `"off"` | One of 'off', 'simple', 'fight', 'lacour', or 'on'. |
+| `mode` | `std::string` | `"off"` | One of 'off', 'simple', 'fight', 'lacour', 'ddspc', or 'on'.<br>`servo "ddspc"` selects DDSPC and enables nested offload. Entering DDSPC starts a fresh run with the staged tuning profile; repeating this command while already in DDSPC does not apply staged changes.<br>Use `servo "off"` before configuring and re-entering DDSPC. Offload is controlled separately; use `offload "off"` to stop it. |
 
 **Output**
 
@@ -1531,7 +1629,7 @@ _No arguments._
 
 Source: [`asgard-alignment/asgard_alignment/MultiDeviceServer.py`](../../asgard-alignment/asgard_alignment/MultiDeviceServer.py)
 
-Protocol: MDS custom text protocol. Commands documented: 46.
+Protocol: MDS custom text protocol. Commands documented: 40.
 
 ### Quick reference
 
@@ -1543,19 +1641,11 @@ Protocol: MDS custom text protocol. Commands documented: 46.
 | `command_names` | `command_names` | list all available commands |
 | `connect` | `connect {axis}` | attempt to open connection to axis |
 | `connected?` | `connected? {axis}` | check if axis is connected, returns 'connected' or 'not connected' |
-| `dmapplycross` | `dmapplycross {dm_name}` | apply cross map to deformable mirror |
-| `dmapplyflat` | `dmapplyflat {dm_name}` | apply flat map to deformable mirror |
-| `fpm_getsavepath` | `fpm_getsavepath {axis}` | get save path for focal plane mask |
-| `fpm_maskpositions` | `fpm_maskpositions {axis}` | get focal plane mask positions |
-| `fpm_moveabs` | `fpm_moveabs {axis} {new_pos}` | move focal plane mask to absolute position |
-| `fpm_moverel` | `fpm_moverel {axis} {new_pos}` | move focal plane mask by relative position |
-| `fpm_movetomask` | `fpm_movetomask {axis} {maskname}` | move focal plane mask to named position |
-| `fpm_offsetallmaskpositions` | `fpm_offsetallmaskpositions {axis} {rel_offset_x} {rel_offset_y}` | offset all focal plane mask positions |
-| `fpm_readpos` | `fpm_readpos {axis}` | read focal plane mask position |
-| `fpm_update_position_file` | `fpm_update_position_file {axis} {filename}` | update focal plane mask position file |
-| `fpm_updateallmaskpos` | `fpm_updateallmaskpos {axis} {current_mask_name} {reference_mask_position_file}` | update all focal plane mask positions relative to current |
-| `fpm_updatemaskpos` | `fpm_updatemaskpos {axis} {mask_name}` | update focal plane mask position |
-| `fpm_writemaskpos` | `fpm_writemaskpos {axis}` | write focal plane mask positions to file |
+| `description` | `description "{command_name}"` | get a command description |
+| `fpm_movetomask` | `fpm_movetomask {beam} {mask_name}` | move a focal plane mask to a named position |
+| `fpm_read` | `fpm_read {beam}` | reload focal plane mask positions from JSON (beam: 1-4 or -1 for all) |
+| `fpm_update` | `fpm_update {beam} {mask_name} {scope}` | update named positions from the current focal plane mask position (scope: all, one, or band) |
+| `fpm_write` | `fpm_write {beam}` | write focal plane mask named positions to JSON (beam: 1-4 or -1 for all) |
 | `h_shut` | `h_shut {state} {beam_numbers}` | control heimdallr shutter (state: open/close, beam_numbers: comma-separated or 'all') |
 | `h_splay` | `h_splay {state}` | control heimdallr splay |
 | `health` | `health` | check health of the whole instrument |
@@ -1576,7 +1666,9 @@ Protocol: MDS custom text protocol. Commands documented: 46.
 | `rotm_slew` | `rotm_slew {adc_set} {reltarget}` | enable and move rotation motor set (adc_set: U or L) |
 | `save` | `save {subset} {filename}` | save instrument state to file (subset: heimdallr, baldr, solarstein, or all) |
 | `set_kaya` | `set_kaya {state}` | set kaya state (state: on/off) |
+| `signature` | `signature "{command_name}"` | get a command signature |
 | `standby` | `standby {axis}` | put axis into standby mode |
+| `standby_status` | `standby_status` | report whole-instrument standby status |
 | `state` | `state {axis}` | read the state of the given axis |
 | `status` | `status` | get system status |
 | `stop` | `stop {axis}` | stop movement of the given axis |
@@ -1695,248 +1787,98 @@ check if axis is connected, returns 'connected' or 'not connected'
 | --- | --- |
 | `str` | 'connected' or 'not connected'. |
 
-#### `dmapplycross`
+#### `description`
 
-apply cross map to deformable mirror
+get a command description
 
-**Invocation:** `dmapplycross {dm_name}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `dm_name` | `str` | Required | Deformable mirror device name. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK naming the DM, or NACK if the DM is not found. |
-
-#### `dmapplyflat`
-
-apply flat map to deformable mirror
-
-**Invocation:** `dmapplyflat {dm_name}`
+**Invocation:** `description "{command_name}"`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `dm_name` | `str` | Required | Deformable mirror device name. |
+| `command_name` | `str` | Required | Name of the command to inspect. |
 
 **Output**
 
 | Type | Description |
 | --- | --- |
-| `str` | ACK naming the DM, or NACK if the DM is not found. |
-
-#### `fpm_getsavepath`
-
-get save path for focal plane mask
-
-**Invocation:** `fpm_getsavepath {axis}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | Configured save-directory path, or NACK if the axis is not found. |
-
-#### `fpm_maskpositions`
-
-get focal plane mask positions
-
-**Invocation:** `fpm_maskpositions {axis}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | Mapping of mask names to [x, y] positions, or NACK if the axis is not found. |
-
-#### `fpm_moveabs`
-
-move focal plane mask to absolute position
-
-**Invocation:** `fpm_moveabs {axis} {new_pos}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `new_pos` | `sequence[float]` | Required | Two-element [x, y] absolute position in micrometres. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK after the move completes, or NACK if the axis is not found. |
-
-#### `fpm_moverel`
-
-move focal plane mask by relative position
-
-**Invocation:** `fpm_moverel {axis} {new_pos}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `new_pos` | `sequence[float]` | Required | Two-element [x, y] relative offset in micrometres. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK after the move completes, or NACK if the axis is not found. |
+| `str` | The command usage and description, or NACK for an unknown command. |
 
 #### `fpm_movetomask`
 
-move focal plane mask to named position
+move a focal plane mask to a named position
 
-**Invocation:** `fpm_movetomask {axis} {maskname}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `maskname` | `str` | Required | Mask name present in the position mapping. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK after the move completes, or NACK if the axis is not found. |
-
-#### `fpm_offsetallmaskpositions`
-
-offset all focal plane mask positions
-
-**Invocation:** `fpm_offsetallmaskpositions {axis} {rel_offset_x} {rel_offset_y}`
+**Invocation:** `fpm_movetomask {beam} {mask_name}`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `rel_offset_x` | `float` | Required | X offset in micrometres. |
-| `rel_offset_y` | `float` | Required | Y offset in micrometres. |
+| `beam` | `int` | Required | Beam number from 1 to 4. |
+| `mask_name` | `str` | Required | Mask name present in the position mapping. |
 
 **Output**
 
 | Type | Description |
 | --- | --- |
-| `str` | ACK after updating all in-memory positions, or NACK if the axis is not found. |
+| `str` | ACK after both BMX and BMY move commands are issued. |
 
-#### `fpm_readpos`
+#### `fpm_read`
 
-read focal plane mask position
+reload focal plane mask positions from JSON (beam: 1-4 or -1 for all)
 
-**Invocation:** `fpm_readpos {axis}`
+**Invocation:** `fpm_read {beam}`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
+| `beam` | `int` | Required | Beam number from 1 to 4, or -1 for all beams. |
 
 **Output**
 
 | Type | Description |
 | --- | --- |
-| `str` | Two-element [x, y] position in micrometres, or NACK if the axis is not found. |
+| `str` | ACK with the JSON files reloaded into BMX/BMY named positions. |
 
-#### `fpm_update_position_file`
+#### `fpm_update`
 
-update focal plane mask position file
+update named positions from the current focal plane mask position (scope: all, one, or band)
 
-**Invocation:** `fpm_update_position_file {axis} {filename}`
+**Invocation:** `fpm_update {beam} {mask_name} {scope}`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `filename` | `str` | Required | Path to a phase-position JSON file. |
+| `beam` | `int` | Required | Beam number from 1 to 4. |
+| `mask_name` | `str` | Required | Currently aligned mask name. |
+| `scope` | `str` | Required | 'one' updates this mask, 'band' its H/J band, and 'all' every H/J mask. |
 
 **Output**
 
 | Type | Description |
 | --- | --- |
-| `str` | ACK after loading the file, or NACK if the axis is not found. |
+| `str` | ACK after updating the in-memory BMX/BMY named positions. |
 
-#### `fpm_updateallmaskpos`
+#### `fpm_write`
 
-update all focal plane mask positions relative to current
+write focal plane mask named positions to JSON (beam: 1-4 or -1 for all)
 
-**Invocation:** `fpm_updateallmaskpos {axis} {current_mask_name} {reference_mask_position_file}`
+**Invocation:** `fpm_write {beam}`
 
 **Arguments**
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `current_mask_name` | `str` | Required | Mask currently aligned at the measured position. |
-| `reference_mask_position_file` | `str` | Required | JSON file defining the calibrated relative mask positions. |
+| `beam` | `int` | Required | Beam number from 1 to 4, or -1 for all beams. |
 
 **Output**
 
 | Type | Description |
 | --- | --- |
-| `str` | ACK after updating all in-memory positions, or NACK if the axis is not found. |
-
-#### `fpm_updatemaskpos`
-
-update focal plane mask position
-
-**Invocation:** `fpm_updatemaskpos {axis} {mask_name}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-| `mask_name` | `str` | Required | Mask whose saved position will be replaced. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK after updating the in-memory position, or NACK if the axis is not found. |
-
-#### `fpm_writemaskpos`
-
-write focal plane mask positions to file
-
-**Invocation:** `fpm_writemaskpos {axis}`
-
-**Arguments**
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| `axis` | `str` | Required | Focal-plane-mask compound device name. |
-
-**Output**
-
-| Type | Description |
-| --- | --- |
-| `str` | ACK after writing a timestamped JSON file, or NACK if the axis is not found. |
+| `str` | ACK with the timestamped JSON files written from BMX/BMY named positions. |
 
 #### `h_shut`
 
@@ -2305,6 +2247,24 @@ set kaya state (state: on/off)
 | --- | --- |
 | `str` | ACK on success, or NACK for an invalid state. |
 
+#### `signature`
+
+get a command signature
+
+**Invocation:** `signature "{command_name}"`
+
+**Arguments**
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `command_name` | `str` | Required | Name of the command to inspect. |
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `JSON` | JSON object containing argument metadata and the return type, or an error object for an unknown command. |
+
 #### `standby`
 
 put axis into standby mode
@@ -2322,6 +2282,22 @@ put axis into standby mode
 | Type | Description |
 | --- | --- |
 | `str` | ACK on success, or NACK if the device is unavailable. |
+
+#### `standby_status`
+
+report whole-instrument standby status
+
+**Invocation:** `standby_status`
+
+**Arguments**
+
+_No arguments._
+
+**Output**
+
+| Type | Description |
+| --- | --- |
+| `str` | STANDBY if no configured motors remain, otherwise ACTIVE. |
 
 #### `state`
 
